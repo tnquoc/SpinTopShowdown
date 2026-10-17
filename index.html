@@ -247,7 +247,67 @@
 <script type="module">
 import * as THREE from 'three';
 
+const BUILD = 'web';
 const params = new URLSearchParams(location.search);
+const DEBUG = BUILD !== 'crazygames' && params.has('debug');
+
+// CrazyGames is optional; a failed or slow init never holds up the game.
+const CG = window.CrazyGames?.SDK;
+let cgReady = false, cgLoaded = false, cgPlaying = false, cgSession = false, cgMuted = false;
+let cgAdPending = false, cgBattles = 0, cgLastAd = performance.now(), cgGain = null;
+function cgCall(fn) { try { Promise.resolve(fn()).catch(() => {}); } catch (e) {} }
+function cgGameplay() {
+  const playing = cgSession && !cgPaused();
+  if (!cgReady || playing === cgPlaying) return;
+  cgPlaying = playing;
+  cgCall(() => playing ? CG.game.gameplayStart() : CG.game.gameplayStop());
+}
+function cgPaused() { return cgAdPending || (cgReady && document.hidden); }
+function cgAudio() {
+  const muted = cgMuted || cgAdPending;
+  if (cgGain) cgGain.gain.value = muted ? 0 : 1;
+  if (muted && 'speechSynthesis' in window) speechSynthesis.cancel();
+  if (cgAdPending && silentEl) silentEl.pause();
+}
+function cgSettings(s) { cgMuted = !!s.muteAudio; cgAudio(); }
+function cgLoadingStop() {
+  cgLoaded = true;
+  if (cgReady) cgCall(() => CG.game.loadingStop());
+}
+if (CG) (async () => {
+  try { await CG.init(); } catch (e) { return; }
+  cgReady = true;
+  cgCall(() => CG.game.loadingStart());
+  cgCall(() => cgSettings(CG.game.settings));
+  cgCall(() => CG.game.addSettingsChangeListener(cgSettings));
+  if (cgLoaded) cgCall(() => CG.game.loadingStop());
+  cgGameplay();
+})();
+function nextResult(next) {
+  if (cgAdPending) return;
+  if (!cgReady || cgBattles < 2 || performance.now() - cgLastAd < 180000) return next();
+  cgLastAd = performance.now(); cgAdPending = true;
+  cgGameplay(); cgAudio();
+  let done = false;
+  const resume = () => {
+    if (done) return;
+    done = true; cgAdPending = false;
+    cgAudio();
+    if (ac && !document.hidden) initAudio();
+    next(); cgGameplay();
+  };
+  try {
+    const request = CG.ad.requestAd('midgame', {
+      adStarted: () => { if (!done) { cgGameplay(); cgAudio(); } },
+      adFinished: resume, adError: resume,
+    });
+    if (request?.catch) request.catch(resume);
+  } catch (e) { resume(); }
+}
+// Ignore game input while an ad owns the screen.
+for (const ev of ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'click', 'keydown'])
+  addEventListener(ev, e => { if (cgAdPending) { e.preventDefault(); e.stopImmediatePropagation(); } }, { capture: true, passive: false });
+
 let savedLang = null;
 try { savedLang = localStorage.getItem('tops.lang'); } catch (e) {}
 const VI = (params.get('lang') || savedLang || navigator.language || 'en').startsWith('vi');
@@ -1017,6 +1077,7 @@ function silentWav() {
   return URL.createObjectURL(new Blob([b], { type: 'audio/wav' }));
 }
 function initAudio() {
+  if (cgAdPending) return;
   if (!ac) {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
@@ -1024,7 +1085,9 @@ function initAudio() {
     ac = new AC();
     const comp = ac.createDynamicsCompressor();          // keeps a roaring crowd plus a big hit from clipping
     comp.threshold.value = -12; comp.ratio.value = 4;
-    comp.connect(ac.destination);
+    if (CG) {
+      cgGain = ac.createGain(); cgGain.connect(ac.destination); comp.connect(cgGain); cgAudio();
+    } else comp.connect(ac.destination);
     mixMeter = ac.createAnalyser(); comp.connect(mixMeter);
     master = ac.createGain(); master.gain.value = soundOn ? SFX_VOL : 0; master.connect(comp);
     musicGain = ac.createGain(); musicGain.gain.value = musicOn ? MUSIC_VOL : 0; musicGain.connect(comp);
@@ -1052,6 +1115,7 @@ for (const ev of ['pointerup', 'touchend', 'click', 'keydown'])
   addEventListener(ev, () => { if (!headless && (!ac || ac.state !== 'running')) initAudio(); }, { capture: true, passive: true });
 // go quiet when the game is in the background, pick up again when it comes back
 document.addEventListener('visibilitychange', () => {
+  cgGameplay();
   if (!ac) return;
   if (document.hidden) { ac.suspend().catch(() => {}); if (silentEl) silentEl.pause(); }
   else initAudio();
@@ -1177,7 +1241,7 @@ try {
   unlockedT = clamp(+localStorage.getItem('tops.unlockedT') || 0, 0, LEVELS.length - ARENAS - 1);
   Object.assign(build, JSON.parse(localStorage.getItem('tops.build') || '{}'));
 } catch (e) {}
-const save = () => { if (params.has('debug')) return;   // test sessions never overwrite real progress
+const save = () => { if (DEBUG) return;   // test sessions never overwrite real progress
   try { localStorage.setItem('tops.campaign', unlocked); localStorage.setItem('tops.unlockedT', unlockedT); localStorage.setItem('tops.build', JSON.stringify(build)); } catch (e) {} };
 
 // ---------- formulas (advanced mode) ----------
@@ -2466,12 +2530,12 @@ function iceShatter(f) {
 
 // ---------- story ----------
 // Cutscenes: the camera cuts to whoever is talking, the line types itself out, and the big lines get a beat of their own.
-const storyOn = !params.has('debug') || params.has('story');
+const storyOn = !DEBUG || (BUILD !== 'crazygames' && params.has('story'));
 let storyQ = [], storyDone = null, seen = {}, cine = null, typing = null, titled = new Set();
 try { seen = JSON.parse(localStorage.getItem('tops.seen') || '{}'); } catch (e) {}
 function markSeen(k) {
   seen[k] = 1;
-  if (!params.has('debug')) try { localStorage.setItem('tops.seen', JSON.stringify(seen)); } catch (e) {}
+  if (!DEBUG) try { localStorage.setItem('tops.seen', JSON.stringify(seen)); } catch (e) {}
 }
 function speaker(who) {
   if (who === 'me') return [t('Bạn', 'You'), '#ffd23f'];
@@ -2640,7 +2704,7 @@ function say(text, prio = 1) {
   castLast = realT; castPrio = prio; castHide = realT + 4.5;
   $('casterText').textContent = text;
   $('caster').classList.add('on');
-  if (!VOICE_FEATURE || !voiceOn || !voice || !soundOn) return;
+  if (!VOICE_FEATURE || !voiceOn || !voice || !soundOn || cgMuted || cgAdPending) return;
   if (prio >= 2) speechSynthesis.cancel(); else if (speechSynthesis.speaking) return;
   const u = new SpeechSynthesisUtterance(text);
   u.voice = voice; u.lang = voice.lang; u.rate = 1.12; u.pitch = 1.05; u.volume = 1;
@@ -2729,6 +2793,7 @@ function setLevel(i) {
 }
 
 function enterShop() {
+  cgSession = false; cgGameplay();
   if (level.void) { level = LEVELS[levelIndex]; buildArena(); }   // a retry starts the final fight from phase one
   clearFinale();
   state = 'shop'; simT = 0;
@@ -2745,13 +2810,14 @@ function enterShop() {
 }
 
 function launch() {
-  if (state !== 'shop' || storyOpen()) return;
+  if (cgPaused() || state !== 'shop' || storyOpen()) return;
   if (level.boss && !seen['b' + level.chapter] && storyOn && !headless) { markSeen('b' + level.chapter); return playStory(STORY[level.chapter].boss, launch); }
   try { compileSteer(); } catch (e) { showTab('adv'); $('fErr').textContent = e.message; return; }
   if (!headless) { initAudio(); save(); }
   placeTops(); resetSkillFx();
   player.yOff = 2.5;
   state = 'battle'; simT = 0; acc = 0; slowT = 0; stats = { hits: 0, maxHit: 0 }; clashUntil = -1; finished = false;
+  if (!headless) { cgBattles++; cgSession = true; cgGameplay(); }
   clearFinale();
   $('shop').classList.add('hidden');
   $('btnStorm').classList.remove('hidden'); $('btnView').classList.remove('hidden');
@@ -2782,9 +2848,11 @@ function checkEnd(dt) {
 
 function showResult() {
   state = 'result';
+  cgSession = false; cgGameplay();
   if (humGain) humGain.gain.value = 0;
   const course = !!level.track, last = levelIndex === (course ? LEVELS.length : ARENAS) - 1;
   if (headless) return;   // balance sims must not touch the player's progress
+  if (cgReady && won && (level.boss || level.void)) cgCall(() => CG.game.happytime());
   if (won) {
     if (course) unlockedT = Math.max(unlockedT, Math.min(LEVELS.length - ARENAS - 1, levelIndex - ARENAS + 1));
     else unlocked = Math.max(unlocked, Math.min(ARENAS - 1, levelIndex + 1));
@@ -4045,8 +4113,8 @@ $('langSw').addEventListener('click', e => {
   const u = new URL(location.href); u.searchParams.delete('lang');
   if (u.href === location.href) location.reload(); else location.replace(u);
 });
-$('rNext').addEventListener('click', () => setLevel(levelIndex + 1));
-$('rRetry').addEventListener('click', enterShop);
+$('rNext').addEventListener('click', () => nextResult(() => setLevel(levelIndex + 1)));
+$('rRetry').addEventListener('click', () => nextResult(enterShop));
 $('btnStorm').addEventListener('click', powerPress);
 $('btnView').addEventListener('click', toggleView);
 $('btnSound').addEventListener('click', () => { soundOn = !soundOn; initAudio(); setAudioSwitches(); });
@@ -4055,7 +4123,7 @@ $('btnVoice').addEventListener('click', () => { voiceOn = !voiceOn; if (!voiceOn
 setAudioSwitches();
 function setView(v) {        // the camera choice is shared by the workshop switch, the in-battle button and the V key
   view = v;
-  try { if (!params.has('debug')) localStorage.setItem('tops.view', v); } catch (e) {}
+  try { if (!DEBUG) localStorage.setItem('tops.view', v); } catch (e) {}
   document.querySelectorAll('#viewSw button').forEach(b => b.classList.toggle('on', b.dataset.v === view));
 }
 function toggleView() { setView(view === 'tv' ? 'fp' : 'tv'); }
@@ -4065,6 +4133,7 @@ $('story').addEventListener('click', () => { initAudio(); nextLine(); });
 $('storyHint').textContent = t('Bấm chuột hoặc Space để tiếp · Esc để bỏ qua', 'Click or press Space to continue · Esc to skip');
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
   if (storyOpen()) {
     if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); initAudio(); nextLine(); }
     else if (e.code === 'Escape') endStory();
@@ -4072,9 +4141,9 @@ addEventListener('keydown', e => {
   }
   if (e.code === 'Space') { e.preventDefault(); state === 'shop' ? launch() : powerPress(); }
   else if (e.code === 'KeyV') toggleView();
-  else if (e.code === 'KeyK' && params.has('debug') && state === 'battle') game.ko();   // test shortcut: knock the rivals out (in the void: the dragon)
-  else if (e.code === 'KeyT' && params.has('debug') && state === 'battle' && level.void && !tstop) tsNext = simT;   // test shortcut: stop time now
-  else if (e.code === 'Enter' && state === 'result') $('rNext').classList.contains('hidden') ? enterShop() : setLevel(levelIndex + 1);
+  else if (e.code === 'KeyK' && DEBUG && state === 'battle') game.ko();   // test shortcut: knock the rivals out (in the void: the dragon)
+  else if (e.code === 'KeyT' && DEBUG && state === 'battle' && level.void && !tstop) tsNext = simT;   // test shortcut: stop time now
+  else if (e.code === 'Enter' && state === 'result') nextResult(() => $('rNext').classList.contains('hidden') ? enterShop() : setLevel(levelIndex + 1));
 });
 
 // drag on the arena: press sets the drop point, dragging sets the launch velocity
@@ -4338,6 +4407,7 @@ addEventListener('resize', resize);
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(.05, (now - last) / 1000); last = now;
+  if (cgPaused()) { requestAnimationFrame(frame); return; }
   if (state === 'battle' || state === 'ending') {
     slowT = Math.max(0, slowT - dt);
     acc += dt * (slowT > 0 ? .15 : 1);
@@ -4350,7 +4420,7 @@ function frame(now) {
 }
 
 // open with ?debug to drive the simulation from the console
-if (params.has('debug')) window.game = {
+if (DEBUG) window.game = {
   build, launch, setLevel, storm: () => castStorm(player), skill: () => castSkill(player), story: () => [storyOpen(), $('storyText').textContent], cine: () => cine && { kind: cine.kind, who: cine.who && cine.who.name, fov: cine.fov }, nextLine, endStory, restage, press: powerPress, toggleView, levels: LEVELS,
   boost: lv => { player.stormMax = lv; player.energy = lv; },
   audio: () => {      // RMS of the final mix, for checking levels without ears
@@ -4402,10 +4472,11 @@ if (params.has('debug')) window.game = {
 
 resize();
 // test shortcuts: ?debug&final opens on the final boss, &void starts it in the void, &eq fills in the equation
-if (params.has('debug') && params.has('void')) seen.vr = 1;
-if (params.has('debug') && params.has('eq')) game.eqSet(['e', '^i', '^π', '+', '1', '=', '0']);
-if (params.has('debug') && (params.has('final') || params.has('void'))) { game.unlockAll(); setLevel(ARENAS - 1); }
+if (DEBUG && params.has('void')) seen.vr = 1;
+if (DEBUG && params.has('eq')) game.eqSet(['e', '^i', '^π', '+', '1', '=', '0']);
+if (DEBUG && (params.has('final') || params.has('void'))) { game.unlockAll(); setLevel(ARENAS - 1); }
 else setLevel(Math.min(unlocked, ARENAS - 1));
+cgLoadingStop();
 requestAnimationFrame(frame);
 </script>
 </body>
