@@ -1349,9 +1349,10 @@ function collide(a, b) {
     o.energy = Math.min(o.stormMax, o.energy + J * .006);
   }
   a.lastHitBy = b; b.lastHitBy = a; a.lastHitT = b.lastHitT = simT;
-  // a vajra pillar throws whoever hits it back and rattles their spin
-  if (on(a, 'vajra')) { b.vx += nx * 6; b.vz += nz * 6; b.w *= .92; }
-  if (on(b, 'vajra')) { a.vx -= nx * 6; a.vz -= nz * 6; a.w *= .92; }
+  // a vajra pillar throws whoever hits it back and rattles their spin; the void god is thrown but not rattled,
+  // or a pillar it keeps charging into would bleed it dry without the equation
+  if (on(a, 'vajra')) { b.vx += nx * 6; b.vz += nz * 6; if (!b.voidGod) b.w *= .92; }
+  if (on(b, 'vajra')) { a.vx -= nx * 6; a.vz -= nz * 6; if (!a.voidGod) a.w *= .92; }
   if (a.isPlayer || b.isPlayer) { clashUntil = simT + CLASH_WINDOW; clashN = 0; }
   stats.hits++; stats.maxHit = Math.max(stats.maxHit, J);
   hitFx(a.x + nx * a.r, floorY(a.x, a.z) + Math.min(a.height, b.height) * .6, a.z + nz * a.r, J);
@@ -1491,6 +1492,8 @@ function stepPhysics() {
     } else if (d > Reff + a.r * .2) kill(a, 'ring');
     if (!T && L.bumpers && a.alive && !on(a, 'ghost')) hitPosts(a, L.bumpers, 7);
     if (L.bloodRing && a.alive && Math.hypot(a.x, a.z) > L.bloodRing * Reff) bloodTouch(a);
+    // the void god cannot be worn down past its floor: only the equation's counter lowers that floor
+    if (a.voidGod && Math.abs(a.w) < a.floorW) a.w = a.spinDir * a.floorW;
     if (a.alive && Math.abs(a.w) < W_MIN) kill(a, 'spin');
   }
   for (let i = 0; i < tops.length; i++) for (let j = i + 1; j < tops.length; j++)
@@ -1650,7 +1653,10 @@ function skillStep() {
     if ((a.skillT -= H) <= 0) {
       a.skillT = 0;
       // a phantom that ends up outside the wall has no way back in
-      if (a.active === 'ghost' && level.wall && Math.hypot(a.x, a.z) + a.r > arenaR() + .05) kill(a, 'ring');
+      if (a.active === 'ghost' && level.wall && Math.hypot(a.x, a.z) + a.r > arenaR() + .05) {
+        if (a.voidGod) { const d = Math.hypot(a.x, a.z), k = (arenaR() - a.r - .1) / d; a.x *= k; a.z *= k; }   // the void will not let its god go
+        else kill(a, 'ring');
+      }
     }
   }
   if (fires.length) {
@@ -2895,7 +2901,7 @@ const VOID_GOD = { ...FINAL.foes[0], name: t('Hư Vô Thần Quay', 'The Void Sp
   skill: 'void', stormMax: 2, spikes: true, crown: true, finalBoss: false, voidGod: true,
   quote: t('"Thời gian của ngươi đã hết từ lâu rồi."', '"Your time ran out long ago."') };
 // how the second phase plays: a barrier rim, how often time stops, what the counter and the crush take away
-const VOID_TUNE = { R: 8, K: 1.5, wall: true, gap: [4.5, 5.5], first: 3.5, counter: .6, crush: .4, steal: .35, storm: .75 };
+const VOID_TUNE = { R: 8, K: 1.5, wall: true, gap: [4.5, 5.5], first: 3.5, counter: .6, crush: .4, steal: .35, storm: .75, floor: .75 };
 const voidLevel = () => ({ ...FINAL, name: t('Hư Vô', 'The Void'), R: VOID_TUNE.R, K: VOID_TUNE.K, wall: VOID_TUNE.wall, theme: 'void', base: '#0b0716', accent: '#7c4dff',
   env: 'void', hot: 0, shrink: null, void: true, foes: [VOID_GOD] });
 // the very end: a giant top drops out of the sky beside the two of them, and everyone knows who it is
@@ -3018,6 +3024,7 @@ function enterVoid() {
   level = voidLevel(); buildArena(); resetSkillFx();
   spLife.fill(0); spPos.fill(-999);
   placeTops();                                    // you pull the rip-cord again; the god comes back whole
+  for (const g of tops) if (g.voidGod) { g.spinDir = sgn(g.w); g.floorW = Math.abs(g.w) * VOID_TUNE.floor; }
   const d = Math.hypot(player.x, player.z), lim = level.R - 1.5;
   if (d > lim) { player.x *= lim / d; player.z *= lim / d; }
   simT = 0; acc = 0; tstop = null; tsNext = VOID_TUNE.first; tsCount = 0; clashUntil = -1;
@@ -3136,6 +3143,7 @@ function startTimeStop(g) {
   const n = tsCount++, width = qteZoneOf(n), z0 = rand(.4, .95 - width);
   tstop = { t: 0, free: null, hit: false, bx: g.x, bz: g.z, tx, tz, px: player.x, pz: player.z, ux, uz, qte: eulerOK() ? [z0, z0 + width] : null, qteDur: qteDurOf(n) };
   g.vx = g.vz = 0; g.skillT = 0; g.active = null; g.stormT = 0;      // stopping time cuts off whatever the god was doing
+  player.skillT = 0; player.active = null; player.stormT = 0;          // ...and whatever you were doing: no stance, no tornado
   if (headless) return;
   document.body.classList.add('timestop');
   sfx.timeStop(); musicLevel(0, .05);
@@ -3226,6 +3234,7 @@ function endTimeStop(g) {
     const dx = g.x - player.x, dz = g.z - player.z, d = Math.hypot(dx, dz) || 1, dv = 10 / Math.sqrt(g.m / 2);
     const lost = Math.abs(g.w) * (1 - VOID_TUNE.counter);
     g.w *= VOID_TUNE.counter; player.w += sgn(player.w) * lost * VOID_TUNE.steal;   // + 1 = 0 takes the god's spin and gives you part of it
+    g.floorW = Math.abs(g.w) * VOID_TUNE.floor;
     g.vx = dx / d * dv; g.vz = dz / d * dv; g.head = Math.atan2(g.vz, g.vx);
     g.lastHitBy = player; g.lastHitT = simT;
     // step back out of reach so the two rims do not grind and throw you as time starts again
