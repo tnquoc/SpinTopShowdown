@@ -167,6 +167,50 @@
   }
   /* the win/lose card says it all; the commentary would only show through it */
   body:has(#result:not(.hidden)) #caster, body:has(#result:not(.hidden)) #tags { opacity: 0; }
+  /* the final boss: soul-style title cards, the equation overlay and the colour of stopped time */
+  #soul { position: fixed; left: 0; right: 0; top: 40%; z-index: 21; padding: 18px 0; text-align: center; pointer-events: none; opacity: 0;
+    font: 400 clamp(26px, 5vw, 58px) Georgia, 'Times New Roman', serif; letter-spacing: .22em; text-transform: uppercase;
+    background: linear-gradient(90deg, transparent, rgba(0,0,0,.78) 18%, rgba(0,0,0,.78) 82%, transparent); }
+  #soul small { display: block; margin-top: 6px; font-size: .32em; letter-spacing: .3em; opacity: .8; }
+  #soul.go { animation: soulIn 3.4s ease forwards; }
+  #soul.felled { color: #f0dca0; text-shadow: 0 0 24px rgba(255,200,110,.55); }
+  #soul.died { color: #b3201f; text-shadow: 0 0 24px rgba(160,0,0,.6); }
+  #soul.boss { color: #d8ccff; text-shadow: 0 0 26px rgba(150,110,255,.8); }
+  @keyframes soulIn { 0% { opacity: 0; letter-spacing: .1em; } 18% { opacity: 1; } 78% { opacity: 1; } 100% { opacity: 0; letter-spacing: .32em; } }
+  #euler { position: fixed; left: 0; right: 0; bottom: 84px; z-index: 6; text-align: center; pointer-events: none; opacity: 0; transition: opacity .25s, transform .25s;
+    font: italic 400 clamp(26px, 4.6vw, 54px) Georgia, 'Times New Roman', serif; color: #ffe9a8; text-shadow: 0 0 18px rgba(255,190,70,.85), 0 3px 0 rgba(0,0,0,.6); }
+  #euler.on { opacity: 1; }
+  #euler.final { transform: scale(1.18); color: #fff7dc; }
+  #euler small { display: block; font-size: .42em; font-style: normal; opacity: .85; }
+  canvas { transition: filter .25s; }
+  body.timestop canvas { filter: grayscale(1) contrast(1.25) brightness(.92); }
+  body.timefree canvas { filter: sepia(.4) saturate(1.5) brightness(1.06); }
+  body.dread canvas { filter: saturate(.3) brightness(.62) contrast(1.2); transition: filter 1.4s; }
+  body.dread::after { content: ''; position: fixed; inset: 0; z-index: 18; pointer-events: none; background: radial-gradient(ellipse at center, transparent 30%, rgba(40,0,0,.75)); }
+  #shardBox { margin-bottom: 10px; padding: 8px 10px; border: 1px solid #4a4470; border-radius: 10px; background: #1a1628; }
+  .shard { display: inline-block; min-width: 24px; margin-left: 4px; padding: 2px 6px; border-radius: 6px; text-align: center;
+    font: italic 700 16px Georgia, serif; background: #2c2842; color: #6f6a8a; }
+  .shard.got { background: #3b2f1a; color: #ffe08a; box-shadow: 0 0 8px rgba(255,200,80,.6); }
+  #eqTray { display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0 4px; }
+  .tile { display: inline-block; min-width: 26px; padding: 3px 6px; box-sizing: border-box; border-radius: 6px; text-align: center; cursor: grab;
+    touch-action: none; font: italic 700 17px Georgia, serif; background: #3b2f1a; color: #ffe08a; box-shadow: 0 0 8px rgba(255,200,80,.5); }
+  .tile.used { opacity: .25; cursor: default; box-shadow: none; }
+  .tile.picked { outline: 2px solid #fff; }
+  .tile.ghost { position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, -50%) scale(1.3); }
+  #eqBuild { display: flex; gap: 4px; margin: 4px 0 6px; }
+  .slot { position: relative; width: 30px; height: 44px; box-sizing: border-box; border: 2px dashed #6f6a8a; border-radius: 6px; cursor: pointer; touch-action: none; }
+  .slot.full { border-style: solid; border-color: #ffd54f; background: #2a2213; }
+  .slot b { position: absolute; left: 0; right: 0; bottom: 5px; text-align: center; font: italic 700 18px Georgia, serif; color: #ffe08a; pointer-events: none; }
+  .slot b.up { bottom: auto; top: 2px; font-size: 13px; }
+  .slot.hovUp { box-shadow: inset 0 18px 0 rgba(255,213,79,.35); }
+  .slot.hovDown { box-shadow: inset 0 -18px 0 rgba(255,213,79,.35); }
+  /* the timing bar inside the energy button while time is stopped */
+  #qteZone, #qteMark { position: absolute; top: 0; bottom: 0; display: none; }
+  #qteZone { background: rgba(255,213,79,.6); box-shadow: inset 0 0 0 2px #fff; }
+  #qteMark { width: 5px; margin-left: -2px; background: #fff; box-shadow: 0 0 12px #fff; }
+  body.qte #qteZone, body.qte #qteMark { display: block; }
+  body.qte #btnStorm { background: rgba(0,0,0,.75); animation: pulse .12s infinite alternate; }
+  body.qte #stormFill { background: linear-gradient(90deg, rgba(255,255,255,.15), rgba(255,255,255,.35)); }
 </style>
 </head>
 <body>
@@ -175,13 +219,15 @@
   <div id="roster"></div>
   <div id="tags"></div>
   <div id="announce"></div>
-  <button id="btnStorm" class="hidden"><div id="stormFill"></div><span id="stormLabel"></span></button>
+  <button id="btnStorm" class="hidden"><div id="stormFill"></div><div id="qteZone"></div><div id="qteMark"></div><span id="stormLabel"></span></button>
   <button id="btnView" class="hidden"></button>
   <div id="caster"><b>🎙 BLV</b><span id="casterText"></span></div>
   <div id="audioSw"><button id="btnSound"></button><button id="btnMusic"></button><button id="btnVoice"></button></div>
 </div>
 <div id="pops"></div>
 <div id="flash"></div>
+<div id="soul"></div>
+<div id="euler"></div>
 <aside id="shop"></aside>
 <div id="bars"><i></i><i></i></div>
 <div id="story" class="hidden"><div id="storyTitle"></div><div id="storyBox"><b id="storyWho"></b><p id="storyText"></p><small id="storyHint"></small></div></div>
@@ -352,7 +398,7 @@ function buildCampaign() {
     for (let s = 0; s < 5; s++) {
       // difficulty climbs inside a chapter and from chapter to chapter; there are no free power-ups for the player
       const boss = s === 4, scale = (.9 + .055 * c) * (1 + .03 * s), foes = [];
-      if (boss) { const f = FOES[ch.boss]; foes.push({ ...f, m: +(f.m * (1 + .06 * c)).toFixed(2), w: Math.round(f.w * (1 + .08 * c)), skill: ch.skill, crown: true }); }
+      if (boss) { const f = FOES[ch.boss]; foes.push({ ...f, m: +(f.m * (1 + .06 * c)).toFixed(2), w: Math.round(f.w * (1 + .08 * c)), skill: ch.skill, crown: true, finalBoss: c === 9 }); }
       const count = boss ? (c < 3 ? 1 : 2) : [c < 2 ? 1 : 2, 2, c < 3 ? 2 : 3, 3][s];
       for (let k = 0; k < count; k++) {
         const src = CHAPTERS[Math.max(0, c - k)], f = FOES[src.boss];      // own sect first, then the sects already beaten
@@ -407,11 +453,15 @@ const STORY = [
   { intro: [['narr', t('Chương cuối. Miệng núi lửa. Sàn đang sụp dần vào trong.', 'Final chapter. The volcano crater. The floor is collapsing inward.')]],
     boss: [['god', t('Cuối cùng cũng đến. Con quay vàng đó... ta nhận ra nó.', 'At last. That golden top... I know it.')],
       ['me', t('Ông đã làm gì cha tôi?!', 'What did you do to my father?!')],
-      ['god', t('Ta không làm gì hắn cả.', 'I did nothing to him.')],
+      ['god', t('Cha ngươi? Hắn từng đứng đúng chỗ ngươi đang đứng. Và hắn cũng run y như ngươi bây giờ.', 'Your father? He stood exactly where you stand. And he trembled exactly like you do now.')],
+      ['god', t('Ta đã quay từ khi trái đất còn chưa nguội. Ngươi chỉ là một vòng quay lạc nhịp.', 'I was spinning before the earth had cooled. You are just a spin out of rhythm.')],
+      ['me', t('Thì vòng quay lạc nhịp này sẽ hạ ông!', 'Then this spin out of rhythm will bring you down!')],
+      ['god', t('Kaka... KAKAKAKA! Lại đây, con kiến nhỏ!', 'Heh... KAHAHAHA! Come then, little ant!')]],
+    win: [['god', t('Khụ... khụ... Con quay vàng đó... con đã giữ nó suốt mười năm...', 'Cough... cough... That golden top... you kept it for ten years...')],
+      ['me', t('Sao ông biết? Ông là ai?!', 'How do you know that? Who are you?!')],
       ['god', t('Ta... chính là cha của con.', 'I... am your father.'), 'reveal'],
       ['me', t('KHÔNGGGGGGG!', 'NOOOOOOOO!')],
-      ['dad', t('Muốn cha về nhà thì thắng cha đi. Cha sẽ không nương tay đâu.', 'If you want me home, beat me. I will not go easy on you.')]],
-    win: [['dad', t('Con thắng rồi. Cha tự hào về con.', 'You won. I am proud of you.')],
+      ['dad', t('Con thắng rồi. Cha tự hào về con.', 'You won. I am proud of you.')],
       ['me', t('Mười năm qua cha ở đâu?', 'Where were you for ten years?')],
       ['dad', t('Cha... trốn mẹ con. Mẹ bắt cha rửa bát.', 'I was... hiding from your mother. She wanted me to do the dishes.')],
       ['me', '...'],
@@ -506,20 +556,25 @@ function floorTex(L) {
       c.fillStyle = g; c.fillRect(0, 0, w, h);
       speckle(900, 'rgba(255,255,255,.05)', 3); speckle(500, 'rgba(0,0,0,.25)', 4);
       for (let v = .1; v < .96; v += .1) ringLine(v, 2, 'rgba(0,0,0,.25)');
+    } else if (L.theme === 'void') {               // black glass scattered with stars and glowing orbits
+      const g = c.createLinearGradient(0, h, 0, 0); g.addColorStop(0, '#1a0b3a'); g.addColorStop(1, '#05030c'); c.fillStyle = g; c.fillRect(0, 0, w, h);
+      speckle(900, 'rgba(255,255,255,.55)', 2); speckle(200, 'rgba(180,140,255,.6)', 3);
+      for (let v = .15; v < .95; v += .16) ringLine(v, 2, 'rgba(160,120,255,.45)');
+      spokes(12, .1, .95, 1, 'rgba(160,120,255,.18)');
     } else {                                       // paving stones with a red and gold border
       for (let v = .08; v < .9; v += .09) ringLine(v, 3, 'rgba(60,45,35,.45)');
       for (let r = 0; r < 9; r++) spokes(8 + r * 4, .08 + r * .09, .17 + r * .09, 3, 'rgba(60,45,35,.45)');
       band(.7, .76, '#a3261c'); ringLine(.7, 4, '#e0b040'); ringLine(.76, 4, '#e0b040'); speckle(500, 'rgba(0,0,0,.07)', 5);
     }
     band(0, .06, L.accent); ringLine(.075, 4, 'rgba(0,0,0,.4)');
-    if (!L.wall) for (let i = 0; i < 40; i++) { c.fillStyle = i % 2 ? '#e53935' : '#fafafa'; c.fillRect(w * i / 40, h * (1 - .95), w / 40 + 1, h * .06); }
+    if (!L.wall && L.theme !== 'void') for (let i = 0; i < 40; i++) { c.fillStyle = i % 2 ? '#e53935' : '#fafafa'; c.fillRect(w * i / 40, h * (1 - .95), w / 40 + 1, h * .06); }
   });
   tex.wrapS = THREE.RepeatWrapping; tex.anisotropy = 8;
   return tex;
 }
 
 const TIERS = 5, CROWD_COLORS = [0xef5350, 0x42a5f5, 0xffee58, 0x66bb6a, 0xffa726, 0xab47bc, 0xf5f5f5, 0x26c6da, 0xec407a];
-let crowd = null, edgeGlow = null, stage = null, bloodBand = null, excite = 0;
+let crowd = null, edgeGlow = null, stage = null, bloodBand = null, excite = 0, crowdClock = 0;
 
 function buildArena() {
   arena.traverse(o => { if (o.geometry) { o.geometry.dispose(); if (o.material.map) o.material.map.dispose(); o.material.dispose(); } });
@@ -570,17 +625,19 @@ function buildArena() {
     const m = mesh(new THREE.SphereGeometry(b.r, 20, 14), new THREE.MeshPhongMaterial({ color: b.color, shininess: 70 }));
     m.position.set(b.x, bowlDepth * (b.x * b.x + b.z * b.z) / (L.R * L.R) + b.r * .8, b.z); stage.add(m);
   }
-  arena.add(ground, stands, body, head);
+  arena.add(stands, body, head);
+  if (L.theme === 'void') { ground.geometry.dispose(); ground.material.dispose(); } else arena.add(ground);   // over the void there is no ground, only the black hole
   buildEnv();
 }
 
 const dummy = new THREE.Object3D();
 function updateCrowd(dt) {
+  crowdClock += dt;
   excite = Math.max(0, excite - dt * .6);
   const amp = .05 + excite * .5, c = crowd;
   for (let i = 0; i < c.n; i++) {
     const s = c.seats[i];
-    dummy.position.set(s[0], s[1] + .45 + Math.abs(Math.sin(realT * c.speed[i] + c.phase[i])) * amp, s[2]);
+    dummy.position.set(s[0], s[1] + .45 + Math.abs(Math.sin(crowdClock * c.speed[i] + c.phase[i])) * amp, s[2]);
     dummy.updateMatrix(); c.body.setMatrixAt(i, dummy.matrix);
     dummy.position.y += .52; dummy.updateMatrix(); c.head.setMatrixAt(i, dummy.matrix);
   }
@@ -864,7 +921,10 @@ function makeTop(spec, isPlayer) {
     blades: spec.blades, spikes: spec.spikes, crown: spec.crown, quote: spec.quote || '',
     dragK: 1, steerK: 1, fallY: 0, homeX: 0, homeZ: 0, patrol: 0,
     bloodImmune: !!spec.bloodImmune, inBlood: -9,
-    stormMax: spec.stormMax || 1, stormLv: 1, stormDur: STORM_TIME, kos: 0, lastHitBy: null, lastHitT: -9, bumpT: rand(0, .5) };
+    stormMax: spec.stormMax || 1, stormLv: 1, stormDur: STORM_TIME, kos: 0, lastHitBy: null, lastHitT: -9, bumpT: rand(0, .5),
+    stormK: 1, stormCap: 3, stormReach: Infinity, finalBoss: !!spec.finalBoss, voidGod: !!spec.voidGod, crushed: false };
+  if (isPlayer) { const T = STORM_TIERS[stormTier()]; a.stormK = T.k; a.stormCap = T.cap; a.stormReach = T.reach; }
+  if (a.voidGod) { a.stormK = VOID_TUNE.storm; a.stormReach = 5; }       // the void god leans on stopped time, not on its tornado
   buildTopMesh(a);
   a.trail = makeTrail(a.color);
   return a;
@@ -1042,6 +1102,7 @@ function musicTick() {
   if (musicT < ac.currentTime) musicT = ac.currentTime + .05;
   const hot = state === 'battle' || state === 'ending';      // the workshop gets a stripped-down mix
   while (musicT < ac.currentTime + .3) {
+    if (level.void) { voidBeat(musicT, musicStep, hot); musicT += STEP; musicStep++; continue; }
     const i = musicStep % 16, bar = Math.floor(musicStep / 16) % 4, root = ROOTS[bar];
     if (i % 4 === 0) mTone('sine', 130, musicT, .14, hot ? .9 : .45, 0, 45);              // kick
     if (hot && i % 8 === 4) mNoise(musicT, .12, 'bandpass', 1800, .35);                    // snare
@@ -1096,7 +1157,7 @@ let state = 'shop', view = 'tv', tops = [], player = null;
 try { if (localStorage.getItem('tops.view') === 'fp') view = 'fp'; } catch (e) {}
 let simT = 0, acc = 0, slowT = 0, shake = 0, endT = 0, won = false, realT = 0, stats = { hits: 0, maxHit: 0 };
 let steerFn = null, headless = false;   // headless: balance sims skip sound and effects
-const build = { m: 2, r: .8, grip: .5, dir: 1, skill: 'storm', drop: { x: 0, z: 3.5 }, aim: { x: 0, z: -3 }, fx: '', fz: '',
+const build = { m: 2, r: .8, grip: .5, dir: 1, skill: 'storm', euler: '', drop: { x: 0, z: 3.5 }, aim: { x: 0, z: -3 }, fx: '', fz: '',
   tdrop: { x: 0, z: .5 }, taim: { x: 0, z: -3 } };   // courses keep their own drop point
 const dropPt = () => level.track ? build.tdrop : build.drop, aimVec = () => level.track ? build.taim : build.aim;
 let unlocked = 0, unlockedT = 0;
@@ -1178,17 +1239,23 @@ function kill(a, why) {
   let bonus = '';
   if (by && by.alive && simT - a.lastHitT < 5) {
     by.kos++;
-    if (by.isPlayer && by.skill === 'storm' && by.stormMax < 3) {
+    if (by.isPlayer && by.skill === 'storm' && by.stormMax < by.stormCap) {
       by.stormMax++; by.energy = Math.min(by.stormMax, by.energy + .5);
       bonus = ` ${t('Lốc xoáy lên', 'Tornado upgraded to')} V${by.stormMax}!`;
     }
   }
+  if (a.finalBoss && !level.void) pendingRebirth = true;
   announce(`${a.name} ${why === 'ring' ? t('văng khỏi sàn!', 'flew off the edge!') : t('hết pin!', 'ran out of spin!')}${bonus}`);
   commentKO(a, by && simT - a.lastHitT < 5 ? by : null);
   sfx.out(); excite = 1;
 }
 
 const STORM_COLORS = [0xbfdcff, 0xc59bff, 0xffe082];
+// the player's tornado grows with the campaign: weak at first, stronger once the bosses of stages 10 and 20 have fallen.
+// k scales its pull, drain and blast; cap is the highest level knock-outs can raise it to; reach is how far it pulls.
+const STORM_TIERS = [{ k: .55, cap: 1, reach: 4 }, { k: .75, cap: 2, reach: 5 }, { k: .95, cap: 3, reach: 6.5 }];
+let tierOverride = null;           // balance sims pin a tier
+const stormTier = () => tierOverride ?? (unlocked >= 20 ? 2 : unlocked >= 10 ? 1 : 0);
 function castStorm(a) {
   if (state !== 'battle' || !a || !a.alive || a.energy < 1 || a.stormT > 0) return;
   // the player spends every full bar at once; rivals always cast at their own level
@@ -1205,6 +1272,7 @@ function castStorm(a) {
 const MASH_GAIN = .04, MASH_MAX = 8, CLASH_WINDOW = .6;
 let clashUntil = -1, clashN = 0, lastMash = -9999;
 function powerPress() {
+  if (tstop) return qtePress();
   if (state !== 'battle' || !player.alive) return;
   const now = performance.now();
   const spend = level.track ? jump : () => castSkill(player);
@@ -1223,7 +1291,7 @@ function powerPress() {
 }
 
 function stormBlast(c) {
-  const lv = c.stormLv, power = 1 + .5 * (lv - 1), range = STORM_RANGE * (1 + .3 * (lv - 1));
+  const lv = c.stormLv, power = (1 + .5 * (lv - 1)) * c.stormK, range = STORM_RANGE * (1 + .3 * (lv - 1));
   for (const o of tops) {
     if (o === c || !o.alive) continue;
     const dx = o.x - c.x, dz = o.z - c.z, d = Math.hypot(dx, dz) || 1;
@@ -1332,6 +1400,7 @@ function bloodTouch(a) {
 
 function stepPhysics() {
   simT += H;
+  if (level.void && timeStopStep()) return;      // while time is stopped only the god (and you, with the equation) moves
   const L = level;
   const K = L.K + (L.K < 0 ? -1 : 1) * Math.max(0, simT - SUDDEN_DEATH) * .15;   // the floor slowly gets steeper so nobody can hide
   const Reff = arenaR(), spinW = L.spinFloor || 0;
@@ -1378,7 +1447,8 @@ function stepPhysics() {
     for (const o of tops) {
       if (o === c || !o.alive) continue;
       const dx = c.x - o.x, dz = c.z - o.z, d = Math.hypot(dx, dz) || 1, s = sgn(c.w);
-      const f = (1 + .5 * (c.stormLv - 1)) / (1 + d * .25);
+      if (d > c.stormReach) continue;
+      const f = (1 + .5 * (c.stormLv - 1)) / (1 + d * .25) * c.stormK;
       o.ax += (dx / d * 40 - dz / d * 16 * s) * f; o.az += (dz / d * 40 + dx / d * 16 * s) * f;
       const drain = Math.min(Math.abs(o.w), 12 * f * H);
       if (d < STORM_RANGE) { o.lastHitBy = c; o.lastHitT = simT; }
@@ -1433,7 +1503,8 @@ function stepPhysics() {
 const SKILL_ORDER = ['storm', 'thunder', 'lotus', 'dash', 'fire', 'iron', 'ghost', 'vajra', 'ice', 'moon'];
 const SKILLS = {
   storm: { name: t('Lốc Xoáy', 'Tornado'), color: 0xbfdcff,
-    desc: t('Hút đối thủ lại gần, rút tốc độ quay của chúng rồi hất văng. Hạ đối thủ để lên V2, V3.', 'Pulls rivals in, drains their spin, then blasts them away. Knock rivals out to reach V2 and V3.'),
+    desc: t('Hút đối thủ ở gần, rút tốc độ quay của chúng rồi hất văng. Lúc đầu còn yếu: hạ trùm màn 10 rồi màn 20 để nó mạnh lên và mở V2, V3 (lên cấp trong trận bằng cách hạ đối thủ).',
+      'Pulls in nearby rivals, drains their spin, then blasts them away. Weak at first: beat the bosses of stages 10 and 20 to power it up and open V2 and V3 (raised in battle by knock-outs).'),
     warn: t('Trong lúc hút, bạn gần như đứng yên.', 'While it pulls, you are almost rooted to the spot.') },
   thunder: { name: t('Sấm Sét', 'Thunderbolt'), color: 0xfff176, dur: .35,
     desc: t('Sét đánh con quay địch gần nhất trong 8 m: mất 28% tốc độ quay và bị hất văng.', 'Lightning hits the nearest rival within 8 m: it loses 28% of its spin and is knocked away.'),
@@ -1465,12 +1536,16 @@ const SKILLS = {
 };
 const GOD_ROTATION = ['storm', 'thunder', 'fire', 'moon', 'ice', 'dash'];   // the final boss knows them all
 const on = (a, id) => a.skillT > 0 && a.active === id;
+// which skill a top will use next: the final boss cycles through them all, the void god picks any at random
+const skillOf = a => a.skill === 'god' ? GOD_ROTATION[a.godI % GOD_ROTATION.length] : a.skill === 'void' ? (a.nextSkill ??= pick(SKILL_ORDER)) : a.skill;
 const skillUnlocked = k => k === 0 || unlocked >= 5 * k;                      // skill k is the reward of chapter k's boss
 let fires = [], fields = [], bolts = [];
 
 function castSkill(a) {
   if (state !== 'battle' || !a || !a.alive || !a.skill || a.energy < 1 || a.skillT > 0 || a.stormT > 0) return;
-  const id = a.skill === 'god' ? GOD_ROTATION[a.godI++ % GOD_ROTATION.length] : a.skill;
+  const id = skillOf(a);
+  if (a.skill === 'god') a.godI++;
+  if (a.skill === 'void') a.nextSkill = pick(SKILL_ORDER);
   if (id === 'storm') return castStorm(a);
   const S = SKILLS[id];
   a.energy -= 1; a.active = id; a.skillT = a.skillDur = S.dur; excite = 1;
@@ -1548,7 +1623,7 @@ function aiWantsSkill(a) {
   const foe = nearest(a);
   if (!foe) return false;
   const d = Math.hypot(foe.x - a.x, foe.z - a.z), weaker = Math.abs(a.w) < Math.abs(foe.w);
-  switch (a.skill === 'god' ? GOD_ROTATION[a.godI % GOD_ROTATION.length] : a.skill) {
+  switch (skillOf(a)) {
     case 'storm': return d < 4.5;
     case 'thunder': return d < 7;
     case 'dash': return d < 6 && d > 2;
@@ -1784,6 +1859,7 @@ const MOODS = {
   sea:       { sky: ['#081626', '#6a8fb0'], fog: 0x24384f, hemi: [0xdcefff, 0x1a2a3a, 1.3], sun: [0xe8f4ff, 2.5], dot: .3 },
   bloodmoon: { sky: ['#080104', '#5a0c16'], fog: 0x240810, hemi: [0xffb4b4, 0x2a0a10, 1.05], sun: [0xff9a8a, 2.1], dot: .45, stars: 1 },
   lava:      { sky: ['#100303', '#6a1804'], fog: 0x2a0a04, hemi: [0xffc4a0, 0x3a1008, 1.15], sun: [0xffc8a0, 2.3], dot: .5 },
+  void:      { sky: ['#000000', '#0d0620'], fog: 0x06030f, hemi: [0xb6a4ff, 0x0b0716, 1.05], sun: [0xe0d4ff, 1.8], dot: .4, stars: 1 },
 };
 const skyDome = new THREE.Mesh(new THREE.SphereGeometry(150, 32, 16), new THREE.MeshBasicMaterial({ side: THREE.BackSide, fog: false, depthWrite: false }));
 scene.add(skyDome);
@@ -2005,6 +2081,18 @@ function apronTex(kind, glow) {
   tex.wrapS = THREE.RepeatWrapping; tex.repeat.set(2, 1); tex.anisotropy = 8;
   return tex;
 }
+// the accretion disk of the black hole under the void arena
+const diskTex = canvasTex(512, 512, (c, w) => {
+  const m = w / 2, g = c.createRadialGradient(m, m, m * .2, m, m, m);
+  g.addColorStop(0, 'rgba(255,250,230,1)'); g.addColorStop(.12, 'rgba(255,210,140,.95)'); g.addColorStop(.35, 'rgba(255,120,60,.6)');
+  g.addColorStop(.65, 'rgba(140,70,255,.35)'); g.addColorStop(1, 'rgba(60,20,120,0)');
+  c.fillStyle = g; c.fillRect(0, 0, w, w);
+  for (let i = 0; i < 160; i++) {
+    const r0 = rand(.22, .95) * m, a0 = rand(0, 6.28);
+    c.strokeStyle = `rgba(255,${rand(150, 240) | 0},${rand(120, 220) | 0},${rand(.08, .35)})`; c.lineWidth = rand(1, 4);
+    c.beginPath(); c.arc(m, m, r0, a0, a0 + rand(.3, 1.2)); c.stroke();
+  }
+});
 // the moat swells in slow waves
 const waveH = (x, y, t, lava) => lava
   ? Math.sin(Math.atan2(y, x) * 7 + t * .7) * .06 + Math.sin(Math.hypot(x, y) * 1.6 - t) * .05
@@ -2160,6 +2248,19 @@ function buildEnv() {
       }
       break;
     }
+    case 'void': {                             // the arena floats over a black hole, under a sky full of stars
+      const disk = new THREE.Mesh(new THREE.RingGeometry(7, 34, 160, 1), new THREE.MeshBasicMaterial({ map: diskTex, transparent: true, side: THREE.DoubleSide,
+        depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+      disk.rotation.x = -Math.PI / 2; disk.userData.spinDisk = .12; add(disk, 0, -24, 0);
+      add(new THREE.Mesh(new THREE.SphereGeometry(6.6, 32, 20), new THREE.MeshBasicMaterial({ color: 0x000000, fog: false })), 0, -24, 0);
+      const halo = glowSprite(0x9575ff, 30); halo.material.fog = false; halo.material.opacity = .5; add(halo, 0, -24, 0);
+      const n = 1400, pos = new Float32Array(n * 3), v = new THREE.Vector3();
+      for (let i = 0; i < n; i++) { v.randomDirection().multiplyScalar(rand(70, 120)); pos.set([v.x, v.y, v.z], i * 3); }
+      const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const stars = new THREE.Points(geo, new THREE.PointsMaterial({ size: .9, map: dotTex, color: 0xd8ccff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+      stars.frustumCulled = false; envG.add(stars);
+      break;
+    }
     case 'lava':                               // a lava moat with rock spires standing in it
       moat(lavaTex, true); add(new THREE.PointLight(0xff5722, 30, R * 3, 1.2), 0, 1, 0);
       for (let i = 0; i < 12; i++) {
@@ -2182,6 +2283,7 @@ function envTick(dt) {
     if (d.lantern) { const a = d.a + now * .15; o.position.set(Math.cos(a) * d.r, d.h + Math.sin(now * 1.3 + d.seed) * .4, Math.sin(a) * d.r); }
     if (d.tex) { d.tex.offset.x += dt * (L.env === 'lava' ? .01 : .02); d.tex.offset.y += dt * .05; }
     if (d.moon) o.material.opacity = .75 + .25 * Math.sin(now * 1.5);
+    if (d.spinDisk) o.rotation.z += dt * d.spinDisk;
     if (d.sway !== undefined) { o.rotation.z = Math.sin(now * 1.7 + d.sway) * d.amp * (1 + gust); o.rotation.x = Math.cos(now * 1.3 + d.sway) * d.amp * .6; }
     if (d.banner) {
       const p = o.geometry.attributes.position;
@@ -2270,6 +2372,10 @@ function envTick(dt) {
       for (let k = 0; k < n(2.5); k++) { const [x, z, a] = ringPoint(R + .4, r0 - .8); envDot(x, rand(-.3, .8), z, -Math.sin(a) * .5, .1, Math.cos(a) * .5, rand(2.5, 4), .9, .1, .15); }
       for (let k = 0; k < n(2); k++) { const [x, z] = ringPoint(0, r0); envDot(x, rand(8, 12), z, rand(-.4, .4), rand(-1.5, -.8), rand(-.4, .4), 7, .8, .15, .1); }
       for (let k = 0; k < n(.7); k++) { const [x, z, a] = ringPoint(R + .5, r0 - .5); puff(x, rand(-.4, .1), z, -Math.sin(a) * .4, .05, Math.cos(a) * .4, 5, 1.8, 3.6, 0x8e0e1a, .3); }
+      break;
+    case 'void':                                                          // star dust spiralling down into the black hole, the odd meteor
+      for (let k = 0; k < n(5); k++) { const [x, z, a] = ringPoint(R + 1, R + 14); envDot(x, rand(-6, -1), z, -Math.sin(a) * 4 - x * .15, -rand(1.5, 3), Math.cos(a) * 4 - z * .15, rand(2, 3.5), .7, .55, 1); }
+      for (let k = 0; k < n(.15); k++) { const [x, z] = ringPoint(R + 4, 40); streak(x, rand(8, 20), z, rand(-30, 30), rand(-8, -3), rand(-30, 30), .5, .05, .7, .6, 1); }
       break;
     case 'lava':                                                          // embers and smoke off the lava, and now and then a fireball
       for (let k = 0; k < n(6); k++) { const [x, z] = ringPoint(R + .6, r0 - .4); envDot(x, -.4, z, rand(-.3, .3), rand(1.5, 3.5), rand(-.3, .3), rand(.8, 1.6), 1, .4, .05); }
@@ -2412,14 +2518,13 @@ function storyTick(dt) {
   if (n >= typing.text.length) typing = null;
 }
 function duckMusic(on) {
-  if (!musicGain || !ac) return;
-  musicGain.gain.cancelScheduledValues(ac.currentTime);
-  musicGain.gain.setTargetAtTime(musicOn ? MUSIC_VOL * (on ? .12 : 1) : 0, ac.currentTime, .35);
+  musicLevel(on ? .12 : 1, .35);
 }
 // the story camera: a slow crane over the arena for the narrator, a close shot on whoever is talking
 function cineCamera(dt) {
   const c = cine, a = c.who;
-  if (!a) {
+  if (c.pos) { wantPos.copy(c.pos); wantLook.copy(c.look); }
+  else if (!a) {
     const R = level.R, ang = c.ang + c.t * .07, rr = R * 1.7 + 3;
     wantPos.set(Math.cos(ang) * rr, R * .8 + 3.5 - Math.min(2, c.t * .25), Math.sin(ang) * rr);
     wantLook.set(0, 0, 0); c.fov = 50;
@@ -2481,6 +2586,11 @@ const LINES = {
   win: [t('CHIẾN THẮNG! Một màn trình diễn tuyệt vời!', 'VICTORY! What a performance!'), t('Kết thúc! Con quay vàng đứng vững đến cuối cùng!', 'It is over! The golden top is the last one standing!')],
   finish: [t('VỀ ĐÍCH! Thật ngoạn mục!', 'ACROSS THE LINE! Spectacular!')],
   lose: [t('Tiếc quá! {foe} đứng vững đến cuối cùng.', 'So close! {foe} is the last one standing.'), t('Thua rồi! Chỉnh lại con quay và làm lại thôi!', 'Defeat! Retune the top and go again!')],
+  voidStart: [t('Đây là đâu?! Cả đấu trường đã bị hút vào hư vô!', 'Where are we?! The whole arena has been pulled into the void!')],
+  timestop: [t('Cái gì thế này?! Mọi thứ... đứng im hết rồi!', 'What is this?! Everything... has stopped!'), t('Thời gian ngừng trôi! Cả khán đài đứng hình!', 'Time itself has stopped! The whole stadium is frozen!')],
+  euler: [t('KHÔNG THỂ TIN NỔI! Con quay vàng bước ra khỏi dòng thời gian!', 'UNBELIEVABLE! The golden top steps right out of time!')],
+  crushed: [t('Ôi không! Bị cán ngay trong lúc thời gian đóng băng!', 'Oh no! Crushed while time stood still!')],
+  qteMiss: [t('Trượt rồi! Phương trình không kịp vang lên!', 'Missed! The equation did not ring out in time!')],
 };
 const pickLine = (key, vars = {}) => pick(LINES[key]).replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
 const rpmOf = a => Math.round(Math.abs(a.w) * 9.549);
@@ -2569,7 +2679,7 @@ function placeTops() {
   tops.push(player);
   level.foes.forEach((f, i) => {
     // once the twist is out, the final boss is no longer a stranger
-    const a = makeTop(level.boss && level.chapter === 9 && i === 0 && seen.b9 ? { ...f, name: t('Cha · Thần Quay Bất Bại', 'Dad · The Undefeated Spin God') } : f, false), ang = -Math.PI / 2 + (i - (level.foes.length - 1) / 2) * 1.0, rr = level.R * .5;
+    const a = makeTop(level.boss && level.chapter === 9 && i === 0 && seen.w9 ? { ...f, name: `${t('Cha', 'Dad')} · ${f.name}` } : f, false), ang = -Math.PI / 2 + (i - (level.foes.length - 1) / 2) * 1.0, rr = level.R * .5;
     a.x = Math.cos(ang) * rr; a.z = Math.sin(ang) * rr;
     a.head = ang + Math.PI / 2; a.vx = Math.cos(a.head) * 3; a.vz = Math.sin(a.head) * 3;
     tops.push(a);
@@ -2593,6 +2703,8 @@ function setLevel(i) {
 }
 
 function enterShop() {
+  if (level.void) { level = LEVELS[levelIndex]; buildArena(); }   // a retry starts the final fight from phase one
+  clearFinale();
   state = 'shop'; simT = 0;
   spLife.fill(0); spPos.fill(-999);   // no stray sparks from the last battle
   placeTops();
@@ -2614,6 +2726,7 @@ function launch() {
   placeTops(); resetSkillFx();
   player.yOff = 2.5;
   state = 'battle'; simT = 0; acc = 0; slowT = 0; stats = { hits: 0, maxHit: 0 }; clashUntil = -1; finished = false;
+  clearFinale();
   $('shop').classList.add('hidden');
   $('btnStorm').classList.remove('hidden'); $('btnView').classList.remove('hidden');
   $('title').textContent = stageLabel();
@@ -2627,10 +2740,11 @@ function checkEnd(dt) {
     else if (finished) { won = true; state = 'ending'; endT = 1.2; }
     else if (simT > TRACK_TIME) { won = false; state = 'ending'; endT = .6; }
   } else if (state === 'battle') {
+    if (pendingRebirth) { pendingRebirth = false; if (player.alive) return startRebirth(); }
     const alive = tops.filter(a => a.alive);
     if (!player.alive) { won = false; state = 'ending'; endT = 1.8; }
     else if (alive.length === 1) { won = true; state = 'ending'; endT = 1.8; }
-    else if (simT > TIME_LIMIT) { won = alive.every(a => Math.abs(a.w) <= Math.abs(player.w)); state = 'ending'; endT = .6; }
+    else if (simT > TIME_LIMIT && !level.void) { won = alive.every(a => Math.abs(a.w) <= Math.abs(player.w)); state = 'ending'; endT = .6; }
   } else if (state === 'ending' && (endT -= dt) <= 0) showResult();
 }
 
@@ -2642,11 +2756,22 @@ function showResult() {
   if (won) {
     if (course) unlockedT = Math.max(unlockedT, Math.min(LEVELS.length - ARENAS - 1, levelIndex - ARENAS + 1));
     else unlocked = Math.max(unlocked, Math.min(ARENAS - 1, levelIndex + 1));
-    save(); sfx.win();
-  } else sfx.lose();
+    save();
+  }
+  if (level.void && won) { soulCard(t('Đại địch đã bị hạ', 'Great enemy felled'), 'felled'); sfx.felled(); }
+  else if (level.void) { soulCard(t('Bạn đã ngã', 'You fell'), 'died'); sfx.died(); }
+  else won ? sfx.win() : sfx.lose();
   $('rTitle').textContent = won ? (course ? t('VỀ ĐÍCH!', 'FINISHED!') : last ? t('VÔ ĐỊCH!', 'CHAMPION!') : t('THẮNG!', 'YOU WIN!')) : t('THUA RỒI', 'YOU LOSE');
+  const crushed = shardCount() < 5
+    ? t('Thời gian ngừng lại và bạn bị cán bẹp. Lời đồn kể rằng năm mảnh vỡ từ các trùm màn 10, 20, 30, 40 và 45 có thể phá được trói buộc của thời gian.',
+      'Time stopped and you were crushed. Legend says five shards from the bosses of stages 10, 20, 30, 40 and 45 can break the chains of time.')
+    : !eulerOK() ? t('Thời gian ngừng lại và bạn bị cán bẹp. Bạn đã có đủ năm mảnh vỡ: hãy ghép phương trình sự sống trong thẻ Nâng cao.',
+      'Time stopped and you were crushed. You hold all five shards: put the equation of life together in the Advanced tab.')
+    : t('Thời gian ngừng lại và bạn bị cán bẹp. Phương trình đã sẵn sàng: khi thanh sáng lướt qua ô vàng, bấm SPACE đúng lúc.',
+      'Time stopped and you were crushed. The equation is ready: press SPACE just as the light crosses the gold zone.');
   const why = won ? (course ? t('Con quay của bạn đã về đích.', 'Your top made it to the finish.') : '')
-    : player.why === 'ring' ? (course ? t('Bạn rơi khỏi đường đua.', 'You fell off the course.') : t('Bạn văng khỏi sàn.', 'You flew off the edge.'))
+    : !course && player.crushed ? crushed
+    : player.why === 'ring' ? (course ? t('Bạn rơi khỏi đường đua.', 'You fell off the course.') : level.void ? t('Bạn rơi vào hố đen.', 'You fell into the black hole.') : t('Bạn văng khỏi sàn.', 'You flew off the edge.'))
     : player.why === 'spin' ? t('Con quay của bạn hết pin.', 'Your top ran out of spin.')
     : course ? t('Hết giờ.', 'Out of time.') : t('Hết giờ, đối thủ còn quay khoẻ hơn.', 'Time ran out and a rival was spinning faster.');
   const rival = !won && !course && tops.filter(a => !a.isPlayer && a.alive).sort((a, b) => Math.abs(b.w) - Math.abs(a.w))[0];
@@ -2657,13 +2782,482 @@ function showResult() {
   $('rNext').classList.toggle('hidden', !won || last);
   $('rRetry').textContent = won ? t('Chơi lại', 'Play again') : t('Chỉnh lại con quay', 'Retune and retry');
   $('btnStorm').classList.add('hidden'); $('btnView').classList.add('hidden');
-  if (won && level.boss && !seen['w' + level.chapter]) {   // the beaten master hands over their skill
-    const c = level.chapter, lines = [...STORY[c].win], S = SKILLS[CHAPTERS[c].skill];
-    if (S) lines.push(['narr', `${t('Bạn nhận được kỹ năng', 'You gained the skill')} ${S.name}. ${S.desc} ${t('Cảnh báo:', 'Warning:')} ${S.warn}`]);
-    markSeen('w' + c);
-    if (storyOn) restage();
-    playStory(lines, () => $('result').classList.remove('hidden'));
-  } else $('result').classList.remove('hidden');
+  const reveal = () => {
+    if (state !== 'result') return;
+    if (won && level.boss && !seen['w' + level.chapter]) {   // the beaten master hands over their skill, and maybe a shard
+      const c = level.chapter, lines = [...STORY[c].win], S = SKILLS[CHAPTERS[c].skill], k = SHARD_CHAPTERS.indexOf(c);
+      if (S) lines.push(['narr', `${t('Bạn nhận được kỹ năng', 'You gained the skill')} ${S.name}. ${S.desc} ${t('Cảnh báo:', 'Warning:')} ${S.warn}`]);
+      if (c === 1) lines.push(['narr', t('Lốc xoáy của bạn mạnh lên! Giờ nó có thể lên tới V2.', 'Your tornado grows stronger! It can now reach V2.')]);
+      if (c === 3) lines.push(['narr', t('Lốc xoáy của bạn đạt sức mạnh tối đa! Giờ nó có thể lên tới V3.', 'Your tornado reaches full power! It can now reach V3.')]);
+      if (k >= 0) {
+        lines.push(['narr', t(`Trong đống đổ nát, bạn nhặt được một mảnh vỡ phát sáng khắc ký hiệu « ${shardSyms[k]} ». Mảnh ${shardCount()}/5.`,
+          `In the wreckage you find a glowing shard carved with the symbol « ${shardSyms[k]} ». Shard ${shardCount()}/5.`)]);
+        if (shardCount() === 5) lines.push(['narr', t('Năm mảnh vỡ rung lên cùng lúc. Chúng muốn được ghép thành phương trình sự sống. Hãy mở thẻ Nâng cao.',
+          'All five shards hum at once. They want to become the equation of life. Open the Advanced tab.')]);
+      }
+      if (storyOn) restage();                // before markSeen, so the final boss is not called Dad until he says so
+      markSeen('w' + c);
+      playStory(lines, () => $('result').classList.remove('hidden'));
+    } else $('result').classList.remove('hidden');
+  };
+  level.void ? setTimeout(reveal, 3300) : reveal();
+}
+
+// ---------- the final boss: a second life in the void ----------
+// Beat the Undefeated Spin God once and he rises again over a black hole as the Void Spin God, who can stop time.
+// The only way through: five shards dropped by the bosses of stages 10, 20, 30, 40 and 45, put together into the
+// equation of life in the Advanced tab. With it you step out of frozen time along e^{iθ}, swing half a turn round
+// the charging god (e^{iπ} = −1), then take one more step and strike (+1 = 0).
+const SHARD_CHAPTERS = [1, 3, 5, 7, 8];
+let shardSyms = null;
+try { shardSyms = JSON.parse(localStorage.getItem('tops.shards')); } catch (e) {}
+if (!Array.isArray(shardSyms) || [...shardSyms].sort().join() !== '0,1,e,i,π') {     // which boss carries which symbol is shuffled per save
+  shardSyms = ['e', 'i', 'π', '0', '1'];
+  for (let k = 4; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [shardSyms[k], shardSyms[j]] = [shardSyms[j], shardSyms[k]]; }
+  try { localStorage.setItem('tops.shards', JSON.stringify(shardSyms)); } catch (e) {}
+}
+const shardsOwned = () => SHARD_CHAPTERS.map((c, k) => unlocked >= 5 * c + 5 ? shardSyms[k] : null);
+const shardCount = () => shardsOwned().filter(Boolean).length;
+let eulerOverride = null;          // balance sims decide this directly
+const eulerOK = () => eulerOverride ?? (shardCount() === 5 && checkEuler(build.euler || ''));
+
+// The equation is checked by value, not by spelling: both sides are evaluated as complex numbers, and each of
+// e, i, π, 0 and 1 has to appear exactly once. So e^(iπ)+1=0, 1 + e^{πi} = 0 and exp(i*pi) = 0 - 1 all pass.
+const Z = (re, im = 0) => ({ re, im });
+const cAdd = (a, b) => Z(a.re + b.re, a.im + b.im), cSub = (a, b) => Z(a.re - b.re, a.im - b.im);
+const cMul = (a, b) => Z(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re);
+const cDiv = (a, b) => { const d = b.re * b.re + b.im * b.im; return Z((a.re * b.re + a.im * b.im) / d, (a.im * b.re - a.re * b.im) / d); };
+const cExp = a => Z(Math.exp(a.re) * Math.cos(a.im), Math.exp(a.re) * Math.sin(a.im));
+const cLog = a => Z(Math.log(Math.hypot(a.re, a.im)), Math.atan2(a.im, a.re));
+const cPow = (a, b) => a.re === 0 && a.im === 0 ? Z(0) : cExp(cMul(b, cLog(a)));
+function evalComplex(toks) {
+  let p = 0;
+  const peek = () => toks[p], next = () => toks[p++];
+  const startsAtom = k => k !== undefined && (/^\d/.test(k) || ['e', 'i', 'π', '(', 'exp'].includes(k));
+  const atom = () => {
+    const k = next();
+    if (k === undefined) throw 0;
+    if (/^\d/.test(k)) return Z(+k);
+    if (k === 'e') return Z(Math.E);
+    if (k === 'i') return Z(0, 1);
+    if (k === 'π') return Z(Math.PI);
+    if (k === 'exp' || k === '(') {
+      if (k === 'exp' && next() !== '(') throw 0;
+      const v = sum();
+      if (next() !== ')') throw 0;
+      return k === 'exp' ? cExp(v) : v;
+    }
+    throw 0;
+  };
+  // an unbracketed exponent swallows the implicit product right after it, so e^iπ means e^(iπ)
+  // (a bracketed exponent ends at its bracket: e^(i)π is e^i times π, not e^(iπ))
+  const exponent = () => { if (peek() === '-') { next(); return cSub(Z(0), exponent()); } const open = peek() === '('; let v = atom(); if (!open) while (startsAtom(peek())) v = cMul(v, atom()); return v; };
+  const power = () => { const b = atom(); if (peek() === '^') { next(); return cPow(b, exponent()); } return b; };
+  const unary = () => { if (peek() === '-') { next(); return cSub(Z(0), unary()); } if (peek() === '+') { next(); return unary(); } return power(); };
+  const product = () => {
+    let v = unary();
+    for (;;) {
+      const k = peek();
+      if (k === '*' || k === '/') { next(); const r = unary(); v = k === '*' ? cMul(v, r) : cDiv(v, r); }
+      else if (startsAtom(k)) v = cMul(v, power());
+      else return v;
+    }
+  };
+  const sum = () => { let v = product(); while (peek() === '+' || peek() === '-') { const k = next(), r = product(); v = k === '+' ? cAdd(v, r) : cSub(v, r); } return v; };
+  const v = sum();
+  if (p !== toks.length) throw 0;
+  return v;
+}
+function checkEuler(src) {
+  const s = src.replace(/\s+/g, '').replace(/[{[]/g, '(').replace(/[}\]]/g, ')').replace(/\*\*/g, '^')
+    .replace(/pi/gi, 'π').replace(/[×·]/g, '*').replace(/[−–]/g, '-').toLowerCase();
+  const toks = s.match(/exp|\d+(?:\.\d+)?|./g) || [];
+  if (toks.some(k => !/^(exp|\d+(\.\d+)?|[eiπ()+\-*/^=])$/.test(k))) return false;
+  const n = x => toks.filter(k => k === x).length;
+  if (n('=') !== 1 || n('e') + n('exp') !== 1 || n('i') !== 1 || n('π') !== 1 || n('0') !== 1 || n('1') !== 1) return false;
+  if (toks.some(k => /^\d/.test(k) && k !== '0' && k !== '1')) return false;
+  const eq = toks.indexOf('=');
+  try {
+    const l = evalComplex(toks.slice(0, eq)), r = evalComplex(toks.slice(eq + 1));
+    return Math.hypot(l.re - r.re, l.im - r.im) < 1e-9;
+  } catch (e) { return false; }
+}
+
+const FINAL = LEVELS[ARENAS - 1];
+const VOID_GOD = { ...FINAL.foes[0], name: t('Hư Vô Thần Quay', 'The Void Spin God'), color: 0x7c4dff, r: 1.75, w: Math.round(FINAL.foes[0].w * 1.1),
+  skill: 'void', stormMax: 2, spikes: true, crown: true, finalBoss: false, voidGod: true,
+  quote: t('"Thời gian của ngươi đã hết từ lâu rồi."', '"Your time ran out long ago."') };
+// how the second phase plays: a barrier rim, how often time stops, what the counter and the crush take away
+const VOID_TUNE = { R: 8, K: 1.5, wall: true, gap: [4.5, 5.5], first: 3.5, counter: .6, crush: .4, steal: .35, storm: .75 };
+const voidLevel = () => ({ ...FINAL, name: t('Hư Vô', 'The Void'), R: VOID_TUNE.R, K: VOID_TUNE.K, wall: VOID_TUNE.wall, theme: 'void', base: '#0b0716', accent: '#7c4dff',
+  env: 'void', hot: 0, shrink: null, void: true, foes: [VOID_GOD] });
+const VOID_TALK = () => [
+  ['god', t('Ngươi nghĩ... một miệng núi lửa là đủ để chôn ta sao?', 'You thought... a volcano could bury me?')],
+  ['god', t('Ta là khoảng trống giữa các vì sao. Ta là khoảnh khắc trước khi thời gian bắt đầu.', 'I am the gap between the stars. I am the moment before time began.')],
+  ['god', t('Quỳ xuống. Từng giây của ngươi giờ thuộc về ta. KAKAKAKA!', 'Kneel. Every second you have is mine now. KAHAHAHA!')],
+  eulerOK() ? ['me', t('Năm mảnh vỡ trong túi tôi... đang nóng ran lên.', 'The five shards in my pocket... are burning hot.')]
+    : shardCount() === 5 ? ['narr', t('Năm mảnh vỡ rung lên dữ dội... nhưng chúng vẫn chưa được ghép thành phương trình.', 'The five shards shake violently... but they have not been put together into the equation.')]
+    : ['narr', t('Một cơn lạnh buốt chạy dọc sống lưng. Như thể chính thời gian đang bị bóp nghẹt...', 'A chill runs down your spine. As if time itself is being strangled...')],
+];
+
+let rebirth = null, tstop = null, tsNext = 0, pendingRebirth = false, clockFx = null;
+// a time stop: the timing bar sweeps from QTE_AT for qteDur, the god charges from TS_WIND to TS_CHARGE, time resumes at TS_END
+// the first stop is forgiving; every one after it narrows the gold zone and speeds up the bar
+const QTE_AT = .1, TS_WIND = .9, TS_CHARGE = 1.9, TS_END = 2.2;
+const qteZoneOf = n => Math.max(.07, .3 * .78 ** n), qteDurOf = n => Math.max(.3, .7 * .87 ** n);
+const qteMark = s => clamp((s.t - QTE_AT) / s.qteDur, 0, 1);
+let tsCount = 0;
+
+function musicLevel(k, tc = .3) {
+  if (!musicGain || !ac) return;
+  musicGain.gain.cancelScheduledValues(ac.currentTime);
+  musicGain.gain.setTargetAtTime(musicOn ? MUSIC_VOL * k : 0, ac.currentTime, tc);
+}
+// voices: three detuned saws through a vowel-like band, swelling in slowly
+function pad(f, dur, gain, formant, dest = master, when = ac && ac.currentTime) {
+  if (!ac || headless) return;
+  const flt = ac.createBiquadFilter(), g = ac.createGain();
+  flt.type = 'bandpass'; flt.frequency.value = formant; flt.Q.value = 1.3;
+  g.gain.setValueAtTime(.0001, when); g.gain.linearRampToValueAtTime(gain, when + dur * .5); g.gain.linearRampToValueAtTime(.0001, when + dur);
+  for (const k of [1, 1.007, .994]) { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f * k; o.connect(flt); o.start(when); o.stop(when + dur + .05); }
+  flt.connect(g).connect(dest);
+}
+function swell(dur, gain) {                     // a reversed cymbal: noise that rises and cuts off dead
+  if (!ac || headless) return;
+  const now = ac.currentTime, src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+  src.buffer = noiseBuf; src.loop = true; f.type = 'highpass';
+  f.frequency.setValueAtTime(700, now); f.frequency.exponentialRampToValueAtTime(6000, now + dur);
+  g.gain.setValueAtTime(.0001, now); g.gain.exponentialRampToValueAtTime(gain, now + dur); g.gain.setValueAtTime(0, now + dur + .01);
+  src.connect(f).connect(g).connect(master); src.start(now); src.stop(now + dur + .05);
+}
+Object.assign(sfx, {
+  heartbeat() { tone('sine', 62, 36, .25, .9); tone('sine', 55, 34, .22, .6, .27); },
+  dread() { tone('sawtooth', 55, 52, 3, .1); tone('sine', 41, 40, 3.2, .45); swell(2.6, .1); },
+  choir(dur = 6) { [[110, 650], [130.81, 900], [164.81, 1100], [220, 750], [261.63, 1250]].forEach(([f, fm]) => pad(f, dur, .05, fm)); },
+  gong() { [68, 109, 163, 229].forEach((f, i) => tone('sine', f, f * .985, 4.5 - i * .7, .4 / (i + 1))); noise(1.2, 'lowpass', 500, .55); tone('sine', 150, 38, 1.4, .7); },
+  felled() { [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone('triangle', f, f * .999, 3.2, .1, i * .07)); [110, 164.81].forEach(f => pad(f, 3.5, .04, 800)); tone('sine', 82, 80, 3, .3); },
+  died() { tone('sawtooth', 98, 49, 2.6, .14); tone('sine', 73, 36, 3, .5); },
+  timeStop() { tone('sine', 1100, 38, 1.1, .45); noise(.9, 'bandpass', 4000, .35, 2, 150); for (let k = 0; k < 3; k++) tone('square', 2600, 2500, .03, .07, .35 + k * .3); },
+  timeResume() { noise(.55, 'bandpass', 200, .45, 2, 5000); tone('sine', 50, 500, .45, .3); },
+  chainsBreak() { this.shatter(); [880, 1108.73, 1318.51, 1760].forEach((f, i) => tone('triangle', f, f, 1.8, .1, i * .07)); },
+  crush() { tone('sine', 70, 30, .4, .8); noise(.2, 'lowpass', 300, .5); },
+});
+// the void has its own music: half-time drums, a falling bass line and a choir pad
+const VOID_ROOTS = [55, 51.91, 49, 46.25], VOID_LEAD = [2, 2.378, 2.997, 2.828, 4, 3.364, 2.997, 2.378];
+function voidBeat(when, step, hot) {
+  const i = step % 16, bar = Math.floor(step / 16) % 4, root = VOID_ROOTS[bar];
+  if (i === 0 || (hot && i === 10)) mTone('sine', 95, when, .5, 1, 0, 30);
+  if (hot && i === 8) mNoise(when, .5, 'lowpass', 260, .7);
+  if (i % 4 === 2) mNoise(when, .05, 'highpass', 6500, .04);
+  if (i === 0) { mTone('sawtooth', root, when, STEP * 16, .22, 260); for (const k of [2, 2.378, 2.997]) pad(root * k, STEP * 16, .03, 900, musicGain, when); }
+  if (hot && i % 4 === 3) mTone('sine', root * 2 * VOID_LEAD[(i + bar * 3) % 8], when, STEP * 3, .05);
+}
+
+function soulCard(text, kind, sub = '') {
+  if (headless) return;
+  const el = $('soul');
+  el.className = ''; void el.offsetWidth;
+  el.innerHTML = `${text}${sub ? `<small>${sub}</small>` : ''}`; el.className = 'go ' + kind;
+}
+function clearFinale() {
+  if (tstop) { dropFx(tstop.chains); dropFx(tstop.fx); dropFx(tstop.halo); if (tstop.light) { scene.remove(tstop.light); tstop.light.dispose(); } }
+  document.body.classList.remove('qte');
+  dropFx(clockFx); clockFx = null;
+  tstop = null; rebirth = null; pendingRebirth = false;
+  document.body.classList.remove('timestop', 'timefree', 'dread');
+  $('euler').className = '';
+}
+function dropFx(o) { if (!o) return; o.traverse(m => m.userData.tex && m.userData.tex.dispose()); disposeFx(o); }
+
+// ---- phase one falls: the god rises again ----
+function startRebirth() {
+  if (headless) return enterVoid();
+  state = 'rebirth'; rebirth = { t: 0, built: false, titled: false, beats: 0 };
+  hushCaster(); $('btnStorm').classList.add('hidden'); $('btnView').classList.add('hidden');
+  document.body.classList.add('cine', 'dread');
+  const old = tops.find(a => a.finalBoss);
+  const d = old ? Math.hypot(old.x, old.z) : 0, ux = d > .5 ? -old.x / d : 0, uz = d > .5 ? -old.z / d : 1;   // look at the corpse from the middle of the arena
+  cine = old && old.why !== 'ring' ? { pos: new THREE.Vector3(old.x + ux * 6.5 + uz * 2, 3.4, old.z + uz * 6.5 - ux * 2), look: new THREE.Vector3(old.x, .6, old.z), t: 0, fresh: true, fov: 46 }
+    : { pos: new THREE.Vector3(0, level.R * .9 + 3, level.R * 1.3), look: new THREE.Vector3(0, 0, 0), t: 0, fresh: true, fov: 50 };
+  musicLevel(0, .15); sfx.dread();
+}
+function enterVoid() {
+  level = voidLevel(); buildArena(); resetSkillFx();
+  spLife.fill(0); spPos.fill(-999);
+  placeTops();                                    // you pull the rip-cord again; the god comes back whole
+  const d = Math.hypot(player.x, player.z), lim = level.R - 1.5;
+  if (d > lim) { player.x *= lim / d; player.z *= lim / d; }
+  simT = 0; acc = 0; tstop = null; tsNext = VOID_TUNE.first; tsCount = 0; clashUntil = -1;
+}
+function rebirthTick(dt) {
+  const r = rebirth; r.t += dt;
+  if (!r.built) {
+    const old = tops.find(a => a.finalBoss);
+    if (r.beats < 3 && r.t > .3 + r.beats * .75) { r.beats++; sfx.heartbeat(); shake = Math.max(shake, .3); }
+    if (old && old.why !== 'ring') {              // the fallen god twitches and bleeds darkness
+      old.tiltAmp = 1.35 + Math.sin(r.t * 31) * .05 * r.t;
+      if (Math.random() < .5) puff(old.x + rand(-.6, .6), old.g.position.y + .3, old.z + rand(-.6, .6), rand(-.2, .2), rand(.6, 1.3), rand(-.2, .2), 2.4, .5, 2.4, 0x12001c, .6);
+    }
+    if (r.t > 2.7) {
+      r.built = true; document.body.classList.remove('dread');
+      $('flash').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 900 });
+      enterVoid();
+      const g = tops.find(a => a.voidGod); g.yOff = -9;
+      cine = { pos: new THREE.Vector3(g.x + 6, 1.5, g.z + 4.5), look: new THREE.Vector3(g.x, 2, g.z), t: 0, fresh: true, fov: 52 };
+      sfx.choir(6); swell(3.1, .14);
+    }
+    return;
+  }
+  const g = tops.find(a => a.voidGod);
+  if (!g) return;
+  const u = clamp((r.t - 2.7) / 3.2, 0, 1), y = floorY(g.x, g.z);
+  g.yOff = -9 * (1 - u) ** 3;
+  for (let k = 0; k < 5; k++) {                   // darkness spirals up round the rising god
+    const a = realT * 6 + k * 1.26, rr = 2 + rand(0, .6);
+    spark(g.x + Math.cos(a) * rr, y + rand(0, 4), g.z + Math.sin(a) * rr, -Math.sin(a) * 4, rand(2, 5), Math.cos(a) * 4, rand(.5, .9), .55, .35, 1, -.1);
+  }
+  if (Math.random() < .5) puff(g.x + rand(-1.5, 1.5), y, g.z + rand(-1.5, 1.5), 0, rand(1, 2), 0, 2.5, 1, 3.5, 0x1a0030, .5);
+  if (!r.titled && u >= 1) {
+    r.titled = true;
+    soulCard(t('Hư Vô Thần Quay', 'The Void Spin God'), 'boss', t('Thần Quay Bất Bại · tái sinh', 'The Undefeated Spin God · reborn'));
+    sfx.gong(); shake = 1; shockRing(g.x, y, g.z, 0x7c4dff); shockRing(g.x, y + .5, g.z, 0xffffff);
+    $('flash').animate([{ opacity: .6 }, { opacity: 0 }], { duration: 500 });
+  }
+  if (r.t > 9.6) {
+    rebirth = null; document.body.classList.remove('dread');
+    if (!seen.v9 && storyOn) { markSeen('v9'); playStory(VOID_TALK(), beginPhase2); } else beginPhase2();
+  }
+}
+function beginPhase2() {
+  document.body.classList.remove('cine', 'dread'); cine = null;
+  state = 'battle'; simT = 0; acc = 0; tsNext = VOID_TUNE.first;
+  player.yOff = 2.5; sfx.drop(); excite = 1;
+  $('btnStorm').classList.remove('hidden'); $('btnView').classList.remove('hidden');
+  $('title').textContent = stageLabel();
+  musicLevel(1, .6); say(pickLine('voidStart'), 3);
+}
+
+// ---- the time stop ----
+const clockTex = canvasTex(256, 256, (c, w) => {
+  const m = w / 2; c.strokeStyle = c.fillStyle = '#e3f2fd';
+  c.lineWidth = 6; c.beginPath(); c.arc(m, m, m - 6, 0, 7); c.stroke();
+  c.lineWidth = 2; c.beginPath(); c.arc(m, m, m - 22, 0, 7); c.stroke();
+  for (let k = 0; k < 60; k++) {
+    const a = k / 60 * Math.PI * 2, r0 = k % 5 ? m - 16 : m - 30;
+    c.lineWidth = k % 5 ? 2 : 5; c.beginPath(); c.moveTo(m + Math.cos(a) * r0, m + Math.sin(a) * r0); c.lineTo(m + Math.cos(a) * (m - 8), m + Math.sin(a) * (m - 8)); c.stroke();
+  }
+  c.font = 'bold 20px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+  ['XII', 'I', 'II', 'III', 'IIII', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'].forEach((s, k) => {
+    const a = k / 12 * Math.PI * 2 - Math.PI / 2; c.fillText(s, m + Math.cos(a) * (m - 50), m + Math.sin(a) * (m - 50));
+  });
+});
+function makeClock() {                           // a clock face as wide as the arena, whose hands spin and then stop dead
+  const g = new THREE.Group(), face = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), additive(0xbbdefb, .55, { map: clockTex, side: THREE.DoubleSide }));
+  face.rotation.x = -Math.PI / 2; g.add(face);
+  const hands = new THREE.Group();
+  for (const [len, wid] of [[.78, .045], [.55, .07]]) {
+    const h = new THREE.Mesh(new THREE.PlaneGeometry(wid, len).translate(0, len / 2, 0), additive(0xffffff, .55, { side: THREE.DoubleSide }));
+    h.rotation.x = -Math.PI / 2; h.rotation.z = len < .6 ? 2 : 0; hands.add(h);
+  }
+  g.add(hands); g.userData = { life: 0, fade: 0, hands };
+  return g;
+}
+function makeChains(a) {                         // three rings of frozen time locked round your top
+  const g = new THREE.Group(), mat = additive(0x90caf9, .8);
+  for (let k = 0; k < 3; k++) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(a.r * 1.45, .05, 6, 40), mat);
+    ring.rotation.set(Math.PI / 2 + (k - 1) * .6, k * 1.1, 0); ring.position.y = a.height * (.3 + .25 * k); g.add(ring);
+  }
+  return g;
+}
+function makeLabel(text) {
+  const tex = canvasTex(128, 64, (c, w, h) => {
+    c.font = 'italic 44px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillStyle = '#ffe9a8'; c.shadowColor = '#ffb300'; c.shadowBlur = 12; c.fillText(text, w / 2, h / 2);
+  });
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+  s.scale.set(1.3, .65, 1); s.userData.tex = tex;
+  return s;
+}
+function unitCircleFx(s) {                       // the complex plane laid on the floor: the circle e^{iθ} walks
+  const g = new THREE.Group();
+  // drawn over the floor (no depth test), since the bowl rises under parts of the circle
+  const ring = new THREE.Mesh(new THREE.RingGeometry(s.rho - .08, s.rho + .08, 96), additive(0xffd54f, .95, { side: THREE.DoubleSide, depthTest: false }));
+  ring.rotation.x = -Math.PI / 2; g.add(ring);
+  for (const [dx, dz] of [[s.rx, s.rz], [s.ux, s.uz]]) {
+    const axis = new THREE.Mesh(new THREE.PlaneGeometry(s.rho * 2 + 1.6, .06), additive(0xfff3c4, .6, { side: THREE.DoubleSide, depthTest: false }));
+    axis.rotation.x = -Math.PI / 2; axis.rotation.z = Math.atan2(-dz, dx); g.add(axis);
+  }
+  for (const [text, k, j] of [['1', 1, 0], ['−1', -1, 0], ['i', 0, 1], ['0', .18, .18]]) {
+    const l = makeLabel(text); l.position.set((s.rx * k + s.ux * j) * s.rho, .7, (s.rz * k + s.uz * j) * s.rho); g.add(l);
+  }
+  g.position.set(s.cx, floorY(s.cx, s.cz) + .15, s.cz); g.renderOrder = 5;
+  return g;
+}
+function startTimeStop(g) {
+  const dx = player.x - g.x, dz = player.z - g.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d;
+  let tx = player.x + ux * 2.8, tz = player.z + uz * 2.8;
+  const td = Math.hypot(tx, tz), lim = level.R - 1;
+  if (td > lim) { tx *= lim / td; tz *= lim / td; }
+  // with the equation ready you still have to call on it in time: SPACE while the bar crosses the gold zone
+  const n = tsCount++, width = qteZoneOf(n), z0 = rand(.4, .95 - width);
+  tstop = { t: 0, free: null, hit: false, bx: g.x, bz: g.z, tx, tz, px: player.x, pz: player.z, ux, uz, qte: eulerOK() ? [z0, z0 + width] : null, qteDur: qteDurOf(n) };
+  g.vx = g.vz = 0; g.skillT = 0; g.active = null; g.stormT = 0;      // stopping time cuts off whatever the god was doing
+  if (headless) return;
+  document.body.classList.add('timestop');
+  sfx.timeStop(); musicLevel(0, .05);
+  announce(t('NGƯNG ĐỌNG THỜI GIAN!', 'TIME STOP!')); say(pickLine('timestop'), 3);
+  dropFx(clockFx); clockFx = makeClock(); clockFx.position.set(g.x, floorY(g.x, g.z) + .3, g.z); scene.add(clockFx);
+  tstop.chains = makeChains(player); scene.add(tstop.chains);
+  shake = Math.max(shake, .6);
+}
+function qteDecide(s, ok) {
+  s.free = ok;
+  if (ok) return breakFree(s);
+  if (!headless && s.qte) { popup(player.x, floorY(player.x, player.z) + player.height, player.z, t('TRƯỢT!', 'MISSED!')); sfx.lose(); say(pickLine('qteMiss'), 3); }
+}
+function qtePress() {                            // SPACE or the big button while time is stopped
+  const s = tstop;
+  if (!s || !s.qte || s.free !== null || s.t < QTE_AT) return;
+  const m = qteMark(s);
+  qteDecide(s, m >= s.qte[0] && m <= s.qte[1]);
+}
+function breakFree(s) {
+  // centre the unit circle beside you so that you are the point 1, with the imaginary axis along the god's charge;
+  // pick the side and size that keep the whole half turn on the floor
+  const cands = [];
+  for (const rho of [2.4, 1.9, 1.5]) for (const side of [1, -1]) {
+    const qx = -s.uz * side, qz = s.ux * side;
+    const worst = Math.max(Math.hypot(s.px + qx * 2 * rho, s.pz + qz * 2 * rho), Math.hypot(s.px + (qx + s.ux) * rho, s.pz + (qz + s.uz) * rho));
+    cands.push({ rho, qx, qz, worst });
+  }
+  const c = cands.find(k => k.worst < level.R - 1.1) || cands.reduce((a, b) => b.worst < a.worst ? b : a);
+  Object.assign(s, { rho: c.rho, cx: s.px + c.qx * c.rho, cz: s.pz + c.qz * c.rho, rx: -c.qx, rz: -c.qz, theta: 0 });
+  if (headless) return;
+  document.body.classList.remove('timestop'); document.body.classList.add('timefree');
+  sfx.chainsBreak(); say(pickLine('euler'), 3);
+  if (s.chains) {
+    for (let k = 0; k < 60; k++) spark(player.x, player.g.position.y + rand(.2, 1.4), player.z, rand(-6, 6), rand(1, 6), rand(-6, 6), rand(.6, 1.2), 1, .85, .35);
+    dropFx(s.chains); s.chains = null;
+  }
+  // the equation answers: white light pours out round your top
+  s.halo = glowSprite(0xffffff, player.r * 7); s.halo.material.opacity = .95; scene.add(s.halo);
+  s.light = new THREE.PointLight(0xffffff, 45, 9, 1.5); scene.add(s.light);
+  shockRing(player.x, floorY(player.x, player.z), player.z, 0xffffff); shockRing(player.x, floorY(player.x, player.z) + .5, player.z, 0xfff3c4);
+  $('flash').animate([{ opacity: .7 }, { opacity: 0 }], { duration: 350 });
+  s.fx = unitCircleFx(s); scene.add(s.fx);
+}
+function timeStopStep() {
+  const g = tops.find(a => a.voidGod && a.alive);
+  if (!tstop) {
+    if (g && player.alive && simT >= tsNext && player.yOff <= 0) startTimeStop(g);
+    if (!tstop) return false;
+  }
+  const s = tstop;
+  if (!g || !player.alive) { endTimeStop(g); return false; }
+  s.t += H;
+  if (s.free === null) {
+    if (!s.qte) { if (s.t >= .35) s.free = false; }                       // no equation: nothing to break free with
+    else if (headless) { if (s.t >= .4) qteDecide(s, Math.random() < Math.min(1, (s.qte[1] - s.qte[0]) / .3) * .92); }   // sims: a decent player, worse as the zone narrows
+    else if (s.t >= QTE_AT + s.qteDur + .05) qteDecide(s, false);         // the bar ran out
+  }
+  const smooth = u => u * u * (3 - 2 * u);
+  if (s.t >= TS_WIND && s.t < TS_CHARGE + H) {      // the god charges through the frozen world
+    const k = Math.min(1, (s.t - TS_WIND) / (TS_CHARGE - TS_WIND)), u = smooth(k);
+    g.x = s.bx + (s.tx - s.bx) * u; g.z = s.bz + (s.tz - s.bz) * u;
+    if (s.free) {                                  // ...while you walk e^{iθ}, θ from 0 to π
+      const th = Math.PI * k; s.theta = th;
+      player.x = s.cx + s.rho * (s.rx * Math.cos(th) + s.ux * Math.sin(th));
+      player.z = s.cz + s.rho * (s.rz * Math.cos(th) + s.uz * Math.sin(th));
+    } else if (!s.hit && Math.hypot(g.x - player.x, g.z - player.z) < g.r + player.r) {
+      s.hit = true;
+      if (!headless) { sfx.crush(); popup(player.x, floorY(player.x, player.z) + player.height, player.z, '!'); shake = Math.max(shake, .5); }
+    }
+  }
+  if (s.free && s.t >= TS_CHARGE) {                 // +1: one straight step into the god
+    if (s.ex === undefined) { s.ex = player.x; s.ez = player.z; }
+    const dx = g.x - s.ex, dz = g.z - s.ez, d = Math.hypot(dx, dz) || 1, reach = Math.max(0, d - g.r - player.r);
+    const u = Math.min(1, (s.t - TS_CHARGE) / (TS_END - TS_CHARGE));
+    player.x = s.ex + dx / d * reach * u * u; player.z = s.ez + dz / d * reach * u * u;
+  }
+  if (s.t >= TS_END) endTimeStop(g);
+  return true;
+}
+function endTimeStop(g) {
+  const s = tstop; tstop = null; tsNext = simT + rand(...VOID_TUNE.gap);
+  if (!s) return;
+  dropFx(s.chains); dropFx(s.halo);
+  if (s.light) { scene.remove(s.light); s.light.dispose(); }
+  if (g) g.vx = g.vz = 0;
+  if (g && player.alive && s.free) {               // = 0: the counter lands
+    const dx = g.x - player.x, dz = g.z - player.z, d = Math.hypot(dx, dz) || 1, dv = 10 / Math.sqrt(g.m / 2);
+    const lost = Math.abs(g.w) * (1 - VOID_TUNE.counter);
+    g.w *= VOID_TUNE.counter; player.w += sgn(player.w) * lost * VOID_TUNE.steal;   // + 1 = 0 takes the god's spin and gives you part of it
+    g.vx = dx / d * dv; g.vz = dz / d * dv; g.head = Math.atan2(g.vz, g.vx);
+    g.lastHitBy = player; g.lastHitT = simT;
+    // step back out of reach so the two rims do not grind and throw you as time starts again
+    player.x = g.x - dx / d * (g.r + player.r + .6); player.z = g.z - dz / d * (g.r + player.r + .6);
+    player.lastHit.set(g, simT); g.lastHit.set(player, simT);
+    player.vx = -dx / d * 3; player.vz = -dz / d * 3; player.head = Math.atan2(player.vz, player.vx);
+    player.energy = Math.min(player.stormMax, player.energy + 1);
+    const pd = Math.hypot(player.x, player.z), lim = level.R - 1;
+    if (pd > lim) { player.x *= lim / pd; player.z *= lim / pd; }
+    if (!headless) {
+      hitFx(g.x - dx / d * g.r, floorY(g.x, g.z) + 1, g.z - dz / d * g.r, 30);
+      popup(g.x, floorY(g.x, g.z) + g.height, g.z, '= 0');
+      $('flash').animate([{ opacity: .8 }, { opacity: 0 }], { duration: 400 });
+      sfx.boom(); eulerFinal();
+    }
+  } else if (g && player.alive && s.hit) {         // the blow you never saw lands all at once
+    const dv = 10 / Math.sqrt(player.m / 2), w = Math.abs(player.w);
+    player.w = sgn(player.w) * Math.max(w * VOID_TUNE.crush, Math.min(w, W_MIN + 4)); player.vx = s.ux * dv; player.vz = s.uz * dv; player.head = Math.atan2(player.vz, player.vx);
+    player.lastHitBy = g; player.lastHitT = simT; player.crushed = true;
+    if (!headless) {
+      hitFx(player.x, floorY(player.x, player.z) + .6, player.z, 32);
+      popup(player.x, floorY(player.x, player.z) + player.height, player.z, t('CÁN!', 'CRUSHED!'));
+      sfx.boom(); say(pickLine('crushed'), 3); slowT = .35;
+    }
+  }
+  if (!headless) {
+    document.body.classList.remove('timestop', 'timefree');
+    sfx.timeResume(); musicLevel(1, .3);
+    if (s.fx) { const fx = s.fx; setTimeout(() => dropFx(fx), 1400); }
+  }
+}
+function eulerHud(s) {
+  const el = $('euler'), th = s.theta || 0;
+  el.innerHTML = s.t < TS_WIND ? `e<sup>iθ</sup><small>θ = 0 · ${t('bước ra khỏi thời gian', 'stepping out of time')}</small>`
+    : s.t < TS_CHARGE ? `e<sup>i·${th.toFixed(2)}</sup> = ${Math.cos(th).toFixed(2)} ${Math.sin(th) >= 0 ? '+' : '−'} ${Math.abs(Math.sin(th)).toFixed(2)}i`
+      + `<small>${t('θ chạy từ 0 tới π: nửa vòng quanh tâm', 'θ runs from 0 to π: half a turn round the centre')}</small>`
+    : `e<sup>iπ</sup> + 1<small>${t('thêm một bước nữa…', 'one more step…')}</small>`;
+  el.className = 'on';
+}
+function eulerFinal() {
+  const el = $('euler');
+  el.innerHTML = 'e<sup>iπ</sup> + 1 = 0'; el.className = 'on final';
+  clearTimeout(eulerFinal.tm); eulerFinal.tm = setTimeout(() => { el.className = ''; }, 1900);
+}
+function finaleVisuals(dt) {
+  if (state === 'rebirth' && rebirth) rebirthTick(dt);
+  if (clockFx) {
+    const u = clockFx.userData; u.life += dt;
+    if (!tstop) u.fade += dt;
+    const s = 1 + Math.min(1, u.life / .6) * level.R * 1.15, op = .55 * (1 - Math.min(1, u.fade / .6));
+    clockFx.scale.set(s, 1, s);
+    clockFx.traverse(m => { if (m.material) m.material.opacity = op; });
+    if (u.life < .5) u.hands.rotation.y -= dt * 25;
+    if (u.fade > .6) { dropFx(clockFx); clockFx = null; }
+  }
+  if (tstop && tstop.chains) tstop.chains.position.set(player.x, player.g.position.y, player.z);
+  if (tstop && tstop.halo) {
+    const y = player.g.position.y + player.height * .5;
+    tstop.halo.position.set(player.x, y, player.z); tstop.halo.material.opacity = .75 + .2 * Math.sin(realT * 18);
+    tstop.light.position.set(player.x, y + 1, player.z);
+  }
+  if (tstop && tstop.free) {
+    eulerHud(tstop);
+    if (tstop.t > TS_WIND) spark(player.x, player.g.position.y + .3, player.z, 0, 0, 0, 2.5, 1, .8, .3, 0);   // a golden trail, frozen in place
+  }
 }
 
 // ---------- workshop UI ----------
@@ -2682,10 +3276,19 @@ $('shop').innerHTML = `
     <div id="skills"></div><p class="hint" id="skInfo"></p>
     <div id="stats"></div>
     <p class="hint">${t('Bấm vào chỗ trống trên sàn để đặt con quay. Kéo từ con quay (hoặc từ chấm tròn đầu mũi tên) để chỉnh hướng và lực phóng.', 'Click an empty spot to place the top. Drag from the top (or from the knob on the arrow) to set launch direction and power.')}</p>
-    <p class="hint">${t('Trong trận: đập SPACE ngay sau mỗi cú va chạm để nạp năng lượng nhanh hơn. Hạ gục đối thủ để nâng lốc xoáy lên V2, V3.',
-      'In battle: mash SPACE right after each collision to charge faster. Knock rivals out to upgrade your tornado to V2 and V3.')}</p>
+    <p class="hint">${t('Trong trận: đập SPACE ngay sau mỗi cú va chạm để nạp năng lượng nhanh hơn. Hạ gục đối thủ để nâng lốc xoáy lên V2, V3, nếu lốc xoáy của bạn đã đủ cấp.',
+      'In battle: mash SPACE right after each collision to charge faster. Knock rivals out to upgrade your tornado to V2 and V3, once it is strong enough.')}</p>
   </div>
   <div id="tabAdv" hidden>
+    <div id="shardBox" hidden>
+      <div class="rowb"><span>${t('Mảnh vỡ bí ẩn', 'Mystery shards')}</span><span id="shardList"></span></div>
+      <div id="eqBox" hidden>
+        <div id="eqTray"></div>
+        <div id="eqBuild">${[0, 1, 2, 3, 4, 5, 6].map(i => `<span class="slot" data-i="${i}"></span>`).join('')}</div>
+        <p class="hint">${t('<b>Phương trình sự sống:</b> điều đẹp nhất của vũ trụ. Kéo các mảnh vào ô (hoặc chạm mảnh rồi chạm ô).',
+          '<b>The equation of life:</b> the most beautiful thing in the universe. Drag the pieces into the boxes (or tap a piece, then a box).')}</p>
+      </div>
+    </div>
     <p class="hint">${t('Viết công thức gia tốc lái (m/s²) cho con quay. Mũi càng bè lái càng khoẻ, nhưng lái tốn tốc độ quay.',
       'Write the steering acceleration (m/s²) for your top. Flatter tips steer harder, but steering costs spin.')}</p>
     <label>ax = <input id="fx" spellcheck="false" autocomplete="off"></label>
@@ -2733,9 +3336,16 @@ function refreshShop() {
     b.disabled = !skillUnlocked(k); b.classList.toggle('on', b.dataset.sk === build.skill);
     b.textContent = b.disabled ? `🔒 ${t('Trùm', 'Boss')} ${5 * k}` : SKILLS[b.dataset.sk].name;
   });
-  const S = SKILLS[build.skill];
+  const S = SKILLS[build.skill], tier = stormTier();
   $('skInfo').innerHTML = (level.track ? `<i>${t('Chế độ địa hình không dùng kỹ năng: SPACE là nhảy.', 'Courses have no skills: SPACE jumps.')}</i><br>` : '')
-    + `<b>${S.name}:</b> ${S.desc}<br><span class="warn">⚠ ${S.warn}</span>`;
+    + `<b>${S.name}:</b> ${S.desc}<br><span class="warn">⚠ ${S.warn}</span>`
+    + (build.skill === 'storm' ? `<br>🌪 ${t('Sức mạnh', 'Power')}: ${'★'.repeat(tier + 1)}${'☆'.repeat(2 - tier)} · ${t('tối đa', 'up to')} V${STORM_TIERS[tier].cap}`
+      + (tier < 2 ? ` · ${t(`hạ trùm màn ${tier ? 20 : 10} để mạnh lên`, `beat the stage ${tier ? 20 : 10} boss to power it up`)}` : '') : '');
+  const own = shardsOwned(), got = own.filter(Boolean).length;
+  $('shardBox').hidden = !got; $('eqBox').hidden = got < 5;
+  $('shardList').hidden = got === 5;            // once all five are in hand the tray below shows them; no need to list them twice
+  $('shardList').innerHTML = own.map(x => `<span class="shard${x ? ' got' : ''}">${x || '?'}</span>`).join('');
+  drawEq();
   for (const k of ['m', 'r', 'grip']) $(k).value = build[k];
   $('mV').textContent = build.m.toFixed(1) + ' kg'; $('rV').textContent = build.r.toFixed(2) + ' m';
   $('gripV').textContent = build.grip < .25 ? t('nhọn', 'sharp') : build.grip > .7 ? t('bè', 'flat') : t('vừa', 'medium');
@@ -2747,6 +3357,45 @@ function refreshShop() {
     + `${t('Trụ được', 'Spins for')} ≈ <b>${Math.round((w0 - W_MIN) / (decayRate(build.grip, build.r) * (level.wear ?? 1)))}</b> s<br>`
     + `${t('Tốc độ chạy', 'Roaming speed')} ≈ <b>${(DRIVE * build.grip * (level.traction ?? 1) / ((.8 + .8 * build.grip) * (level.drag ?? 1))).toFixed(1)}</b> m/s<br>`
     + `${t('Lực lái tối đa', 'Max steering')} = <b>${((6 + 18 * build.grip) * (level.traction ?? 1)).toFixed(0)}</b> m/s²`;
+}
+// The equation is built from seven boxes. A piece dropped in the upper half of a box sits raised; a run of raised
+// pieces is the exponent of the piece before it. Nothing tells you that, except how the box lights up as you drag.
+const EQ_SIGNS = ['+', '='];
+const eqOf = () => {
+  if (!build.eq || !Array.isArray(build.eq.s) || build.eq.s.length !== 7) build.eq = { s: [null, null, null, null, null, null, null] };
+  return build.eq;
+};
+function eqString() {
+  let out = '', run = '';
+  for (const k of eqOf().s) {
+    if (!k) continue;
+    if (k.up) { run += k.v; continue; }
+    if (run) { out += `^(${run})`; run = ''; }
+    out += k.v;
+  }
+  return run ? `${out}^(${run})` : out;
+}
+function syncEq() { build.euler = eqString(); drawEq(); save(); }
+function drawEq() {
+  const q = eqOf(), used = q.s.filter(Boolean).map(k => k.v), pieces = [...shardsOwned().filter(Boolean), ...EQ_SIGNS];
+  $('eqTray').innerHTML = pieces.map(v => `<span class="tile${used.includes(v) ? ' used' : ''}${v === eqPick ? ' picked' : ''}" data-v="${v}">${v}</span>`).join('');
+  document.querySelectorAll('#eqBuild .slot').forEach(el => {
+    const k = q.s[+el.dataset.i];
+    el.innerHTML = k ? `<b class="${k.up ? 'up' : ''}">${k.v}</b>` : ''; el.classList.toggle('full', !!k);
+  });
+  showEq();
+}
+function placeTok(i, v, up) {
+  const q = eqOf();
+  q.s = q.s.map(k => k && k.v === v ? null : k); q.s[i] = { v, up }; eqPick = null;
+  syncEq();
+}
+const slotAt = (x, y) => document.elementFromPoint(x, y)?.closest('#eqBuild .slot');
+const upperHalf = (el, y) => { const r = el.getBoundingClientRect(); return y < r.top + r.height * .45; };
+let eqPick = null, eqDrag = null;
+// no feedback on purpose: whether the equation is right only shows when time stops
+function showEq() {
+  document.querySelector('.tabs button[data-tab="adv"]').textContent = t('Nâng cao', 'Advanced') + (shardCount() === 5 ? ' ✦' : '');
 }
 function rebuildPlayer() {
   if (state !== 'shop') return;
@@ -2769,6 +3418,47 @@ $('skills').addEventListener('click', e => {
   const id = e.target.dataset.sk;
   if (!id || e.target.disabled) return;
   build.skill = id; refreshShop();
+});
+// drag a piece with the mouse or a finger, from the tray or from a box; a tap picks it up and the next tap puts it down
+function eqDown(e) {
+  const tile = e.target.closest('#eqTray .tile:not(.used)'), slot = e.target.closest('#eqBuild .slot');
+  if (!tile && !slot) return;
+  e.preventDefault();
+  const i = slot ? +slot.dataset.i : -1, k = slot ? eqOf().s[i] : null;
+  if (slot && !k) {                                   // an empty box: drop the picked piece here
+    if (eqPick) placeTok(i, eqPick, upperHalf(slot, e.clientY));
+    return;
+  }
+  eqDrag = { v: tile ? tile.dataset.v : k.v, from: i, x: e.clientX, y: e.clientY, ghost: null };
+}
+$('eqTray').addEventListener('pointerdown', eqDown);
+$('eqBuild').addEventListener('pointerdown', eqDown);
+addEventListener('pointermove', e => {
+  if (!eqDrag) return;
+  if (!eqDrag.ghost && Math.hypot(e.clientX - eqDrag.x, e.clientY - eqDrag.y) > 6) {
+    eqDrag.ghost = document.createElement('span'); eqDrag.ghost.className = 'tile ghost'; eqDrag.ghost.textContent = eqDrag.v;
+    document.body.appendChild(eqDrag.ghost);
+  }
+  if (!eqDrag.ghost) return;
+  eqDrag.ghost.style.left = e.clientX + 'px'; eqDrag.ghost.style.top = e.clientY + 'px';
+  document.querySelectorAll('#eqBuild .slot').forEach(el => el.classList.remove('hovUp', 'hovDown'));
+  const slot = slotAt(e.clientX, e.clientY);
+  if (slot) slot.classList.add(upperHalf(slot, e.clientY) ? 'hovUp' : 'hovDown');
+});
+addEventListener('pointerup', e => {
+  if (!eqDrag) return;
+  const d = eqDrag; eqDrag = null;
+  document.querySelectorAll('#eqBuild .slot').forEach(el => el.classList.remove('hovUp', 'hovDown'));
+  if (d.ghost) {
+    d.ghost.remove();
+    const slot = slotAt(e.clientX, e.clientY);
+    if (slot) placeTok(+slot.dataset.i, d.v, upperHalf(slot, e.clientY));
+    else if (d.from >= 0) { eqOf().s[d.from] = null; syncEq(); }      // dragged out of the row: back to the tray
+    return;
+  }
+  if (d.from < 0) { eqPick = eqPick === d.v ? null : d.v; drawEq(); }   // a tap on a tray piece picks it up
+  else if (eqPick) placeTok(d.from, eqPick, upperHalf(e.target.closest('.slot') || e.target, e.clientY));
+  else { eqOf().s[d.from] = null; syncEq(); }                            // a tap on a filled box empties it
 });
 $('presets').addEventListener('click', e => {
   const p = PRESETS[e.target.dataset.p]; if (!p) return;
@@ -2814,6 +3504,7 @@ addEventListener('keydown', e => {
   }
   if (e.code === 'Space') { e.preventDefault(); state === 'shop' ? launch() : powerPress(); }
   else if (e.code === 'KeyV') toggleView();
+  else if (e.code === 'KeyK' && params.has('debug') && state === 'battle') game.ko();   // test shortcut: knock the rivals out
   else if (e.code === 'Enter' && state === 'result') $('rNext').classList.contains('hidden') ? enterShop() : setLevel(levelIndex + 1);
 });
 
@@ -2888,7 +3579,7 @@ function announce(text) {
   el.classList.remove('go'); void el.offsetWidth; el.classList.add('go');
 }
 
-const EDGE_RED = new THREE.Color(0xff4d4d), SUN_OFFSET = new THREE.Vector3(8, 22, 10);
+const EDGE_VOID = new THREE.Color(0x9c6bff), EDGE_RED = new THREE.Color(0xff4d4d), SUN_OFFSET = new THREE.Vector3(8, 22, 10);
 const camPos = new THREE.Vector3(0, 16, 10), camLook = new THREE.Vector3(), wantPos = new THREE.Vector3(), wantLook = new THREE.Vector3();
 let orbit = 0, fpAim = 0;
 
@@ -2897,7 +3588,9 @@ function visuals(dt) {
   const fighting = state === 'battle' || state === 'ending';
   tops.forEach((a, i) => {
     const sp = Math.abs(a.w);
-    if (a.alive) {
+    const still = tstop && !a.voidGod && !(a.isPlayer && tstop.free);   // stopped time holds every top but the god's (and yours, with the equation)
+    if (a.alive && still) { /* frozen mid-spin */ }
+    else if (a.alive) {
       a.angle += (fighting ? a.w : sgn(a.w) * 14) * dt;
       a.tiltAmp += ((fighting ? .03 + clamp((32 - sp) / 32, 0, 1) * .42 : .03) - a.tiltAmp) * Math.min(1, dt * 6);
       a.phase += dt * precession(sp, a.r) * 3;
@@ -2916,7 +3609,7 @@ function visuals(dt) {
     a.spinG.rotation.y = a.angle;
     // trail
     const p = a.trail.geometry.attributes.position, arr = p.array;
-    if (fighting && a.alive) { arr.copyWithin(3, 0, (TRAIL - 1) * 3); arr[0] = a.x; arr[1] = floorY(a.x, a.z) + .06; arr[2] = a.z; }
+    if (fighting && a.alive && !still) { arr.copyWithin(3, 0, (TRAIL - 1) * 3); arr[0] = a.x; arr[1] = floorY(a.x, a.z) + .06; arr[2] = a.z; }
     else if (!fighting) for (let k = 0; k < TRAIL; k++) { arr[k * 3] = a.x; arr[k * 3 + 1] = floorY(a.x, a.z) + .06; arr[k * 3 + 2] = a.z; }
     p.needsUpdate = true;
     // tornado
@@ -2958,7 +3651,7 @@ function visuals(dt) {
     const ra = level.rock ? simT * level.rock.speed : 0, sl = level.rock ? level.rock.amp / 20 : 0;
     stage.rotation.set(sl * Math.sin(ra), (level.spinFloor || 0) * simT, -sl * Math.cos(ra));
   }
-  if (crowd) updateCrowd(dt); else excite = Math.max(0, excite - dt * .6);
+  if (crowd) updateCrowd(tstop ? 0 : dt); else excite = Math.max(0, excite - dt * .6);
   updateBeams();
   if (level.track) {
     for (const zn of level.track.zones || []) if (zn.type === 'wind') for (let k = 0; k < 2; k++) {   // streaks show where the wind blows
@@ -2974,12 +3667,13 @@ function visuals(dt) {
   }
   commentaryTick(); storyTick(dt);
   const ducking = VOICE_FEATURE && voiceOn && 'speechSynthesis' in window && speechSynthesis.speaking ? .45 : 1;
-  if (bedGain) bedGain.gain.setTargetAtTime((fighting ? .5 + excite * .3 : state === 'shop' ? .3 : .35) * ducking, ac.currentTime, .3);
+  if (bedGain) bedGain.gain.setTargetAtTime((fighting ? .5 + excite * .3 : state === 'shop' ? .3 : .35) * ducking * (tstop || state === 'rebirth' ? 0 : 1), ac.currentTime, .3);
   if (bloodBand) bloodBand.material.opacity = .3 + .18 * Math.sin(realT * 3);
-  if (edgeGlow && !level.wall) edgeGlow.material.color.setScalar(.6 + Math.sin(realT * 5) * .4).multiply(EDGE_RED);
+  if (edgeGlow && !level.wall) edgeGlow.material.color.setScalar(.6 + Math.sin(realT * 5) * .4).multiply(level.void ? EDGE_VOID : EDGE_RED);
   skillWorldVisuals(dt);
-  envTick(dt);
-  updateSparks(dt);
+  if (!tstop) envTick(dt);
+  updateSparks(tstop ? 0 : dt);
+  finaleVisuals(dt);
   for (let i = rings.length - 1; i >= 0; i--) {
     const m = rings[i]; m.life += dt; m.scale.setScalar(1 + m.life * 22); m.material.opacity = .9 * (1 - m.life / .45);
     if (m.life > .45) { scene.remove(m); m.geometry.dispose(); rings.splice(i, 1); }
@@ -3053,8 +3747,16 @@ function visuals(dt) {
       $('stormLabel').textContent = clash ? t('ĐẬP SPACE! +NĂNG LƯỢNG', 'MASH SPACE! +ENERGY') : canJump ? t('SPACE — NHẢY!', 'SPACE — JUMP!') : t('Đang tích năng lượng…', 'Charging…');
       $('title').textContent = `${stageLabel()} — ${clamp(-p.z, 0, level.track.len).toFixed(0)} / ${level.track.len} m`;
     }
+    const qte = tstop && tstop.qte && tstop.free === null;
+    document.body.classList.toggle('qte', !!qte);
+    if (qte) {
+      const m = qteMark(tstop);
+      $('stormFill').style.transform = `scaleX(${m})`; $('qteMark').style.left = `${m * 100}%`;
+      $('qteZone').style.left = `${tstop.qte[0] * 100}%`; $('qteZone').style.width = `${(tstop.qte[1] - tstop.qte[0]) * 100}%`;
+      $('stormLabel').textContent = t('SPACE — PHƯƠNG TRÌNH SỰ SỐNG!', 'SPACE — THE EQUATION OF LIFE!');
+    }
     $('btnView').textContent = view === 'tv' ? t('V · Góc nhìn con quay', 'V · Top-cam') : t('V · Góc nhìn toàn cảnh', 'V · Arena view');
-    if (hum) { hum.frequency.value = 30 + Math.abs(player.w) * 1.3; humGain.gain.value = player.alive && state === 'battle' ? .035 : 0; }
+    if (hum) { hum.frequency.value = 30 + Math.abs(player.w) * 1.3; humGain.gain.value = player.alive && state === 'battle' && !tstop ? .035 : 0; }
   }
 }
 
@@ -3104,6 +3806,25 @@ if (params.has('debug')) window.game = {
     headless = false;
     return [wins, Math.round(time / runs), Math.round(hits / runs)];
   },
+  simVoid: (b, runs = 3) => {         // phase two of the final boss on its own
+    Object.assign(build, b); headless = true; let wins = 0, crushed = 0, time = 0;
+    for (let k = 0; k < runs; k++) {
+      setLevel(ARENAS - 1); launch(); pendingRebirth = true; checkEnd(H);
+      while (state === 'battle' || state === 'ending') {
+        stepPhysics(); checkEnd(H);
+        if (player.energy >= 1 && !tstop) { const f = nearest(player); if (f && Math.hypot(f.x - player.x, f.z - player.z) < 4) castSkill(player); }
+      }
+      wins += won; crushed += player.crushed; time += simT;
+    }
+    headless = false;
+    return [wins, crushed, Math.round(time / runs)];
+  },
+  ko: () => tops.forEach(a => { if (!a.isPlayer) { a.w = sgn(a.w); a.lastHitBy = player; a.lastHitT = simT; } }),
+  voidTune: o => Object.assign(VOID_TUNE, o), eqSet: toks => { build.eq = { s: toks.map(k => k && { v: k.replace('^', ''), up: k.startsWith('^') }) }; syncEq(); },
+  tier: n => { tierOverride = n; }, eulerPass: v => { eulerOverride = v; }, checkEuler, shards: () => shardsOwned(),
+  toVoid: () => { if (state === 'shop') launch(); pendingRebirth = true; },
+  last: () => ({ void: !!level.void, won, why: player.why, crushed: player.crushed, t: +simT.toFixed(1), foes: tops.filter(a => !a.isPlayer).map(a => [a.alive, Math.round(a.w)]) }),
+  ts: () => tstop && { t: +tstop.t.toFixed(2), free: tstop.free, hit: tstop.hit, theta: tstop.theta, qte: tstop.qte, mark: +qteMark(tstop).toFixed(2) }, rebirthT: () => rebirth && +rebirth.t.toFixed(2),
   unlockAll: () => { unlocked = ARENAS - 1; unlockedT = LEVELS.length - ARENAS - 1; refreshShop(); },
   info: () => ({ state, level: levelIndex, t: +simT.toFixed(1), won, hits: stats.hits, maxHit: +stats.maxHit.toFixed(1),
     tops: tops.map(a => ({ n: a.name, alive: a.alive, why: a.why, w: Math.round(a.w), e: +a.energy.toFixed(2), max: a.stormMax, kos: a.kos, skill: a.skill, act: a.skillT > 0 ? a.active : null,
@@ -3111,7 +3832,8 @@ if (params.has('debug')) window.game = {
 };
 
 resize();
-setLevel(Math.min(unlocked, ARENAS - 1));
+if (params.has('debug') && params.has('final')) { game.unlockAll(); setLevel(ARENAS - 1); }   // ?debug&story&final opens straight on the final boss
+else setLevel(Math.min(unlocked, ARENAS - 1));
 requestAnimationFrame(frame);
 </script>
 </body>
