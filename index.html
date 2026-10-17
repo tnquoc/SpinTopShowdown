@@ -140,6 +140,9 @@
   @media (max-width: 760px) {
     #shop { top: auto; left: 0; width: auto; max-height: 48vh; }
     #roster { width: 150px; font-size: 12px; }
+    /* the workshop panel covers the bottom of the screen on phones: the sound switches move up the right edge */
+    #audioSw { left: auto; right: 10px; bottom: auto; top: 30vh; flex-direction: column; }
+    #audioSw button { width: 38px; height: 38px; font-size: 17px; }
   }
 </style>
 </head>
@@ -909,10 +912,21 @@ try { soundOn = localStorage.getItem('tops.sound') !== '0'; musicOn = localStora
 const SFX_VOL = .5, MUSIC_VOL = .2;
 const lastPlayed = {};
 const limit = (key, ms) => { const n = performance.now(); if (n - (lastPlayed[key] || 0) < ms) return false; lastPlayed[key] = n; return true; };
+// iPhones mute web audio while the ring/silent switch is on unless the page asks for media playback:
+// newer Safari has navigator.audioSession, older ones need a silent <audio> element playing alongside
+const IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+let silentEl = null;
+function silentWav() {
+  const n = 4410, b = new DataView(new ArrayBuffer(44 + n * 2)), s = (o, str) => [...str].forEach((c, i) => b.setUint8(o + i, c.charCodeAt(0)));
+  s(0, 'RIFF'); b.setUint32(4, 36 + n * 2, true); s(8, 'WAVE'); s(12, 'fmt '); b.setUint32(16, 16, true); b.setUint16(20, 1, true); b.setUint16(22, 1, true);
+  b.setUint32(24, 44100, true); b.setUint32(28, 88200, true); b.setUint16(32, 2, true); b.setUint16(34, 16, true); s(36, 'data'); b.setUint32(40, n * 2, true);
+  return URL.createObjectURL(new Blob([b], { type: 'audio/wav' }));
+}
 function initAudio() {
   if (!ac) {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
     ac = new AC();
     const comp = ac.createDynamicsCompressor();          // keeps a roaring crowd plus a big hit from clipping
     comp.threshold.value = -12; comp.ratio.value = 4;
@@ -929,8 +943,25 @@ function initAudio() {
     hum.connect(lp).connect(humGain).connect(master); hum.start();
     setupCrowd();
   }
-  if (ac.state === 'suspended') ac.resume();
+  // mobile browsers start (and restart, after a call or a trip to another app) audio only inside a tap
+  if (ac.state !== 'running' && !document.hidden) {
+    ac.resume().catch(() => {});
+    const src = ac.createBufferSource(); src.buffer = ac.createBuffer(1, 1, 22050); src.connect(ac.destination); src.start();
+  }
+  if (IOS && !navigator.audioSession && !document.hidden) {
+    if (!silentEl) { silentEl = new Audio(silentWav()); silentEl.loop = true; }
+    if (silentEl.paused) silentEl.play().catch(() => {});
+  }
 }
+// try again on every tap or key until the audio is running; pointerdown alone does not count as a tap on phones
+for (const ev of ['pointerup', 'touchend', 'click', 'keydown'])
+  addEventListener(ev, () => { if (!headless && (!ac || ac.state !== 'running')) initAudio(); }, { capture: true, passive: true });
+// go quiet when the game is in the background, pick up again when it comes back
+document.addEventListener('visibilitychange', () => {
+  if (!ac) return;
+  if (document.hidden) { ac.suspend().catch(() => {}); if (silentEl) silentEl.pause(); }
+  else initAudio();
+});
 function setupCrowd() {
   // the recording is mastered quiet (-23 LUFS); this lifts it to sit level with the music
   crowdBus = ac.createGain(); crowdBus.gain.value = 1.5; crowdBus.connect(master);
@@ -2741,7 +2772,6 @@ $('btnSound').addEventListener('click', () => { soundOn = !soundOn; initAudio();
 $('btnMusic').addEventListener('click', () => { musicOn = !musicOn; initAudio(); setAudioSwitches(); });
 $('btnVoice').addEventListener('click', () => { voiceOn = !voiceOn; if (!voiceOn && 'speechSynthesis' in window) speechSynthesis.cancel(); setAudioSwitches(); });
 setAudioSwitches();
-addEventListener('pointerdown', () => { if (!headless) initAudio(); }, { once: true });   // music can start with the first click
 function setView(v) {        // the camera choice is shared by the workshop switch, the in-battle button and the V key
   view = v;
   try { if (!params.has('debug')) localStorage.setItem('tops.view', v); } catch (e) {}
