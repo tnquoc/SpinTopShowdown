@@ -71,6 +71,9 @@
   #viewSw { display: flex; gap: 6px; }
   #viewSw button { border: 0; border-radius: 8px; padding: 6px 12px; background: #3a3555; color: #fff; font-weight: 800; }
   #viewSw button.on { background: #7c4dff; }
+  #voidSw { display: flex; gap: 6px; }
+  #voidSw button { border: 0; border-radius: 8px; padding: 6px 12px; background: #3a3555; color: #fff; font-weight: 800; }
+  #voidSw button.on { background: #7c4dff; }
   #lvTraits { display: grid; gap: 5px; margin: 6px 0; }
   #lvTraits span { background: #3b2f1a; color: #ffd98a; border-left: 3px solid #ffd23f; border-radius: 6px; padding: 5px 9px; font-size: 12.5px; line-height: 1.35; }
   #lvFoes { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0 10px; }
@@ -176,6 +179,7 @@
   #soul.felled { color: #f0dca0; text-shadow: 0 0 24px rgba(255,200,110,.55); }
   #soul.died { color: #b3201f; text-shadow: 0 0 24px rgba(160,0,0,.6); }
   #soul.boss { color: #d8ccff; text-shadow: 0 0 26px rgba(150,110,255,.8); }
+  #soul.dragon { color: #ffd54f; text-shadow: 0 0 26px rgba(255,120,0,.85), 0 3px 0 #8d2b00; }
   @keyframes soulIn { 0% { opacity: 0; letter-spacing: .1em; } 18% { opacity: 1; } 78% { opacity: 1; } 100% { opacity: 0; letter-spacing: .32em; } }
   #euler { position: fixed; left: 0; right: 0; bottom: 84px; z-index: 6; text-align: center; pointer-events: none; opacity: 0; transition: opacity .25s, transform .25s;
     font: italic 400 clamp(26px, 4.6vw, 54px) Georgia, 'Times New Roman', serif; color: #ffe9a8; text-shadow: 0 0 18px rgba(255,190,70,.85), 0 3px 0 rgba(0,0,0,.6); }
@@ -184,7 +188,7 @@
   #euler small { display: block; font-size: .42em; font-style: normal; opacity: .85; }
   canvas { transition: filter .25s; }
   body.timestop canvas { filter: grayscale(1) contrast(1.25) brightness(.92); }
-  body.timefree canvas { filter: sepia(.4) saturate(1.5) brightness(1.06); }
+  body.timefree canvas { filter: saturate(.55) brightness(1.1) contrast(1.15); }   /* a cold silver light, like a fighter beyond their limits */
   body.dread canvas { filter: saturate(.3) brightness(.62) contrast(1.2); transition: filter 1.4s; }
   body.dread::after { content: ''; position: fixed; inset: 0; z-index: 18; pointer-events: none; background: radial-gradient(ellipse at center, transparent 30%, rgba(40,0,0,.75)); }
   #shardBox { margin-bottom: 10px; padding: 8px 10px; border: 1px solid #4a4470; border-radius: 10px; background: #1a1628; }
@@ -260,7 +264,7 @@ const SPIN_DECAY = 1.5;       // base spin loss, scaled by tip and 1/r
 const W_MIN = 8;              // below this spin (rad/s) a top falls over
 const RESTITUTION = 0.85, BURST = 0.045, MU = 0.09, HIT_LOSS = 0.035;
 const CHARGE_SECONDS = 6, STORM_TIME = 2.6, STORM_RANGE = 5;
-const TIME_LIMIT = 75, SUDDEN_DEATH = 15;
+const TIME_LIMIT = 75, SUDDEN_DEATH = 15, VOID_LIMIT = 90;
 
 const FOES = {
   thunder: { name: t('Lôi Thần Tập Sự', 'Rookie Thunder God'), m: 2, r: .7, grip: .5, w: 85, color: 0x29b6f6, blades: 3,
@@ -1453,7 +1457,7 @@ function stepPhysics() {
       if (d > c.stormReach) continue;
       const f = (1 + .5 * (c.stormLv - 1)) / (1 + d * .25) * c.stormK;
       o.ax += (dx / d * 40 - dz / d * 16 * s) * f; o.az += (dz / d * 40 + dx / d * 16 * s) * f;
-      const drain = Math.min(Math.abs(o.w), 12 * f * H);
+      const drain = Math.min(spareSpin(o), 12 * f * H);
       if (d < STORM_RANGE) { o.lastHitBy = c; o.lastHitT = simT; }
       o.w -= sgn(o.w) * drain; c.w += sgn(c.w) * drain * .5;
     }
@@ -1541,6 +1545,8 @@ const SKILLS = {
 };
 const GOD_ROTATION = ['storm', 'thunder', 'fire', 'moon', 'ice', 'dash'];   // the final boss knows them all
 const on = (a, id) => a.skillT > 0 && a.active === id;
+// spin a top can give away: the void god only ever gives what sits above its floor, so the floor is never a free well to drink from
+const spareSpin = o => o.voidGod ? Math.max(0, Math.abs(o.w) - o.floorW) : Math.abs(o.w);
 // which skill a top will use next: the final boss cycles through them all, the void god picks any at random
 const skillOf = a => a.skill === 'god' ? GOD_ROTATION[a.godI % GOD_ROTATION.length] : a.skill === 'void' ? (a.nextSkill ??= pick(SKILL_ORDER)) : a.skill;
 const skillUnlocked = k => k === 0 || unlocked >= 5 * k;                      // skill k is the reward of chapter k's boss
@@ -1646,7 +1652,8 @@ function skillStep() {
     if (on(a, 'fire') && simT - a.lastFire > .08) { a.lastFire = simT; fires.push({ x: a.x, z: a.z, born: simT, owner: a }); }
     if (on(a, 'moon')) for (const o of tops) {
       if (o === a || !o.alive || Math.hypot(o.x - a.x, o.z - a.z) > 4.5) continue;
-      const flow = clamp((Math.abs(a.w) - Math.abs(o.w)) * .6, -16, 16) * H;   // the faster side bleeds into the slower
+      let flow = clamp((Math.abs(a.w) - Math.abs(o.w)) * .6, -16, 16) * H;     // the faster side bleeds into the slower
+      flow = flow > 0 ? Math.min(flow, spareSpin(a)) : -Math.min(-flow, spareSpin(o));
       a.w -= sgn(a.w) * flow; o.w += sgn(o.w) * flow;
       if (flow < 0) { o.lastHitBy = a; o.lastHitT = simT; }
     }
@@ -2745,6 +2752,11 @@ function launch() {
   $('title').textContent = stageLabel();
   sfx.drop(); excite = Math.max(excite, .7);   // the stands jump up as the top drops in
   commentStart();
+  // been to the void before? then the final stage can skip the crater and start right there
+  if (level.boss && level.chapter === ARENAS / 5 - 1 && !level.void && seen.vr && voidStart && !headless) {
+    enterVoid(); beginPhase2();
+    soulCard(t('Hư Vô Thần Quay', 'The Void Spin God'), 'boss');
+  }
 }
 
 function checkEnd(dt) {
@@ -2758,6 +2770,7 @@ function checkEnd(dt) {
     if (!player.alive) { won = false; state = 'ending'; endT = 1.8; }
     else if (alive.length === 1) { won = true; state = 'ending'; endT = 1.8; }
     else if (simT > TIME_LIMIT && !level.void) { won = alive.every(a => Math.abs(a.w) <= Math.abs(player.w)); state = 'ending'; endT = .6; }
+    else if (level.void && simT > VOID_LIMIT) { won = false; player.why = 'void'; state = 'ending'; endT = .6; }   // the void does not wait forever
   } else if (state === 'ending' && (endT -= dt) <= 0) showResult();
 }
 
@@ -2783,6 +2796,7 @@ function showResult() {
     : t('Thời gian ngừng lại và bạn bị cán bẹp. Phương trình đã sẵn sàng: khi thanh sáng lướt qua ô vàng, bấm SPACE đúng lúc.',
       'Time stopped and you were crushed. The equation is ready: press SPACE just as the light crosses the gold zone.');
   const why = won ? (course ? t('Con quay của bạn đã về đích.', 'Your top made it to the finish.') : '')
+    : player.why === 'void' ? t('Hư vô đã nuốt chửng bạn. Sức mạnh thường không hạ nổi Hư Vô Thần Quay.', 'The void swallowed you. Ordinary strength cannot fell the Void Spin God.')
     : !course && player.crushed ? crushed
     : player.why === 'ring' ? (course ? t('Bạn rơi khỏi đường đua.', 'You fell off the course.') : level.void ? t('Bạn rơi vào hố đen.', 'You fell into the black hole.') : t('Bạn văng khỏi sàn.', 'You flew off the edge.'))
     : player.why === 'spin' ? t('Con quay của bạn hết pin.', 'Your top ran out of spin.')
@@ -2901,7 +2915,7 @@ const VOID_GOD = { ...FINAL.foes[0], name: t('Hư Vô Thần Quay', 'The Void Sp
   skill: 'void', stormMax: 2, spikes: true, crown: true, finalBoss: false, voidGod: true,
   quote: t('"Thời gian của ngươi đã hết từ lâu rồi."', '"Your time ran out long ago."') };
 // how the second phase plays: a barrier rim, how often time stops, what the counter and the crush take away
-const VOID_TUNE = { R: 8, K: 1.5, wall: true, gap: [4.5, 5.5], first: 3.5, counter: .6, crush: .4, steal: .35, storm: .75, floor: .75 };
+const VOID_TUNE = { R: 8, K: 1.5, wall: true, gap: [4.5, 5.5], first: 3.5, counter: .6, crush: .4, steal: .35, storm: .75, minW: 14, hits: 4 };
 const voidLevel = () => ({ ...FINAL, name: t('Hư Vô', 'The Void'), R: VOID_TUNE.R, K: VOID_TUNE.K, wall: VOID_TUNE.wall, theme: 'void', base: '#0b0716', accent: '#7c4dff',
   env: 'void', hot: 0, shrink: null, void: true, foes: [VOID_GOD] });
 // the very end: a giant top drops out of the sky beside the two of them, and everyone knows who it is
@@ -2941,8 +2955,9 @@ const VOID_TALK = () => [
 let rebirth = null, tstop = null, tsNext = 0, pendingRebirth = false, clockFx = null;
 // a time stop: the timing bar sweeps from QTE_AT for qteDur, the god charges from TS_WIND to TS_CHARGE, time resumes at TS_END
 // the first stop is forgiving; every one after it narrows the gold zone and speeds up the bar
-const QTE_AT = .1, TS_WIND = .9, TS_CHARGE = 1.9, TS_END = 2.2;
-const qteZoneOf = n => Math.max(.07, .3 * .78 ** n), qteDurOf = n => Math.max(.3, .7 * .87 ** n);
+const QTE_AT = .1, TS_WIND = 1.45, TS_CHARGE = 2.45, TS_END = 2.75;
+const qteZoneOf = n => Math.max(.1, .32 * .82 ** n), qteDurOf = n => Math.max(.6, 1.2 * .9 ** n);
+let eulerHits = 0, voidStart = true, combo = null;
 const qteMark = s => clamp((s.t - QTE_AT) / s.qteDur, 0, 1);
 let tsCount = 0;
 
@@ -2969,6 +2984,8 @@ function swell(dur, gain) {                     // a reversed cymbal: noise that
   src.connect(f).connect(g).connect(master); src.start(now); src.stop(now + dur + .05);
 }
 Object.assign(sfx, {
+  ultra() { swell(.6, .12); [523.25, 783.99, 1046.5, 1567.98].forEach((f, i) => tone('triangle', f, f, 2, .07, i * .04)); tone('sine', 55, 110, .8, .5); },
+  roar() { tone('sawtooth', 130, 70, 1.4, .22); tone('sawtooth', 98, 60, 1.5, .18); noise(1.3, 'bandpass', 500, .45, 1.5, 180); },
   heartbeat() { tone('sine', 62, 36, .25, .9); tone('sine', 55, 34, .22, .6, .27); },
   dread() { tone('sawtooth', 55, 52, 3, .1); tone('sine', 41, 40, 3.2, .45); swell(2.6, .1); },
   choir(dur = 6) { [[110, 650], [130.81, 900], [164.81, 1100], [220, 750], [261.63, 1250]].forEach(([f, fm]) => pad(f, dur, .05, fm)); },
@@ -2998,6 +3015,8 @@ function soulCard(text, kind, sub = '') {
   el.innerHTML = `${text}${sub ? `<small>${sub}</small>` : ''}`; el.className = 'go ' + kind;
 }
 function clearFinale() {
+  if (combo) { dropFx(combo.dragon.group); combo = null; }
+  if (tstop) dropFx(tstop.ui);
   if (momTop) { disposeTopMesh(momTop); scene.remove(momTop.trail); momTop.trail.geometry.dispose(); momTop = null; }
   if (tstop) { dropFx(tstop.chains); dropFx(tstop.fx); dropFx(tstop.halo); if (tstop.light) { scene.remove(tstop.light); tstop.light.dispose(); } }
   document.body.classList.remove('qte');
@@ -3024,7 +3043,10 @@ function enterVoid() {
   level = voidLevel(); buildArena(); resetSkillFx();
   spLife.fill(0); spPos.fill(-999);
   placeTops();                                    // you pull the rip-cord again; the god comes back whole
-  for (const g of tops) if (g.voidGod) { g.spinDir = sgn(g.w); g.floorW = Math.abs(g.w) * VOID_TUNE.floor; }
+  // anything can wear the god down, but never below minW; only the fourth answer to the equation brings it down
+  for (const g of tops) if (g.voidGod) { g.spinDir = sgn(g.w); g.floorW = VOID_TUNE.minW; }
+  eulerHits = 0;
+  if (!headless) markSeen('vr');                  // from now on the final stage can start straight in the void
   const d = Math.hypot(player.x, player.z), lim = level.R - 1.5;
   if (d > lim) { player.x *= lim / d; player.z *= lim / d; }
   simT = 0; acc = 0; tstop = null; tsNext = VOID_TUNE.first; tsCount = 0; clashUntil = -1;
@@ -3154,7 +3176,7 @@ function startTimeStop(g) {
 }
 function qteDecide(s, ok) {
   s.free = ok;
-  if (ok) return breakFree(s);
+  if (ok) { eulerHits++; s.final = eulerHits >= VOID_TUNE.hits; return breakFree(s); }
   if (!headless && s.qte) { popup(player.x, floorY(player.x, player.z) + player.height, player.z, t('TRƯỢT!', 'MISSED!')); sfx.lose(); say(pickLine('qteMiss'), 3); }
 }
 function qtePress() {                            // SPACE or the big button while time is stopped
@@ -3187,6 +3209,8 @@ function breakFree(s) {
   shockRing(player.x, floorY(player.x, player.z), player.z, 0xffffff); shockRing(player.x, floorY(player.x, player.z) + .5, player.z, 0xfff3c4);
   $('flash').animate([{ opacity: .7 }, { opacity: 0 }], { duration: 350 });
   s.fx = unitCircleFx(s); scene.add(s.fx);
+  s.ui = makeUiAura(player); scene.add(s.ui);      // and a silver aura, like a fighter beyond their limits
+  sfx.ultra(); slowT = .5; shake = Math.max(shake, .6);
 }
 function timeStopStep() {
   const g = tops.find(a => a.voidGod && a.alive);
@@ -3227,14 +3251,17 @@ function timeStopStep() {
 function endTimeStop(g) {
   const s = tstop; tstop = null; tsNext = simT + rand(...VOID_TUNE.gap);
   if (!s) return;
-  dropFx(s.chains); dropFx(s.halo);
+  dropFx(s.chains); dropFx(s.halo); dropFx(s.ui);
   if (s.light) { scene.remove(s.light); s.light.dispose(); }
   if (g) g.vx = g.vz = 0;
+  if (g && player.alive && s.free && s.final) {     // the fourth answer: no counter, the dragon comes
+    if (!headless) { document.body.classList.remove('timestop', 'timefree'); if (s.fx) { const fx = s.fx; setTimeout(() => dropFx(fx), 600); } eulerFinal(); }
+    return startCombo(g);
+  }
   if (g && player.alive && s.free) {               // = 0: the counter lands
     const dx = g.x - player.x, dz = g.z - player.z, d = Math.hypot(dx, dz) || 1, dv = 10 / Math.sqrt(g.m / 2);
     const lost = Math.abs(g.w) * (1 - VOID_TUNE.counter);
     g.w *= VOID_TUNE.counter; player.w += sgn(player.w) * lost * VOID_TUNE.steal;   // + 1 = 0 takes the god's spin and gives you part of it
-    g.floorW = Math.abs(g.w) * VOID_TUNE.floor;
     g.vx = dx / d * dv; g.vz = dz / d * dv; g.head = Math.atan2(g.vz, g.vx);
     g.lastHitBy = player; g.lastHitT = simT;
     // step back out of reach so the two rims do not grind and throw you as time starts again
@@ -3266,6 +3293,144 @@ function endTimeStop(g) {
     if (s.fx) { const fx = s.fx; setTimeout(() => dropFx(fx), 1400); }
   }
 }
+// a silver-white aura: flames licking upward round the top, a column of light, rings rolling out over the floor
+function makeUiAura(a) {
+  const g = new THREE.Group(), flames = [];
+  for (let k = 0; k < 14; k++) {
+    const f = new THREE.Sprite(new THREE.SpriteMaterial({ map: flameTex, color: k % 3 ? 0xe3eeff : 0x90b8ff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    f.userData = { a: k / 14 * Math.PI * 2, seed: rand(0, 6.28) }; g.add(f); flames.push(f);
+  }
+  const pillar = new THREE.Mesh(new THREE.CylinderGeometry(a.r * 1.1, a.r * 1.7, 16, 28, 1, true), additive(0xd6e6ff, .3, { side: THREE.DoubleSide }));
+  pillar.position.y = 8; g.add(pillar);
+  const rings = [0, 1, 2].map(k => {
+    const r = new THREE.Mesh(new THREE.RingGeometry(a.r * 1.3, a.r * 1.6, 48), additive(0xf0f6ff, .7, { side: THREE.DoubleSide }));
+    r.rotation.x = -Math.PI / 2; r.position.y = .12; r.userData.k = k / 3; g.add(r); return r;
+  });
+  g.userData = { flames, pillar, rings, r: a.r, h: a.height, t: 0 };
+  return g;
+}
+function uiAuraTick(g, dt) {
+  const u = g.userData, a = player, y = a.g.position.y;
+  u.t += dt; g.position.set(a.x, y, a.z);
+  u.flames.forEach(f => {
+    const d = f.userData, h = (1.6 + .8 * Math.sin(realT * 17 + d.seed)) * u.r * 1.5, ang = d.a + realT * 3;
+    f.position.set(Math.cos(ang) * u.r * .85, u.h * .4 + h * .38, Math.sin(ang) * u.r * .85); f.scale.set(h * .45, h, 1);
+  });
+  u.pillar.material.opacity = .22 + .14 * Math.sin(realT * 23);
+  for (const r of u.rings) { const k = (u.t * 1.6 + r.userData.k) % 1; r.scale.setScalar(1 + k * 2.5); r.material.opacity = .7 * (1 - k); }
+  for (let k = 0; k < 4; k++) spark(a.x + rand(-u.r, u.r), y + rand(0, u.h), a.z + rand(-u.r, u.r), rand(-.5, .5), rand(3, 7), rand(-.5, .5), rand(.4, .8), .85, .92, 1, -.15);
+  if (Math.random() < .3) {                         // little arcs crackling over the aura
+    const p0 = new THREE.Vector3().randomDirection().multiplyScalar(u.r * 1.4), p1 = new THREE.Vector3().randomDirection().multiplyScalar(u.r * 1.4);
+    const b = new THREE.Group(), pts = jagged(a.x + p0.x, y + u.h * .5 + p0.y, a.z + p0.z, a.x + p1.x, y + u.h * .5 + p1.y, a.z + p1.z, 6, .35);
+    b.add(boltTube(pts, .03, 0xffffff, 1), boltTube(pts, .12, 0x9ecbff, .5)); b.life = 0; scene.add(b); bolts.push(b);
+  }
+}
+
+// ---- the final combo: the fourth answer calls the Dragon Warrior. Pure cutscene: the god is beaten. ----
+const dragonGeo = new THREE.SphereGeometry(1, 14, 10);
+function makeDragon() {
+  const group = new THREE.Group(), segs = [];
+  const gold = new THREE.MeshPhongMaterial({ color: 0xffc107, emissive: 0x6d3a00, shininess: 90, specular: 0xffffff });
+  const red = new THREE.MeshPhongMaterial({ color: 0xd32f2f, emissive: 0x4a0000, shininess: 60 });
+  const ivory = new THREE.MeshPhongMaterial({ color: 0xfff8e1, shininess: 80 });
+  const N = 46;
+  for (let i = 0; i < N; i++) {
+    const s = new THREE.Group(), u = i / N, rad = 1.05 * (u < .1 ? .8 + u * 2 : 1 - (u - .1) * .85);
+    const body = new THREE.Mesh(dragonGeo, gold); body.scale.set(rad, rad, rad * 1.3); s.add(body);
+    if (i % 3 === 1) { const fin = new THREE.Mesh(new THREE.ConeGeometry(rad * .32, rad * 1.2, 5), red); fin.position.y = rad * .95; fin.rotation.x = -.6; s.add(fin); }
+    if (i === 7 || i === 24) for (const sx of [-1, 1]) {                       // legs with ivory claws
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(rad * .18, rad * .12, rad * 1.6, 6), gold);
+      leg.position.set(sx * rad * .8, -rad * .7, 0); leg.rotation.z = sx * .7; s.add(leg);
+      const claw = new THREE.Mesh(new THREE.ConeGeometry(rad * .14, rad * .45, 4), ivory);
+      claw.position.set(sx * rad * 1.35, -rad * 1.2, .2); claw.rotation.x = 1.4; s.add(claw);
+    }
+    group.add(s); segs.push(s);
+  }
+  const head = new THREE.Group();
+  const skull = new THREE.Mesh(dragonGeo, gold); skull.scale.set(1.15, .95, 1.35); head.add(skull);
+  const snout = new THREE.Mesh(dragonGeo, gold); snout.scale.set(.75, .55, 1.15); snout.position.set(0, -.1, 1.35); head.add(snout);
+  const jaw = new THREE.Mesh(dragonGeo, red); jaw.scale.set(.62, .28, 1); jaw.position.set(0, -.6, 1.15); head.add(jaw);
+  for (const sx of [-1, 1]) {
+    const horn = new THREE.Mesh(new THREE.ConeGeometry(.16, 1.8, 6), ivory); horn.position.set(sx * .45, .85, -.6); horn.rotation.set(-1.05, 0, sx * -.3); head.add(horn);
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(.15, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff1744 })); eye.position.set(sx * .5, .28, .8); head.add(eye);
+    const whisker = new THREE.Mesh(new THREE.CylinderGeometry(.035, .01, 2.6, 4), red); whisker.position.set(sx * .75, -.25, 1.6); whisker.rotation.set(1.1, 0, sx * -1.1); head.add(whisker);
+    for (let k = 0; k < 3; k++) { const mane = new THREE.Mesh(new THREE.ConeGeometry(.2, 1, 5), red); mane.position.set(sx * (.3 + k * .25), .3 - k * .2, -1); mane.rotation.set(-1.9, 0, sx * (.4 + k * .3)); head.add(mane); }
+  }
+  group.add(head);
+  return { group, segs, head, hist: [] };
+}
+function startCombo(g) {
+  if (headless) { g.floorW = 0; g.w = sgn(g.w); g.lastHitBy = player; g.lastHitT = simT; return; }
+  state = 'combo'; tstop = null;
+  hushCaster(); $('btnStorm').classList.add('hidden'); $('btnView').classList.add('hidden');
+  document.body.classList.add('cine');
+  const dx = g.x - player.x, dz = g.z - player.z, d = Math.hypot(dx, dz) || 1, sx = -dz / d, sz = dx / d;
+  const S = new THREE.Vector3(player.x, floorY(player.x, player.z) + 6.5, player.z), G = new THREE.Vector3(g.x, floorY(g.x, g.z) + 1.4, g.z);
+  const curve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(sx * 46, 22, sz * 46), new THREE.Vector3(sx * 17, 8, sz * 17), new THREE.Vector3(player.x + sx * 6, 4.5, player.z + sz * 6),
+    S, new THREE.Vector3(S.x * .3 - sx * 4, 18, S.z * .3 - sz * 4), G]);
+  const dragon = makeDragon();
+  for (let i = 0; i < 200; i++) dragon.hist.push(curve.getPoint(0));
+  scene.add(dragon.group);
+  combo = { t: 0, g, curve, dragon, S, G, side: new THREE.Vector3(sx, 0, sz), dir: new THREE.Vector3(dx / d, 0, dz / d), shot: -1, titled: false, hit: false, py: player.g.position.y };
+  cine = { pos: new THREE.Vector3(), look: new THREE.Vector3(), t: 0, fresh: true, fov: 55 };
+  sfx.roar(); musicLevel(.4, .2); excite = 1;
+  say(t('Cái gì kia?! Một con RỒNG?!', 'What is that?! A DRAGON?!'), 3);
+}
+function comboTick(dt) {
+  const c = combo, D = c.dragon, g = c.g;
+  c.t += dt;
+  const u = clamp((c.t - .2) / 4.9, 0, 1), head = c.curve.getPoint(u), ahead = c.curve.getPoint(Math.min(1, u + .01));
+  if (u >= 1) ahead.copy(head).add(c.dir);
+  D.head.position.copy(head); D.head.lookAt(ahead);
+  D.hist.push(head.clone()); if (D.hist.length > 400) D.hist.shift();
+  D.segs.forEach((s, i) => {                        // the body follows the head's own path
+    const k = Math.max(0, D.hist.length - 2 - i * 3), p = D.hist[k], q = D.hist[Math.min(D.hist.length - 1, k + 2)];
+    s.position.copy(p); s.lookAt(q);
+  });
+  const fwd = ahead.clone().sub(head).normalize();
+  // your top: a jump onto the dragon's head as it passes, then a ride down onto the god
+  if (c.t > 2.4 && !c.hit) {
+    let pos;
+    if (c.t < 3.14) { const k = (c.t - 2.4) / .74; pos = new THREE.Vector3(player.x, c.py + (c.S.y - c.py) * k + Math.sin(Math.PI * k) * 2.5, player.z); }
+    else pos = head.clone().add(new THREE.Vector3(0, 1.1, 0));
+    player.x = pos.x; player.z = pos.z; player.yOff = pos.y - floorY(pos.x, pos.z); player.vy = 0;
+    player.g.position.copy(pos);
+  }
+  if (!c.titled && c.t > 3.2) {
+    c.titled = true;
+    soulCard(t('Thần Long Đại Hiệp', 'Dragon Warrior'), 'dragon', t('e^iπ + 1 = 0', 'e^iπ + 1 = 0'));
+    sfx.gong(); sfx.roar(); shake = Math.max(shake, .8);
+  }
+  if (!c.hit && u >= 1) comboImpact();
+  // the camera: the dragon arriving, the jump, the ride down, the impact
+  const shot = c.hit ? 3 : c.t < 2.4 ? 0 : c.t < 3.9 ? 1 : 2;
+  if (shot !== c.shot) { c.shot = shot; cine.fresh = true; }
+  if (shot === 0) { cine.pos.set(player.x - c.side.x * 12, 6, player.z - c.side.z * 12); cine.look.copy(head); cine.fov = 55; }
+  // (both shots stand off to one side: the body trails right behind the head and would fill a camera placed there)
+  else if (shot === 1) { cine.pos.copy(c.S).addScaledVector(c.side, -14).addScaledVector(c.dir, 6).add(new THREE.Vector3(0, -3, 0)); cine.look.copy(c.S); cine.fov = 55; }
+  else if (shot === 2) {
+    const perp = new THREE.Vector3(-fwd.z, 0, fwd.x).normalize();
+    cine.pos.copy(head).addScaledVector(perp, 8).addScaledVector(fwd, -3).add(new THREE.Vector3(0, 3, 0)); cine.look.copy(head).addScaledVector(fwd, 4); cine.fov = 60;
+  }
+  else { cine.pos.copy(c.G).addScaledVector(c.side, 9).addScaledVector(c.dir, -4).add(new THREE.Vector3(0, 4, 0)); cine.look.copy(c.G); cine.fov = 55; }
+  if (c.hit && c.t > c.hitT + 1.6) { combo = null; cine = null; document.body.classList.remove('cine'); }
+}
+function comboImpact() {
+  const c = combo, g = c.g, y = floorY(g.x, g.z);
+  c.hit = true; c.hitT = c.t;
+  dropFx(c.dragon.group);
+  for (const col of [0xffd54f, 0xffffff, 0xff5252]) shockRing(g.x, y + rand(0, .6), g.z, col);
+  for (let i = 0; i < 300; i++) { const a = rand(0, 6.28), sp = rand(5, 22); spark(g.x, y + 1, g.z, Math.cos(a) * sp, rand(3, 14), Math.sin(a) * sp, rand(.5, 1.2), 1, rand(.6, .9), rand(.1, .4)); }
+  hitLight.color.setHex(0xffd27a); hitLight.position.set(g.x, y + 3, g.z); hitLight.intensity = 120;
+  $('flash').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 700 });
+  shake = 1.6; excite = 1; sfx.boom(); sfx.gong(); setTimeout(() => sfx.boom(), 120);
+  // you land beside the god, and the god goes down
+  player.x = g.x - c.dir.x * (g.r + player.r + .4); player.z = g.z - c.dir.z * (g.r + player.r + .4); player.yOff = 0; player.vx = player.vz = 0;
+  state = 'battle'; g.floorW = 0; g.lastHitBy = player; g.lastHitT = simT;
+  kill(g, 'spin');
+}
+
 function eulerHud(s) {
   const el = $('euler'), th = s.theta || 0;
   el.innerHTML = s.t < TS_WIND ? `e<sup>iθ</sup><small>θ = 0 · ${t('bước ra khỏi thời gian', 'stepping out of time')}</small>`
@@ -3302,6 +3467,8 @@ function finaleVisuals(dt) {
     tstop.halo.position.set(player.x, y, player.z); tstop.halo.material.opacity = .75 + .2 * Math.sin(realT * 18);
     tstop.light.position.set(player.x, y + 1, player.z);
   }
+  if (tstop && tstop.ui) uiAuraTick(tstop.ui, dt);
+  if (combo) comboTick(dt);
   if (tstop && tstop.free) {
     eulerHud(tstop);
     if (tstop.t > TS_WIND) spark(player.x, player.g.position.y + .3, player.z, 0, 0, 0, 2.5, 1, .8, .3, 0);   // a golden trail, frozen in place
@@ -3314,6 +3481,7 @@ const slider = (id, label, min, max, step) => `<div class="sl"><div><span>${labe
 $('shop').innerHTML = `
   <div id="langSw"><button data-lang="vi">Tiếng Việt</button><button data-lang="en">English</button></div>
   <h2 id="lvName"></h2><div id="lvls"></div><p id="lvBlurb"></p><div id="lvTraits"></div><div id="lvFoes"></div>
+  <div class="rowb" id="voidRow" hidden><span>${t('Bắt đầu từ', 'Start from')}</span><div id="voidSw"><button data-s="0">${t('Núi lửa', 'The crater')}</button><button data-s="1">${t('Hư Vô', 'The Void')}</button></div></div>
   <div class="tabs"><button data-tab="basic" class="on">${t('Cơ bản', 'Basic')}</button><button data-tab="adv">${t('Nâng cao', 'Advanced')}</button></div>
   <div id="tabBasic">
     ${slider('m', t('Khối lượng', 'Mass'), 1, 4, .1)}
@@ -3368,6 +3536,8 @@ function refreshShop() {
   $('lvBlurb').textContent = level.blurb;
   $('lvTraits').innerHTML = level.traits.map(x => `<span>${x}</span>`).join('');
   document.querySelectorAll('#langSw button').forEach(b => b.classList.toggle('on', (b.dataset.lang === 'vi') === VI));
+  $('voidRow').hidden = !(!level.track && level.boss && level.chapter === ARENAS / 5 - 1 && seen.vr);
+  document.querySelectorAll('#voidSw button').forEach(b => b.classList.toggle('on', (b.dataset.s === '1') === voidStart));
   $('lvFoes').innerHTML = (level.track ? (level.track.guards || []).map(g => FOES[g.foe]) : level.foes).map(f => `<span>${f.name}</span>`).join('');
   if (!level.track) shownChapter = level.chapter;
   $('pipLabel').textContent = `${t('Chương', 'Chapter')} ${shownChapter + 1} · ${t('các trận', 'bouts')}`;
@@ -3508,6 +3678,7 @@ addEventListener('pointerup', e => {
   else if (eqPick) placeTok(d.from, eqPick, upperHalf(e.target.closest('.slot') || e.target, e.clientY));
   else { eqOf().s[d.from] = null; syncEq(); }                            // a tap on a filled box empties it
 });
+$('voidSw').addEventListener('click', e => { if (e.target.dataset.s) { voidStart = e.target.dataset.s === '1'; refreshShop(); } });
 $('presets').addEventListener('click', e => {
   const p = PRESETS[e.target.dataset.p]; if (!p) return;
   build.fx = p[1]; build.fz = p[2]; $('fx').value = p[1]; $('fz').value = p[2]; $('fErr').textContent = '';
@@ -3552,7 +3723,8 @@ addEventListener('keydown', e => {
   }
   if (e.code === 'Space') { e.preventDefault(); state === 'shop' ? launch() : powerPress(); }
   else if (e.code === 'KeyV') toggleView();
-  else if (e.code === 'KeyK' && params.has('debug') && state === 'battle') game.ko();   // test shortcut: knock the rivals out
+  else if (e.code === 'KeyK' && params.has('debug') && state === 'battle') game.ko();   // test shortcut: knock the rivals out (in the void: the dragon)
+  else if (e.code === 'KeyT' && params.has('debug') && state === 'battle' && level.void && !tstop) tsNext = simT;   // test shortcut: stop time now
   else if (e.code === 'Enter' && state === 'result') $('rNext').classList.contains('hidden') ? enterShop() : setLevel(levelIndex + 1);
 });
 
@@ -3720,7 +3892,7 @@ function visuals(dt) {
   if (edgeGlow && !level.wall) edgeGlow.material.color.setScalar(.6 + Math.sin(realT * 5) * .4).multiply(level.void ? EDGE_VOID : EDGE_RED);
   skillWorldVisuals(dt);
   if (!tstop) envTick(dt);
-  updateSparks(tstop ? 0 : dt);
+  updateSparks(tstop && !tstop.free ? 0 : dt);
   finaleVisuals(dt);
   for (let i = rings.length - 1; i >= 0; i--) {
     const m = rings[i]; m.life += dt; m.scale.setScalar(1 + m.life * 22); m.material.opacity = .9 * (1 - m.life / .45);
@@ -3867,7 +4039,7 @@ if (params.has('debug')) window.game = {
     headless = false;
     return [wins, crushed, Math.round(time / runs)];
   },
-  ko: () => tops.forEach(a => { if (!a.isPlayer) { a.w = sgn(a.w); a.lastHitBy = player; a.lastHitT = simT; } }),
+  ko: () => { const g = tops.find(a => a.voidGod && a.alive); if (g && state === 'battle' && !tstop) return startCombo(g); tops.forEach(a => { if (!a.isPlayer) { a.w = sgn(a.w); a.lastHitBy = player; a.lastHitT = simT; } }); },
   voidTune: o => Object.assign(VOID_TUNE, o), eqSet: toks => { build.eq = { s: toks.map(k => k && { v: k.replace('^', ''), up: k.startsWith('^') }) }; syncEq(); },
   tier: n => { tierOverride = n; }, eulerPass: v => { eulerOverride = v; }, checkEuler, shards: () => shardsOwned(),
   toVoid: () => { if (state === 'shop') launch(); pendingRebirth = true; },
@@ -3880,7 +4052,10 @@ if (params.has('debug')) window.game = {
 };
 
 resize();
-if (params.has('debug') && params.has('final')) { game.unlockAll(); setLevel(ARENAS - 1); }   // ?debug&story&final opens straight on the final boss
+// test shortcuts: ?debug&final opens on the final boss, &void starts it in the void, &eq fills in the equation
+if (params.has('debug') && params.has('void')) seen.vr = 1;
+if (params.has('debug') && params.has('eq')) game.eqSet(['e', '^i', '^π', '+', '1', '=', '0']);
+if (params.has('debug') && (params.has('final') || params.has('void'))) { game.unlockAll(); setLevel(ARENAS - 1); }
 else setLevel(Math.min(unlocked, ARENAS - 1));
 requestAnimationFrame(frame);
 </script>
