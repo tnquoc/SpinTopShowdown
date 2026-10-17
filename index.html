@@ -41,6 +41,11 @@
   @keyframes pulse { to { box-shadow: 0 0 0 6px rgba(124,77,255,.45); } }
   #btnView { bottom: 18px; right: 16px; padding: 12px 16px; border-radius: 12px; background: rgba(0,0,0,.5); font-size: 14px; }
 
+  #caster { position: absolute; left: 50%; top: 52px; transform: translateX(-50%); max-width: min(640px, 90vw); box-sizing: border-box;
+    background: rgba(12,10,22,.8); border-left: 4px solid #ffd23f; border-radius: 10px; padding: 8px 14px; font-size: 16px;
+    font-weight: 700; line-height: 1.4; opacity: 0; transition: opacity .3s; }
+  #caster.on { opacity: 1; }
+  #caster b { color: #ffd23f; margin-right: 8px; white-space: nowrap; }
   #audioSw { position: absolute; left: 12px; bottom: 16px; display: flex; gap: 6px; pointer-events: auto; }
   #audioSw button { width: 42px; height: 42px; border: 0; border-radius: 50%; background: rgba(0,0,0,.5); font-size: 19px; }
   #audioSw button.off { opacity: .4; text-decoration: line-through; }
@@ -62,6 +67,10 @@
   #langSw { display: flex; gap: 6px; justify-content: flex-end; margin-bottom: 8px; }
   #langSw button { border: 0; border-radius: 999px; padding: 4px 11px; background: #2c2842; color: #cfc8e8; font-size: 12.5px; font-weight: 700; }
   #langSw button.on { background: #f3efe6; color: #1d1a2b; }
+  #viewRow { margin: 12px 0 0; }
+  #viewSw { display: flex; gap: 6px; }
+  #viewSw button { border: 0; border-radius: 8px; padding: 6px 12px; background: #3a3555; color: #fff; font-weight: 800; }
+  #viewSw button.on { background: #7c4dff; }
   #lvTraits { display: grid; gap: 5px; margin: 6px 0; }
   #lvTraits span { background: #3b2f1a; color: #ffd98a; border-left: 3px solid #ffd23f; border-radius: 6px; padding: 5px 9px; font-size: 12.5px; line-height: 1.35; }
   #lvFoes { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0 10px; }
@@ -81,6 +90,20 @@
   #tabAdv label { display: flex; align-items: center; gap: 6px; margin: 7px 0; font-family: "Consolas", monospace; font-weight: 700; }
   #tabAdv input { flex: 1; min-width: 0; padding: 7px 8px; border-radius: 8px; border: 1px solid #4a4470; background: #15121f;
     color: #fff; font: 13px "Consolas", monospace; user-select: text; -webkit-user-select: text; }
+  #pips { flex-basis: 100%; display: flex; gap: 6px; }
+  #pips button { flex: 1; padding: 6px 0; border-radius: 8px; border: 0; background: #3a3555; color: #fff; font-weight: 800; }
+  #pips button.on { background: #ffd23f; color: #3a2a00; }
+  #pips button:disabled { opacity: .35; }
+  #skills { display: flex; flex-wrap: wrap; gap: 5px; margin: 2px 0 6px; }
+  #skills button { border: 0; border-radius: 999px; padding: 5px 10px; background: #3a3555; color: #fff; font-size: 12.5px; font-weight: 700; }
+  #skills button.on { background: #7c4dff; }
+  #skills button:disabled { opacity: .45; }
+  .warn { color: #ff8a80; }
+  #story { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; padding: 24px; background: rgba(10,8,20,.4); cursor: pointer; }
+  #storyBox { width: min(640px, 94vw); background: rgba(22,19,36,.97); border: 2px solid #cfc8e8; border-radius: 16px; padding: 16px 20px; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+  #storyWho { font-size: 14px; letter-spacing: .6px; text-transform: uppercase; }
+  #storyText { margin: 6px 0 4px; font-size: 19px; line-height: 1.5; }
+  #storyBox small { opacity: .55; font-size: 12px; }
   #presets { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0; }
   #presets button { border: 0; border-radius: 999px; padding: 5px 10px; background: #3a3555; color: #fff; font-size: 12.5px; }
   #fErr { color: #ff8a80; font-size: 12.5px; min-height: 1.2em; }
@@ -112,11 +135,13 @@
   <div id="announce"></div>
   <button id="btnStorm" class="hidden"><div id="stormFill"></div><span id="stormLabel"></span></button>
   <button id="btnView" class="hidden"></button>
-  <div id="audioSw"><button id="btnSound"></button><button id="btnMusic"></button></div>
+  <div id="caster"><b>🎙 BLV</b><span id="casterText"></span></div>
+  <div id="audioSw"><button id="btnSound"></button><button id="btnMusic"></button><button id="btnVoice"></button></div>
 </div>
 <div id="pops"></div>
 <div id="flash"></div>
 <aside id="shop"></aside>
+<div id="story" class="hidden"><div id="storyBox"><b id="storyWho"></b><p id="storyText"></p><small id="storyHint"></small></div></div>
 <div id="result" class="hidden"><h1 id="rTitle"></h1><p id="rText"></p><div><button id="rNext"></button><button id="rRetry" class="alt"></button></div></div>
 
 <script type="importmap">
@@ -163,12 +188,15 @@ const FOES = {
     quote: t('"Ngươi chỉ đang đánh với cái bóng của ta thôi."', '"You are only fighting my shadow."') },
   vajra: { name: t('Kim Cang Hộ Pháp', 'Vajra Guardian'), m: 5, r: 1.15, grip: .25, w: 62, color: 0xa1887f, blades: 8,
     quote: t('"Núi thì không cần né."', '"A mountain does not dodge."') },
-  moon: { name: t('Huyết Nguyệt Ma Vương', 'Blood Moon Demon King'), m: 6, r: 1.5, grip: .35, w: 62, ai: 'chase', storm: true, color: 0xd32f2f, blades: 6, crown: true,
+  moon: { name: t('Huyết Nguyệt Ma Vương', 'Blood Moon Demon King'), m: 6, r: 1.5, grip: .35, w: 62, ai: 'chase', storm: true, color: 0xd32f2f, blades: 6, crown: true, bloodImmune: true,
     quote: t('"Trăng máu đã lên. Ngươi hết giờ rồi."', '"The blood moon has risen. Your time is up."') },
+  ice: { name: t('Băng Tuyết Thánh Nữ', 'Snow Mountain Saint'), m: 2.2, r: .85, grip: .3, w: 120, dir: -1, ai: 'chase', color: 0x81d4fa, blades: 6,
+    quote: t('"Lạnh lắm không? Lát nữa còn lạnh hơn."', '"Cold yet? It gets colder."') },
   god: { name: t('Thần Quay Bất Bại', 'The Undefeated Spin God'), m: 7, r: 1.6, grip: .4, w: 72, ai: 'chase', storm: true, stormMax: 2, color: 0xab47bc, blades: 8, crown: true,
     quote: t('"Một trăm năm nữa hãy quay lại gặp ta."', '"Come back in a hundred years."') },
 };
-const LEVELS = [
+// the ten arenas; each one is the home ground of one campaign chapter
+const ARENA_DEFS = [
   { name: t('Mâm nhôm', 'The Tin Tray'), R: 6, K: 2, wall: true, theme: 'tray', base: '#c5ced4', accent: '#6d8597',
     traits: [t('Mặt nhôm chuẩn: không có gì đặc biệt', 'Plain aluminium: nothing special')],
     blurb: t('Lòng mâm hơi trũng, có gờ chắn. Khởi động với Lôi Thần Tập Sự.', 'A shallow dish with a rim. Warm up against the Rookie Thunder God.'),
@@ -203,16 +231,23 @@ const LEVELS = [
     traits: [t('Sàn nghiêng xoay vòng: lực kéo 3,2 m/s² đổi hướng liên tục', 'The floor tilts in a circle: a 3.2 m/s² pull that keeps changing direction'),
       t('Ướt: ma sát sàn ×0.7', 'Wet: floor friction ×0.7')],
     foes: [FOES.dragon, FOES.phantom, { ...FOES.thunder, w: 110 }] },
-  { name: t('Đỉnh nón lá', 'Top of the Conical Hat'), R: 6.5, K: -.7, wall: false, theme: 'yard', base: '#e6d6a0', accent: '#8d6e63',
+  { name: t('Đỉnh nón lá', 'Top of the Conical Hat'), R: 6.5, K: -.45, wall: true, bloodRing: .72, theme: 'yard', base: '#e6d6a0', accent: '#8d6e63',
     blurb: t('Sàn lồi như nón lá úp: mọi thứ đều trượt ra mép. Không có gờ.', 'A dome like an upturned hat: everything slides to the edge. There is no rim.'),
-    traits: [t('Sàn lồi: càng xa tâm càng bị đẩy ra mạnh. Gợi ý: mở tab Nâng cao và thử "Bám tâm"', 'Dome: the further from the centre, the harder you are pushed out. Hint: open Advanced and try "Hold centre"')],
+    traits: [t('Sàn lồi: càng xa tâm càng bị đẩy ra ngoài', 'Dome: the further from the centre, the harder you are pushed outward'),
+      t('Vòng máu quanh mép: chạm vào là bị hút tốc độ quay và mất ngay hiệu ứng kỹ năng đang dùng', 'Blood ring round the edge: touch it and it drains your spin and snuffs any active skill'),
+      t('Huyết Nguyệt Ma Vương không sợ vòng máu: hắn còn hồi sức trong đó', 'The Blood Moon Demon King fears no blood ring: it even restores him')],
     foes: [FOES.lotus, FOES.tyrant, FOES.wind] },
   { name: t('Miệng núi lửa', 'The Volcano Crater'), R: 8.5, K: 1.8, wall: false, theme: 'wok', base: '#2a2224', accent: '#ff3d00', hot: .38, shrink: { to: .55, time: 40 },
     blurb: t('Trùm cuối: Thần Quay Bất Bại. Miệng núi lửa sụp dần vào trong.', 'Final boss: the Undefeated Spin God. The crater keeps collapsing inward.'),
     traits: [t('Sàn co lại còn 55% trong 40 giây, không có gờ', 'The floor shrinks to 55% over 40 seconds, and there is no rim'),
       t('Tâm nóng: nạp năng lượng ×2.5, hao tốc độ quay ×2', 'Hot centre: energy ×2.5, spin loss ×2')],
     foes: [FOES.god, FOES.dragon, FOES.phantom] },
-  // obstacle courses: reach the chequered line before the spin runs out
+];
+// the weather around each arena, in chapter order
+const ENV_ORDER = ['storm', 'steam', 'wind', 'fire', 'braziers', 'ghost', 'incense', 'sea', 'bloodmoon', 'lava'];
+ARENA_DEFS.forEach((d, i) => { d.env = ENV_ORDER[i]; });
+// obstacle courses: reach the chequered line before the spin runs out
+const COURSES = [
   { name: t('Máng nước mưa', 'The Rain Gutter'), R: 8, K: 0, base: '#7f97a6', foes: [],
     blurb: t('Thả con quay xuống máng và để dốc lo phần còn lại. Về tới vạch ca-rô là thắng.', 'Drop your top into the gutter and let the slope do the rest. Reach the chequered line to win.'),
     traits: [t('SPACE = nhảy (tốn nửa thanh năng lượng). Có một khe hở phải nhảy qua.', 'SPACE = jump (costs half an energy bar). There is one gap to jump.'),
@@ -243,6 +278,104 @@ const LEVELS = [
       holes: [{ s0: 42.5, s1: 44.3 }, { s0: 75, s1: 76.4 }],
       guards: [{ s: 64.5, off: 0, patrol: 1.6, foe: 'dragon' }, { s: 82, off: 1, patrol: 1.2, foe: 'wind' }] } },
 ];
+// ---------- campaign: 10 chapters × 5 bouts, a boss guards the fifth bout of every chapter ----------
+const CHAPTERS = [
+  { boss: 'thunder', skill: 'thunder', sect: t('Lôi Môn', 'Thunder Sect'),
+    blurb: t('Sân sau nhà: cái mâm nhôm của bà ngoại, nơi mọi huyền thoại bắt đầu.', "Grandma's tin tray in the backyard, where every legend starts.") },
+  { boss: 'lotus', skill: 'lotus', sect: t('Liên Hoa Phái', 'Lotus Sect'),
+    blurb: t('Quán phở Liên Hoa: tô to, nước lèo trơn, sàn ướt.', 'The Lotus pho shop: a huge bowl, slick broth, a wet floor.') },
+  { boss: 'wind', skill: 'dash', sect: t('Hắc Phong Đường', 'Black Wind Hall'),
+    blurb: t('Quán nhậu Hắc Phong: mặt bàn dính bia, không có gờ.', 'The Black Wind beer joint: a sticky table with no rim.') },
+  { boss: 'dragon', skill: 'fire', sect: t('Hoả Long Bang', 'Fire Dragon Gang'),
+    blurb: t('Bếp Hoả Long: chảo gang đỏ rực ở giữa.', 'The Fire Dragon kitchen: an iron wok glowing red in the middle.') },
+  { boss: 'tyrant', skill: 'iron', sect: t('Thiết Giáp Quân', 'Iron Legion'),
+    blurb: t('Sân đình Thiết Giáp: đá lát gồ ghề, đứng không vững.', 'The Iron Legion yard: bumpy paving, hard to keep your footing.') },
+  { boss: 'phantom', skill: 'ghost', sect: t('Ảo Ảnh Môn', 'Phantom Order'),
+    blurb: t('Nhà hàng Ảo Ảnh: cả cái mâm đang xoay.', 'The Phantom restaurant: the whole lazy Susan is turning.') },
+  { boss: 'vajra', skill: 'vajra', sect: t('Kim Cang Tự', 'Vajra Temple'),
+    blurb: t('Chùa Kim Cang: mâm ngũ quả cúng rằm, đụng vào là bật.', 'The Vajra temple: the full-moon fruit offering bounces you away.') },
+  { boss: 'ice', skill: 'ice', sect: t('Tuyết Sơn Phái', 'Snow Mountain Sect'),
+    blurb: t('Thuyền thúng Tuyết Sơn: giữa sóng, sàn ướt và nghiêng.', 'The Snow Mountain coracle: wet, rocking, out on the waves.') },
+  { boss: 'moon', skill: 'moon', sect: t('Huyết Nguyệt Giáo', 'Blood Moon Cult'),
+    blurb: t('Đỉnh nón lá Huyết Nguyệt: sàn lồi, chỉ đứng giữa mới sống.', 'The Blood Moon hat: a dome where only the centre is safe.') },
+  { boss: 'god', skill: 'god', sect: t('Thần Quay Điện', 'Spin God Palace'),
+    blurb: t('Miệng núi lửa: Thần Quay Bất Bại đang đợi. Sàn sụp dần vào trong.', 'The volcano crater: the Undefeated Spin God waits. The floor keeps collapsing.') },
+];
+const NUMERALS = VI ? ['Nhất', 'Nhị', 'Tam'] : ['I', 'II', 'III'];
+function buildCampaign() {
+  const out = [];
+  CHAPTERS.forEach((ch, c) => {
+    const base = ARENA_DEFS[c];
+    for (let s = 0; s < 5; s++) {
+      // difficulty climbs inside a chapter and from chapter to chapter; there are no free power-ups for the player
+      const boss = s === 4, scale = (.9 + .055 * c) * (1 + .03 * s), foes = [];
+      if (boss) { const f = FOES[ch.boss]; foes.push({ ...f, m: +(f.m * (1 + .06 * c)).toFixed(2), w: Math.round(f.w * (1 + .08 * c)), skill: ch.skill, crown: true }); }
+      const count = boss ? (c < 3 ? 1 : 2) : [c < 2 ? 1 : 2, 2, c < 3 ? 2 : 3, 3][s];
+      for (let k = 0; k < count; k++) {
+        const src = CHAPTERS[Math.max(0, c - k)], f = FOES[src.boss];      // own sect first, then the sects already beaten
+        foes.push({ ...f, name: `${t('Đệ tử', 'Disciple of the')} ${src.sect} ${NUMERALS[k]}`, crown: false, stormMax: 1,
+          m: +(f.m * (.85 + .035 * c)).toFixed(2), r: Math.max(.5, f.r * .85), w: Math.round(f.w * scale * (boss ? .9 : 1)),
+          skill: c >= 2 && s >= 1 && src.skill !== 'god' ? src.skill : null, bloodImmune: false });
+      }
+      out.push({ ...base, K: base.K * [1, 1.08, .94, 1.12, 1][s], chapter: c, stage: s, boss, wet: c === 1 || c === 7, blurb: ch.blurb, foes });
+    }
+  });
+  return out;
+}
+
+// story beats: a chapter intro, the boss's words before the fight, and what they say once beaten
+const STORY = [
+  { intro: [['narr', t('Mười năm trước, cao thủ con quay số một Việt Nam biến mất sau trận đấu với Thần Quay Bất Bại. Ông chỉ để lại một con quay vàng.', "Ten years ago, Vietnam's greatest top-spinner vanished after a match with the Undefeated Spin God. All he left behind was a golden top.")],
+      ['me', t('Con quay vàng đó giờ là của tôi. Tôi sẽ tìm ra Thần Quay Bất Bại.', 'That golden top is mine now. I will find the Undefeated Spin God.')],
+      ['narr', t('Muốn gặp Thần Quay phải hạ chín cao thủ trấn giữ chín đấu trường. Không ai cho bạn gì cả: chỉ có cái đầu và con quay.', 'To reach the Spin God you must beat nine masters guarding nine arenas. Nobody hands you anything: just your head and your top.')],
+      ['narr', t('Mỗi cao thủ bị hạ sẽ để lại kỹ năng của mình. Dùng đúng lúc thì mạnh, dùng sai thì tự hại.', 'Each master you beat leaves you their skill. Used at the right moment it is power; used wrong, it hurts you.')]],
+    boss: [['thunder', t('Ta là Lôi Thần! Tuy còn tập sự... nhưng sấm sét vẫn là sấm sét!', 'I am the Thunder God! Still a rookie... but thunder is thunder!')],
+      ['me', t('Cái mâm nhôm này dẫn điện tốt đấy. Cẩn thận.', 'This tin tray conducts nicely. Careful.')]],
+    win: [['thunder', t('Ta... chỉ là tập sự thôi mà! Cầm lấy sấm sét của ta, nhưng đừng dùng trên sàn ướt.', 'I... was only a rookie! Take my thunder, but never on a wet floor.')]] },
+  { intro: [['narr', t('Chương 2. Quán phở Liên Hoa. Sàn trơn như nước lèo.', 'Chapter 2. The Lotus pho shop. The floor is slick with broth.')]],
+    boss: [['lotus', t('Muốn đi tiếp? Quay đẹp như hoa sen đã rồi tính.', 'You want to pass? Spin as beautifully as a lotus first.')],
+      ['me', t('Tôi đến đây để thắng, không phải để đẹp.', 'I came here to win, not to look pretty.')]],
+    win: [['lotus', t('Hoa sen sống được trong bùn... nhưng không sống nổi trong tô phở. Cầm lấy tấm khiên của ta.', 'A lotus survives the mud... just not the pho bowl. Take my ward.')]] },
+  { intro: [['narr', t('Chương 3. Quán nhậu Hắc Phong. Bàn không có gờ: rơi là ra đường.', 'Chapter 3. The Black Wind beer joint. No rim: fall off and you are out.')]],
+    boss: [['wind', t('Ngươi chưa kịp thấy ta thì đã rơi khỏi bàn rồi.', 'You will fall off the table before you even see me.')]],
+    win: [['wind', t('Nhanh mà sai hướng thì cũng như ta thôi. Nhớ đấy.', 'Fast in the wrong direction ends like me. Remember that.')]] },
+  { intro: [['narr', t('Chương 4. Bếp Hoả Long. Tâm chảo đỏ rực: nạp năng lượng nhanh nhưng cháy hao.', 'Chapter 4. The Fire Dragon kitchen. The red-hot centre charges you fast and burns you down.')]],
+    boss: [['dragon', t('Cháy lên đi, hỡi vòng quay định mệnh!', 'Burn, O wheel of destiny!')],
+      ['me', t('Ông có biết vệt lửa của ông đốt cả chính ông không?', 'You know your own fire trail burns you too, right?')]],
+    win: [['dragon', t('Lửa của ta giờ là của ngươi. Đừng chạy vòng quanh rồi tự đốt mình như ta.', 'My fire is yours now. Do not run in circles and burn yourself like I did.')]] },
+  { intro: [['narr', t('Chương 5. Sân đình Thiết Giáp. Đá lát gồ ghề, nhẹ là bị hất tung.', 'Chapter 5. The Iron Legion yard. Bumpy paving: light tops get thrown about.')]],
+    boss: [['tyrant', t('Nặng ký mới là chân lý. Nhẹ thì về nhà.', 'Weight is the only truth. Lightweights go home.')]],
+    win: [['tyrant', t('Nặng thì chậm... ta quên mất điều đó. Cầm lấy giáp sắt.', 'Heavy means slow... I forgot that. Take my iron.')]] },
+  { intro: [['narr', t('Chương 6. Nhà hàng Ảo Ảnh. Cả cái mâm đang xoay.', 'Chapter 6. The Phantom restaurant. The whole lazy Susan is turning.')]],
+    boss: [['phantom', t('Ngươi chỉ đang đánh với cái bóng của ta thôi.', 'You are only fighting my shadow.')],
+      ['me', t('Thế thì cái bóng của ông sắp văng khỏi mâm.', 'Then your shadow is about to fly off the table.')]],
+    win: [['phantom', t('Xuyên tường thì dễ. Quay về được mới khó. Đừng lạc ra ngoài.', 'Walking through walls is easy. Getting back in is hard. Do not get lost outside.')]] },
+  { intro: [['narr', t('Chương 7. Chùa Kim Cang. Mâm ngũ quả cúng rằm: cầu, dừa, đủ, xoài, sung.', 'Chapter 7. The Vajra temple. The full-moon fruit offering: custard apple, coconut, papaya, mango, fig.')]],
+    boss: [['vajra', t('Núi thì không cần né.', 'A mountain does not dodge.')]],
+    win: [['vajra', t('Đứng yên là sức mạnh... trừ khi đất dưới chân đang sụp. Nhớ lấy.', 'Standing still is strength... unless the ground is collapsing. Remember that.')]] },
+  { intro: [['narr', t('Chương 8. Thuyền thúng Tuyết Sơn. Sóng đánh, sàn ướt, nghiêng liên tục.', 'Chapter 8. The Snow Mountain coracle. Waves, a wet floor, and it never stops rocking.')]],
+    boss: [['ice', t('Lạnh lắm không? Lát nữa còn lạnh hơn.', 'Cold yet? It gets colder.')]],
+    win: [['ice', t('Băng không chọn phe. Ngươi đứng trong đó thì ngươi cũng trượt.', 'Ice takes no sides. Stand in it and you slide too.')]] },
+  { intro: [['narr', t('Chương 9. Đỉnh nón lá Huyết Nguyệt. Sàn lồi: rời tâm là trôi ra mép.', 'Chapter 9. The Blood Moon hat. A dome: leave the centre and you drift to the edge.')]],
+    boss: [['moon', t('Trăng máu đã lên. Kẻ mạnh sẽ chảy máu trước.', 'The blood moon has risen. The strong bleed first.')],
+      ['me', t('Sau ông còn ai?', 'Who is left after you?')],
+      ['moon', t('Chỉ còn Ngài. Và Ngài biết ngươi là ai.', 'Only Him. And He knows who you are.')]],
+    win: [['moon', t('Đi đi... Ngài đang đợi ở miệng núi lửa.', 'Go... He waits at the volcano.')]] },
+  { intro: [['narr', t('Chương cuối. Miệng núi lửa. Sàn đang sụp dần vào trong.', 'Final chapter. The volcano crater. The floor is collapsing inward.')]],
+    boss: [['god', t('Cuối cùng cũng đến. Con quay vàng đó... ta nhận ra nó.', 'At last. That golden top... I know it.')],
+      ['me', t('Ông đã làm gì cha tôi?!', 'What did you do to my father?!')],
+      ['god', t('Ta không làm gì hắn cả.', 'I did nothing to him.')],
+      ['god', t('Ta... chính là cha của con.', 'I... am your father.')],
+      ['me', t('KHÔNGGGGGGG!', 'NOOOOOOOO!')],
+      ['dad', t('Muốn cha về nhà thì thắng cha đi. Cha sẽ không nương tay đâu.', 'If you want me home, beat me. I will not go easy on you.')]],
+    win: [['dad', t('Con thắng rồi. Cha tự hào về con.', 'You won. I am proud of you.')],
+      ['me', t('Mười năm qua cha ở đâu?', 'Where were you for ten years?')],
+      ['dad', t('Cha... trốn mẹ con. Mẹ bắt cha rửa bát.', 'I was... hiding from your mother. She wanted me to do the dishes.')],
+      ['me', '...'],
+      ['narr', t('Hai cha con về nhà. Chồng bát vẫn đang đợi. HẾT.', 'Father and child went home. The dishes were still waiting. THE END.')],
+      ['narr', t('Cảm ơn bạn đã chơi Đại Chiến Con Quay!', 'Thanks for playing Spin Top Showdown!')]] },
+];
+const LEVELS = [...buildCampaign(), ...COURSES];
 const ARENAS = LEVELS.filter(l => !l.track).length;
 const HIT_WORDS = ['KENG!', 'CHOANG!', 'XOẸT!', 'CỐP!', 'RẦM!'];
 const PRESETS = [
@@ -342,13 +475,13 @@ function floorTex(L) {
 }
 
 const TIERS = 5, CROWD_COLORS = [0xef5350, 0x42a5f5, 0xffee58, 0x66bb6a, 0xffa726, 0xab47bc, 0xf5f5f5, 0x26c6da, 0xec407a];
-let crowd = null, edgeGlow = null, stage = null, excite = 0;
+let crowd = null, edgeGlow = null, stage = null, bloodBand = null, excite = 0;
 
 function buildArena() {
   arena.traverse(o => { if (o.geometry) { o.geometry.dispose(); if (o.material.map) o.material.map.dispose(); o.material.dispose(); } });
   arena.clear();
   stage = new THREE.Group(); arena.add(stage);     // the part that can turn, rock and shrink
-  if (level.track) { crowd = null; edgeGlow = null; buildTrack(); return; }
+  if (level.track) { crowd = null; edgeGlow = null; disposeEnv(); buildTrack(); return; }
   const L = level, pts = [];
   bowlDepth = L.K * 0.45;
   for (let i = 0; i <= 24; i++) pts.push(new THREE.Vector2(L.R * i / 24, bowlDepth * (i / 24) ** 2));
@@ -381,11 +514,20 @@ function buildArena() {
   body.frustumCulled = head.frustumCulled = false;
   crowd = { n, seats, body, head, phase: seats.map(() => rand(0, 6.28)), speed: seats.map(() => rand(6, 10)) };
   stage.add(dish, edgeGlow);
+  bloodBand = null;
+  if (L.bloodRing) {
+    const band = [];
+    for (let i = 0; i <= 12; i++) { const rho = L.R * (L.bloodRing + (1 - L.bloodRing) * i / 12); band.push(new THREE.Vector2(rho, bowlDepth * (rho / L.R) ** 2 + .04)); }
+    bloodBand = new THREE.Mesh(new THREE.LatheGeometry(band, 96), new THREE.MeshBasicMaterial({ color: 0xff1744, transparent: true, opacity: .4,
+      side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+    stage.add(bloodBand);
+  }
   for (const b of L.bumpers || []) {
     const m = mesh(new THREE.SphereGeometry(b.r, 20, 14), new THREE.MeshPhongMaterial({ color: b.color, shininess: 70 }));
     m.position.set(b.x, bowlDepth * (b.x * b.x + b.z * b.z) / (L.R * L.R) + b.r * .8, b.z); stage.add(m);
   }
   arena.add(ground, stands, body, head);
+  buildEnv();
 }
 
 const dummy = new THREE.Object3D();
@@ -557,6 +699,7 @@ function jump() {
   const p = player;
   if (p.yOff > 0 || p.energy < JUMP_COST) return;
   p.energy -= JUMP_COST; p.vy = JUMP_SPEED / Math.pow(p.m / 2, .25); p.yOff = .01;
+  say(pickLine('jump'), 1);
   sfx.jump();
 }
 
@@ -672,9 +815,11 @@ function makeTop(spec, isPlayer) {
   const a = { name: spec.name, color: spec.color, m: spec.m, r: spec.r, grip: spec.grip, I: inertia(spec.m, spec.r),
     w: w0 * (spec.dir || 1), w0, x: 0, z: 0, vx: 0, vz: 0, ax: 0, az: 0, head: 0, energy: 0, stormT: 0,
     alive: true, why: '', isPlayer, ai: spec.ai || null, storm: !!spec.storm, lastHit: new Map(),
+    skill: spec.skill !== undefined ? spec.skill : spec.storm ? 'storm' : null, skillT: 0, skillDur: 1, active: null, godI: 0, lastFire: -1, bubble: null, ghosted: false,
     yOff: 0, vy: 0, tiltAmp: .03, phase: rand(0, 6), angle: 0, cone: null,
     blades: spec.blades, spikes: spec.spikes, crown: spec.crown, quote: spec.quote || '',
     dragK: 1, steerK: 1, fallY: 0, homeX: 0, homeZ: 0, patrol: 0,
+    bloodImmune: !!spec.bloodImmune, inBlood: -9,
     stormMax: spec.stormMax || 1, stormLv: 1, stormDur: STORM_TIME, kos: 0, lastHitBy: null, lastHitT: -9, bumpT: rand(0, .5) };
   buildTopMesh(a);
   a.trail = makeTrail(a.color);
@@ -735,7 +880,12 @@ function makeFunnel(color) {
 }
 
 // ---------- sound (all synthesised) ----------
-let ac = null, master = null, noiseBuf = null, hum = null, humGain = null, crowdGain = null, musicGain = null;
+let ac = null, master = null, noiseBuf = null, hum = null, humGain = null, musicGain = null;
+let mixMeter = null;
+// stadium crowd: a quiet real football-crowd bed (CC0, Freesound; source in sounds/CREDITS.md)
+const CROWD_FILES = { stadium: 'sounds/crowd-bed.mp3' };
+const crowdBufs = {};
+let crowdBus = null, bedGain = null, crowdMeter = null;
 let soundOn = true, musicOn = true;
 try { soundOn = localStorage.getItem('tops.sound') !== '0'; musicOn = localStorage.getItem('tops.music') !== '0'; } catch (e) {}
 const SFX_VOL = .5, MUSIC_VOL = .2;
@@ -745,21 +895,42 @@ function initAudio() {
   if (!ac) {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
-    ac = new AC(); master = ac.createGain(); master.gain.value = soundOn ? SFX_VOL : 0; master.connect(ac.destination);
-    musicGain = ac.createGain(); musicGain.gain.value = musicOn ? MUSIC_VOL : 0; musicGain.connect(ac.destination);
+    ac = new AC();
+    const comp = ac.createDynamicsCompressor();          // keeps a roaring crowd plus a big hit from clipping
+    comp.threshold.value = -12; comp.ratio.value = 4;
+    comp.connect(ac.destination);
+    mixMeter = ac.createAnalyser(); comp.connect(mixMeter);
+    master = ac.createGain(); master.gain.value = soundOn ? SFX_VOL : 0; master.connect(comp);
+    musicGain = ac.createGain(); musicGain.gain.value = musicOn ? MUSIC_VOL : 0; musicGain.connect(comp);
     setInterval(musicTick, 80);
-    noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+    noiseBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
     const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     hum = ac.createOscillator(); hum.type = 'sawtooth';
     const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 420;
     humGain = ac.createGain(); humGain.gain.value = 0;
     hum.connect(lp).connect(humGain).connect(master); hum.start();
-    const murmur = ac.createBufferSource(), bp = ac.createBiquadFilter();
-    murmur.buffer = noiseBuf; murmur.loop = true; bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = .4;
-    crowdGain = ac.createGain(); crowdGain.gain.value = 0;
-    murmur.connect(bp).connect(crowdGain).connect(master); murmur.start();
+    setupCrowd();
   }
   if (ac.state === 'suspended') ac.resume();
+}
+function setupCrowd() {
+  // the recording is mastered quiet (-23 LUFS); this lifts it to sit level with the music
+  crowdBus = ac.createGain(); crowdBus.gain.value = 1.5; crowdBus.connect(master);
+  crowdMeter = ac.createAnalyser(); crowdBus.connect(crowdMeter);
+  bedGain = ac.createGain(); bedGain.gain.value = 0; bedGain.connect(crowdBus);
+  for (const [k, url] of Object.entries(CROWD_FILES))
+    fetch(url).then(r => r.arrayBuffer()).then(b => ac.decodeAudioData(b)).then(buf => {
+      crowdBufs[k] = buf;
+      if (k !== 'stadium') return;
+      const src = ac.createBufferSource();          // the Millerntor crowd loops for the whole session
+      src.buffer = buf; src.loop = true; src.connect(bedGain); src.start();
+    }).catch(() => {});
+}
+function crowdPlay(k, gain = 1, rate = 1) {
+  if (!ac || headless || !crowdBufs[k]) return;
+  const src = ac.createBufferSource(), g = ac.createGain();
+  src.buffer = crowdBufs[k]; src.playbackRate.value = rate; g.gain.value = gain;
+  src.connect(g).connect(crowdBus); src.start();
 }
 function noise(dur, type, freq, gain, q = 1, sweepTo = 0) {
   if (!ac || headless) return;
@@ -815,6 +986,9 @@ function setAudioSwitches() {
   $('btnSound').textContent = soundOn ? '🔊' : '🔇'; $('btnMusic').textContent = '🎵';
   $('btnSound').classList.toggle('off', !soundOn); $('btnMusic').classList.toggle('off', !musicOn);
   $('btnSound').title = t('Âm thanh', 'Sound'); $('btnMusic').title = t('Nhạc nền', 'Music');
+  $('btnVoice').textContent = '🎙'; $('btnVoice').classList.toggle('off', !voiceOn); $('btnVoice').hidden = !VOICE_FEATURE;
+  $('btnVoice').title = t('Giọng bình luận viên', 'Commentator voice');
+  try { localStorage.setItem('tops.voice', voiceOn ? '1' : '0'); } catch (e) {}
 }
 
 const sfx = {
@@ -828,25 +1002,14 @@ const sfx = {
   wind(lv = 1) { noise(STORM_TIME * (1 + .25 * (lv - 1)), 'bandpass', 300, .7, 1.5, 1400 + 500 * lv); },
   boom() { noise(.8, 'lowpass', 200, 1); tone('sine', 80, 28, .6, .8); },
   out() { tone('sine', 900, 110, .5, .25); },
-  clap(v) { noise(.06, 'bandpass', 1700, .2 * v, 1.2); noise(.04, 'highpass', 3000, .08 * v); },
-  ooh() { if (limit('ooh', 700)) noise(.8, 'bandpass', 500, .25, 2, 1000); },
-  horn() { if (limit('horn', 900)) { tone('sawtooth', 466, 460, .7, .09); tone('sawtooth', 587, 580, .7, .08); } },
   whistle() { tone('sine', 2300, 2900, .25, .07); },
   jump() { tone('sine', 260, 620, .18, .25); },
+  rumble() { if (limit('rumble', 900)) { noise(1.4, 'lowpass', 140, .35); noise(.3, 'lowpass', 400, .15); } },
+  freeze() { noise(.5, 'highpass', 4000, .25, 1, 9000); tone('sine', 1800, 2600, .3, .06); },
+  shatter() { if (limit('shatter', 200)) { noise(.3, 'highpass', 3000, .35); for (let i = 0; i < 4; i++) tone('triangle', rand(2500, 4200), rand(1800, 2500), .12, .05, i * .03); } },
+  zap() { noise(.25, 'highpass', 2500, .5); tone('square', 1800, 200, .2, .12); },
   mash(n) { const f = 500 * 2 ** (n / 12); tone('square', f, f, .05, .09); },
-  cheer(v) { if (limit('cheer', 500)) { noise(1.3, 'bandpass', 1100, .4 * v, .6); noise(1, 'bandpass', 2400, .18 * v, .8); } },
   boing() { if (limit('boing', 70)) { tone('sine', 220, 660, .16, .3); tone('triangle', 440, 990, .12, .12); } },
-  chant(v) {                    // a dozen rough voices shouting one syllable together
-    if (!ac || headless) return;
-    const now = ac.currentTime;
-    for (let k = 0; k < 7; k++) {
-      const o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain();
-      o.type = 'sawtooth'; o.frequency.setValueAtTime(rand(190, 310), now); o.frequency.linearRampToValueAtTime(rand(150, 230), now + .2);
-      f.type = 'bandpass'; f.frequency.value = rand(700, 1150); f.Q.value = 3;
-      g.gain.setValueAtTime(.0001, now); g.gain.linearRampToValueAtTime(.07 * v, now + .03); g.gain.exponentialRampToValueAtTime(.001, now + .24);
-      o.connect(f).connect(g).connect(master); o.start(now); o.stop(now + .27);
-    }
-  },
   win() { [523, 659, 784, 1047].forEach((f, i) => tone('triangle', f, f, .22, .22, i * .12)); },
   lose() { [392, 330, 262].forEach((f, i) => tone('triangle', f, f * .97, .3, .2, i * .18)); },
   drop() { tone('sine', 300, 90, .2, .4); noise(.1, 'lowpass', 500, .4); },
@@ -854,19 +1017,20 @@ const sfx = {
 
 // ---------- game state ----------
 let state = 'shop', view = 'tv', tops = [], player = null;
+try { if (localStorage.getItem('tops.view') === 'fp') view = 'fp'; } catch (e) {}
 let simT = 0, acc = 0, slowT = 0, shake = 0, endT = 0, won = false, realT = 0, stats = { hits: 0, maxHit: 0 };
 let steerFn = null, headless = false;   // headless: balance sims skip sound and effects
-const build = { m: 2, r: .8, grip: .5, dir: 1, drop: { x: 0, z: 3.5 }, aim: { x: 0, z: -3 }, fx: '', fz: '',
+const build = { m: 2, r: .8, grip: .5, dir: 1, skill: 'storm', drop: { x: 0, z: 3.5 }, aim: { x: 0, z: -3 }, fx: '', fz: '',
   tdrop: { x: 0, z: .5 }, taim: { x: 0, z: -3 } };   // courses keep their own drop point
 const dropPt = () => level.track ? build.tdrop : build.drop, aimVec = () => level.track ? build.taim : build.aim;
 let unlocked = 0, unlockedT = 0;
 try {
-  unlocked = clamp(+localStorage.getItem('tops.unlocked') || 0, 0, ARENAS - 1);
+  unlocked = clamp(+localStorage.getItem('tops.campaign') || 0, 0, ARENAS - 1);
   unlockedT = clamp(+localStorage.getItem('tops.unlockedT') || 0, 0, LEVELS.length - ARENAS - 1);
   Object.assign(build, JSON.parse(localStorage.getItem('tops.build') || '{}'));
 } catch (e) {}
 const save = () => { if (params.has('debug')) return;   // test sessions never overwrite real progress
-  try { localStorage.setItem('tops.unlocked', unlocked); localStorage.setItem('tops.unlockedT', unlockedT); localStorage.setItem('tops.build', JSON.stringify(build)); } catch (e) {} };
+  try { localStorage.setItem('tops.campaign', unlocked); localStorage.setItem('tops.unlockedT', unlockedT); localStorage.setItem('tops.build', JSON.stringify(build)); } catch (e) {} };
 
 // ---------- formulas (advanced mode) ----------
 const VARS = ['x', 'z', 'vx', 'vz', 'w', 'ex', 'ez', 'ed', 'ew', 'd', 't', 'R', 'cx', 'ca'];
@@ -918,7 +1082,7 @@ function steer(a) {
     if (a.ai === 'guard') {                      // pace across the road around the post
       sx = (a.homeX + Math.sin(simT * 1.3 + a.homeZ) * a.patrol - a.x) * 5 - a.vx * 2; sz = (a.homeZ - a.z) * 5 - a.vz * 2;
     }
-    if (!level.wall && !level.track && d > arenaR() * .55) {       // foes try not to walk off open arenas
+    if ((!level.wall || level.bloodRing) && !level.track && d > arenaR() * .55) {   // foes keep away from open edges and the blood ring
       const k = (d / arenaR() - .55) / .45 * 40;
       sx -= a.x / d * k; sz -= a.z / d * k;
     }
@@ -938,13 +1102,14 @@ function kill(a, why) {
   let bonus = '';
   if (by && by.alive && simT - a.lastHitT < 5) {
     by.kos++;
-    if (by.isPlayer && by.stormMax < 3) {
+    if (by.isPlayer && by.skill === 'storm' && by.stormMax < 3) {
       by.stormMax++; by.energy = Math.min(by.stormMax, by.energy + .5);
       bonus = ` ${t('Lốc xoáy lên', 'Tornado upgraded to')} V${by.stormMax}!`;
     }
   }
   announce(`${a.name} ${why === 'ring' ? t('văng khỏi sàn!', 'flew off the edge!') : t('hết pin!', 'ran out of spin!')}${bonus}`);
-  sfx.out(); sfx.cheer(1); sfx.horn(); excite = 1;
+  commentKO(a, by && simT - a.lastHitT < 5 ? by : null);
+  sfx.out(); excite = 1;
 }
 
 const STORM_COLORS = [0xbfdcff, 0xc59bff, 0xffe082];
@@ -954,9 +1119,10 @@ function castStorm(a) {
   const lv = a.isPlayer ? Math.min(a.stormMax, Math.floor(a.energy)) : a.stormMax;
   a.energy = a.isPlayer ? a.energy - lv : 0;
   a.stormLv = lv; a.stormT = a.stormDur = STORM_TIME * (1 + .25 * (lv - 1)); excite = 1;
-  sfx.wind(lv); sfx.cheer(.8); sfx.whistle();
+  sfx.wind(lv); sfx.whistle();
   const label = [t('LỐC XOÁY!', 'TORNADO!'), t('LỐC XOÁY V2!', 'TORNADO V2!'), t('SIÊU BÃO V3!', 'SUPER STORM V3!')][lv - 1];
   announce(a.isPlayer ? label : `${a.name}: ${label}`);
+  commentSkill(a, 'storm', lv);
 }
 
 // Space during the half second after one of your collisions pumps extra energy; otherwise it releases the tornado
@@ -965,11 +1131,12 @@ let clashUntil = -1, clashN = 0, lastMash = -9999;
 function powerPress() {
   if (state !== 'battle' || !player.alive) return;
   const now = performance.now();
-  const spend = level.track ? jump : () => castStorm(player);
+  const spend = level.track ? jump : () => castSkill(player);
   if (simT < clashUntil && clashN < MASH_MAX && player.energy < player.stormMax) {
     clashN++; lastMash = now;
     player.energy = Math.min(player.stormMax, player.energy + MASH_GAIN);
     sfx.mash(clashN);
+    if (clashN === 4) say(pickLine('mash'), 1);
     const y = floorY(player.x, player.z) + player.height;
     for (let i = 0; i < 6; i++) spark(player.x, y, player.z, rand(-3, 3), rand(3, 7), rand(-3, 3), .4, .6, .7, 1);
     $('btnStorm').animate([{ transform: 'translateX(-50%) scale(1.12)' }, { transform: 'translateX(-50%) scale(1)' }], { duration: 120 });
@@ -1006,7 +1173,9 @@ function collide(a, b) {
   if (d >= min || d === 0) return;
   if (level.track && (a.yOff > .5 || b.yOff > .5)) return;   // jumped clean over
   const nx = dx / d, nz = dz / d;
-  const ma = a.m * (a.stormT > 0 ? 3 : 1), mb = b.m * (b.stormT > 0 ? 3 : 1), inv = 1 / ma + 1 / mb;
+  if (on(a, 'ghost') || on(b, 'ghost')) return;   // phantoms pass straight through
+  const heft = o => on(o, 'vajra') ? 1e4 : on(o, 'lotus') ? 5 : on(o, 'iron') || o.stormT > 0 ? 3 : 1;
+  const ma = a.m * heft(a), mb = b.m * heft(b), inv = 1 / ma + 1 / mb;
   const pen = min - d;
   a.x -= nx * pen / ma / inv; a.z -= nz * pen / ma / inv;
   b.x += nx * pen / mb / inv; b.z += nz * pen / mb / inv;
@@ -1015,7 +1184,7 @@ function collide(a, b) {
   if (!fresh && vn >= 0) return;
   // spinning rims kick each other apart even on a gentle touch
   const rim = Math.abs(a.w) * a.r + Math.abs(b.w) * b.r;
-  const J = (Math.max(0, -vn) * (1 + RESTITUTION) + (fresh ? BURST * rim * rand(.6, 1.4) : 0)) / inv;
+  const J = (Math.max(0, -vn) * (1 + RESTITUTION) + (fresh ? BURST * rim * rand(.6, 1.4) : 0)) / inv * (on(a, 'dash') || on(b, 'dash') ? 1.8 : 1);
   a.vx -= J / ma * nx; a.vz -= J / ma * nz;
   b.vx += J / mb * nx; b.vz += J / mb * nz;
   if (!fresh) return;
@@ -1026,12 +1195,17 @@ function collide(a, b) {
   a.vx -= Jt / ma * tx; a.vz -= Jt / ma * tz;
   b.vx += Jt / mb * tx; b.vz += Jt / mb * tz;
   for (const [o, s] of [[a, a.w - Jt * a.r / a.I], [b, b.w - Jt * b.r / b.I]]) {
-    const w = s - sgn(s) * HIT_LOSS * J / o.I;
-    o.w = sgn(w) === sgn(o.w) ? w : 0;
+    if (!on(o, 'lotus') && !on(o, 'vajra')) {      // warded tops keep their spin
+      const w = s - sgn(s) * HIT_LOSS * J / o.I;
+      o.w = sgn(w) === sgn(o.w) ? w : 0;
+    }
     o.head = Math.atan2(o.vz, o.vx);
     o.energy = Math.min(o.stormMax, o.energy + J * .006);
   }
   a.lastHitBy = b; b.lastHitBy = a; a.lastHitT = b.lastHitT = simT;
+  // a vajra pillar throws whoever hits it back and rattles their spin
+  if (on(a, 'vajra')) { b.vx += nx * 6; b.vz += nz * 6; b.w *= .92; }
+  if (on(b, 'vajra')) { a.vx -= nx * 6; a.vz -= nz * 6; a.w *= .92; }
   if (a.isPlayer || b.isPlayer) { clashUntil = simT + CLASH_WINDOW; clashN = 0; }
   stats.hits++; stats.maxHit = Math.max(stats.maxHit, J);
   hitFx(a.x + nx * a.r, floorY(a.x, a.z) + Math.min(a.height, b.height) * .6, a.z + nz * a.r, J);
@@ -1040,13 +1214,13 @@ function collide(a, b) {
 function hitFx(x, y, z, J) {
   if (headless) return;
   excite = Math.min(1, excite + J / 30);
-  if (J > 13) { sfx.cheer(.5); sfx.ooh(); }
+  if (J > 14) say(pickLine('hit'), 1);
   const n = clamp(Math.round(J * 3), 8, 110);
   for (let i = 0; i < n; i++) {
     const a = rand(0, 6.28), s = rand(3, 7 + J * .5), hot = Math.random();
     spark(x, y, z, Math.cos(a) * s, rand(2, 6 + J * .4), Math.sin(a) * s, rand(.25, .7), 1, .55 + hot * .45, hot * .6);
   }
-  hitLight.position.set(x, y + .8, z); hitLight.intensity = Math.min(45, J * 2.5);
+  hitLight.color.setHex(0xffc266); hitLight.position.set(x, y + .8, z); hitLight.intensity = Math.min(45, J * 2.5);
   shake = Math.max(shake, Math.min(1, J / 22));
   if (J > 11) slowT = .09;
   if (J > 13) popup(x, y, z, pick(HIT_WORDS));
@@ -1071,6 +1245,15 @@ function hitPosts(a, posts, kick) {
   }
 }
 
+// the blood ring on the hat drains spin and snuffs any active skill; its master feeds on it instead
+function bloodTouch(a) {
+  a.inBlood = simT;
+  if (a.bloodImmune) { a.w += sgn(a.w) * 6 * H; return; }
+  a.w -= sgn(a.w) * Math.min(Math.abs(a.w), 11 * H);
+  if (a.skillT > 0) { a.skillT = 0; a.active = null; }
+  if (a.stormT > 0) a.stormT = 0;
+}
+
 function stepPhysics() {
   simT += H;
   const L = level;
@@ -1084,6 +1267,12 @@ function stepPhysics() {
     a.head += sgn(a.w) * precession(sp, a.r) * H;
     let drive = DRIVE * a.grip * traction, gx = -K * a.x, gz = -K * a.z;
     a.dragK = 1; a.steerK = 1;
+    let driveK = 1, decayK = 1;
+    if (on(a, 'lotus')) { driveK = 0; decayK = 3; a.steerK = 0; }
+    else if (on(a, 'iron')) { driveK = .5; decayK = 1.5; }
+    else if (on(a, 'ghost')) driveK = 1.5;
+    else if (on(a, 'vajra')) { driveK = 0; decayK = 2; a.steerK = 0; }
+    if (fields.length && inField(a)) { a.dragK *= .15; a.steerK *= .2; driveK *= .3; }   // frost field: everyone slides
     if (L.rock) { const ra = simT * L.rock.speed; gx += L.rock.amp * Math.cos(ra); gz += L.rock.amp * Math.sin(ra); }
     if (T) {
       // on a course the floor does the pushing: gravity along the slope of the height field
@@ -1103,9 +1292,9 @@ function stepPhysics() {
     const [sx, sz, cost] = steer(a);
     const hot = L.hot && Math.hypot(a.x, a.z) < L.hot * Reff;
     const idle = a.ai === 'guard' && Math.abs(a.z - player.z) > 10;   // guards only tire once you get close
-    a.ax = Math.cos(a.head) * drive + gx + sx;
-    a.az = Math.sin(a.head) * drive + gz + sz;
-    if (!idle) a.w -= sgn(a.w) * (decayRate(a.grip, a.r) * wear * (hot ? 2 : 1) + .1 * cost) * H;   // steering is paid for in spin
+    a.ax = Math.cos(a.head) * drive * driveK + gx + sx;
+    a.az = Math.sin(a.head) * drive * driveK + gz + sz;
+    if (!idle) a.w -= sgn(a.w) * (decayRate(a.grip, a.r) * wear * decayK * (hot ? 2 : 1) + .1 * cost) * H;   // steering is paid for in spin
     a.energy = Math.min(a.stormMax, a.energy + H / CHARGE_SECONDS * (hot ? 2.5 : 1));
   }
   for (const c of tops) {
@@ -1134,11 +1323,12 @@ function stepPhysics() {
     const drag = Math.exp(-((.8 + .8 * a.grip) * floorDrag * a.dragK + (anchored ? 4 : 0)) * H);
     const fvx = spinW * a.z, fvz = -spinW * a.x;      // a turning floor drags tops along with it
     a.vx = fvx + (a.vx - fvx) * drag; a.vz = fvz + (a.vz - fvz) * drag;
+    if (on(a, 'vajra')) a.vx = a.vz = 0;   // planted like a pillar
     a.x += a.vx * H; a.z += a.vz * H;
     const d = Math.hypot(a.x, a.z);
     if (T) trackBounds(a);
     else if (L.wall) {
-      if (d + a.r > Reff) {
+      if (d + a.r > Reff && !on(a, 'ghost')) {
         const nx = a.x / d, nz = a.z / d, vn = a.vx * nx + a.vz * nz;
         a.x = nx * (Reff - a.r); a.z = nz * (Reff - a.r);
         if (vn > 0) {
@@ -1151,33 +1341,706 @@ function stepPhysics() {
         }
       }
     } else if (d > Reff + a.r * .2) kill(a, 'ring');
-    if (!T && L.bumpers && a.alive) hitPosts(a, L.bumpers, 7);
+    if (!T && L.bumpers && a.alive && !on(a, 'ghost')) hitPosts(a, L.bumpers, 7);
+    if (L.bloodRing && a.alive && Math.hypot(a.x, a.z) > L.bloodRing * Reff) bloodTouch(a);
     if (a.alive && Math.abs(a.w) < W_MIN) kill(a, 'spin');
   }
   for (let i = 0; i < tops.length; i++) for (let j = i + 1; j < tops.length; j++)
     if (tops[i].alive && tops[j].alive) collide(tops[i], tops[j]);
-  for (const a of tops) {
-    if (!a.alive || a.isPlayer || !a.storm || a.energy < 1) continue;
+  skillStep();
+  for (const a of tops)
+    if (a.alive && !a.isPlayer && a.skill && a.energy >= 1 && a.skillT <= 0 && a.stormT <= 0 && aiWantsSkill(a)) castSkill(a);
+}
+
+// ---------- skills ----------
+// Every master you beat hands over their skill. Each one is strong in the right place and hurts you in the wrong one.
+const SKILL_ORDER = ['storm', 'thunder', 'lotus', 'dash', 'fire', 'iron', 'ghost', 'vajra', 'ice', 'moon'];
+const SKILLS = {
+  storm: { name: t('Lốc Xoáy', 'Tornado'), color: 0xbfdcff,
+    desc: t('Hút đối thủ lại gần, rút tốc độ quay của chúng rồi hất văng. Hạ đối thủ để lên V2, V3.', 'Pulls rivals in, drains their spin, then blasts them away. Knock rivals out to reach V2 and V3.'),
+    warn: t('Trong lúc hút, bạn gần như đứng yên.', 'While it pulls, you are almost rooted to the spot.') },
+  thunder: { name: t('Sấm Sét', 'Thunderbolt'), color: 0xfff176, dur: .35,
+    desc: t('Sét đánh con quay địch gần nhất trong 8 m: mất 28% tốc độ quay và bị hất văng.', 'Lightning hits the nearest rival within 8 m: it loses 28% of its spin and is knocked away.'),
+    warn: t('Trên sàn ướt (tô phở, thuyền thúng), điện giật ngược cả bạn.', 'On a wet floor (pho bowl, coracle) the shock hits you too.') },
+  lotus: { name: t('Hoa Sen Hộ Thể', 'Lotus Ward'), color: 0xf48fb1, dur: 3,
+    desc: t('3 giây va chạm không làm bạn mất tốc độ quay và gần như không đẩy được bạn.', 'For 3 s collisions cost you no spin and barely move you.'),
+    warn: t('Trong lúc đó bạn đứng yên và hao tốc độ quay gấp 3.', 'Meanwhile you stand still and your spin drains 3× faster.') },
+  dash: { name: t('Tốc Biến', 'Blink Dash'), color: 0x69f0ae, dur: .45,
+    desc: t('Lao vút theo hướng đang chạy. Cú va trong lúc lao mạnh gần gấp đôi.', 'Bursts forward along your current direction. Hits during the dash land almost twice as hard.'),
+    warn: t('Lao sai hướng trên sàn không gờ là tự bay khỏi sàn.', 'Dash the wrong way on a rimless floor and you launch yourself off it.') },
+  fire: { name: t('Bạo Viêm', 'Blazing Trail'), color: 0xff7043, dur: 4,
+    desc: t('4 giây để lại vệt lửa cháy 5 giây: con quay nào chạm vào cũng mất tốc độ quay.', 'For 4 s you leave a trail that burns for 5 s: any top touching it loses spin.'),
+    warn: t('Kể cả bạn, nếu chạy vòng lại vào vệt lửa cũ của mình.', 'Including you, if you loop back into your own old flames.') },
+  iron: { name: t('Thiết Giáp', 'Iron Body'), color: 0xb0bec5, dur: 4,
+    desc: t('4 giây nặng gấp 3: hất văng đối thủ, rất khó bị đẩy.', 'For 4 s you weigh 3× as much: you shove rivals and hardly budge.'),
+    warn: t('Chạy chậm đi một nửa và hao tốc độ quay ×1.5.', 'You move at half speed and lose spin 1.5× faster.') },
+  ghost: { name: t('Ảo Ảnh', 'Phantom Form'), color: 0x84ffff, dur: 2.5,
+    desc: t('2,5 giây xuyên qua mọi thứ và chạy nhanh hơn.', 'For 2.5 s you pass through everything and move faster.'),
+    warn: t('Xuyên cả tường: hết giờ mà đang ở ngoài tường là bị loại.', 'You pass through walls too: be outside one when it ends and you are out.') },
+  vajra: { name: t('Kim Cang', 'Vajra Stance'), color: 0xffcc80, dur: 3,
+    desc: t('3 giây đứng im như cột đá: ai đâm vào bị bật ngược và mất tốc độ quay.', 'For 3 s you stand like a stone pillar: anyone who hits you bounces off and loses spin.'),
+    warn: t('Đứng im nên sàn co, sàn quay hay tâm nóng sẽ làm hại bạn. Hao tốc độ quay ×2.', 'Standing still means a shrinking floor, a turning floor or a hot centre will hurt you. Spin loss ×2.') },
+  ice: { name: t('Băng Giới', 'Frost Field'), color: 0xb3e5fc, dur: 4,
+    desc: t('Đóng băng sàn bán kính 4,5 m quanh bạn trong 4 giây: trong đó ai cũng trơn trượt, gần như không lái được.', 'Freezes the floor within 4.5 m for 4 s: everyone inside slides and can barely steer.'),
+    warn: t('Bạn cũng trượt nếu đứng trong đó, nhất là trên dốc.', 'You slide too if you stay inside, especially on a slope.') },
+  moon: { name: t('Huyết Nguyệt', 'Blood Moon'), color: 0xff5252, dur: 3,
+    desc: t('3 giây cân bằng tốc độ quay với mọi con quay trong 4,5 m: bên quay nhanh hơn bị hút sang bên chậm hơn.', 'For 3 s your spin evens out with every top within 4.5 m: the faster side bleeds into the slower.'),
+    warn: t('Nếu bạn đang quay nhanh hơn, chính bạn bị hút.', 'If you are the faster one, you are the one being drained.') },
+};
+const GOD_ROTATION = ['storm', 'thunder', 'fire', 'moon', 'ice', 'dash'];   // the final boss knows them all
+const on = (a, id) => a.skillT > 0 && a.active === id;
+const skillUnlocked = k => k === 0 || unlocked >= 5 * k;                      // skill k is the reward of chapter k's boss
+let fires = [], fields = [], bolts = [];
+
+function castSkill(a) {
+  if (state !== 'battle' || !a || !a.alive || !a.skill || a.energy < 1 || a.skillT > 0 || a.stormT > 0) return;
+  const id = a.skill === 'god' ? GOD_ROTATION[a.godI++ % GOD_ROTATION.length] : a.skill;
+  if (id === 'storm') return castStorm(a);
+  const S = SKILLS[id];
+  a.energy -= 1; a.active = id; a.skillT = a.skillDur = S.dur; excite = 1;
+  if (id === 'thunder') thunderStrike(a);
+  else if (id === 'dash') {
     const foe = nearest(a);
-    if (foe && Math.hypot(foe.x - a.x, foe.z - a.z) < 4.5) castStorm(a);
+    let dx = a.vx, dz = a.vz;
+    if (!a.isPlayer && foe) { dx = foe.x - a.x; dz = foe.z - a.z; }           // rivals aim; you dash where you are already heading
+    else if (Math.hypot(dx, dz) < 1) { dx = Math.cos(a.head); dz = Math.sin(a.head); }
+    const n = Math.hypot(dx, dz) || 1;
+    a.vx += dx / n * 16; a.vz += dz / n * 16;
+  } else if (id === 'ice') fields.push({ x: a.x, z: a.z, r: 4.5, until: simT + S.dur, mesh: null });
+  announce(a.isPlayer ? `${S.name}!` : `${a.name}: ${S.name}!`);
+  commentSkill(a, id);
+  sfx.whistle();
+}
+
+function thunderStrike(a) {
+  const foe = nearest(a), d = foe ? Math.hypot(foe.x - a.x, foe.z - a.z) : Infinity;
+  if (foe && d < 8) {
+    foe.w -= foe.w * .28;
+    const dv = 9 / Math.sqrt(foe.m / 2), n = d || 1;
+    foe.vx += (foe.x - a.x) / n * dv; foe.vz += (foe.z - a.z) / n * dv; foe.head = Math.atan2(foe.vz, foe.vx);
+    foe.lastHitBy = a; foe.lastHitT = simT;
+    bolt(foe);
+  }
+  if (level.wet) {                            // the current runs back through a wet floor
+    a.w *= .8; bolt(a);
+    if (!headless) popup(a.x, floorY(a.x, a.z) + a.height, a.z, t('BỊ GIẬT NGƯỢC!', 'SHOCKED!'));
+    if (a.isPlayer) say(pickLine('shock'), 2);
+  }
+}
+// ---- thunder: a thick forked bolt from the sky, a blue flash, and the target left crackling ----
+function jagged(x0, y0, z0, x1, y1, z1, n, spread) {
+  const pts = [];
+  for (let i = 0; i <= n; i++) {
+    const u = i / n, j = i && i < n ? spread * (1 - Math.abs(u - .5)) : 0;
+    pts.push(new THREE.Vector3(x0 + (x1 - x0) * u + rand(-j, j), y0 + (y1 - y0) * u, z0 + (z1 - z0) * u + rand(-j, j)));
+  }
+  return pts;
+}
+function boltTube(pts, r, color, opacity) {
+  const path = new THREE.CurvePath();
+  for (let i = 0; i < pts.length - 1; i++) path.add(new THREE.LineCurve3(pts[i], pts[i + 1]));
+  const m = new THREE.Mesh(new THREE.TubeGeometry(path, pts.length * 4, r, 6, false),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false }));
+  m.material.userData.base = opacity;
+  return m;
+}
+function bolt(o) {
+  if (headless) return;
+  const y = floorY(o.x, o.z) + o.height, g = new THREE.Group();
+  const main = jagged(o.x + rand(-2, 2), y + 18, o.z + rand(-2, 2), o.x, y, o.z, 16, 1.6);
+  g.add(boltTube(main, .16, 0xffffff, 1), boltTube(main, .7, 0x82b1ff, .55));
+  for (let k = 0; k < 3; k++) {                       // forks branching off the main stroke
+    const s = main[3 + Math.floor(Math.random() * 7)], e = s.clone().add(new THREE.Vector3(rand(-3, 3), -rand(2, 5), rand(-3, 3)));
+    g.add(boltTube(jagged(s.x, s.y, s.z, e.x, e.y, e.z, 6, .6), .08, 0xe3f2fd, .9));
+  }
+  g.life = 0; scene.add(g); bolts.push(g);
+  shockRing(o.x, floorY(o.x, o.z), o.z, 0x82b1ff); shockRing(o.x, floorY(o.x, o.z) + .3, o.z, 0xffffff);
+  slowT = Math.max(slowT, .14);   // a beat of slow motion as it lands
+  hitLight.color.setHex(0x9fc4ff); hitLight.position.set(o.x, y + 1.5, o.z); hitLight.intensity = 80;
+  shake = Math.max(shake, .9);
+  $('flash').animate([{ opacity: .85 }, { opacity: 0 }], { duration: 260 });
+  for (let i = 0; i < 80; i++) {
+    const a = rand(0, 6.28), s = rand(3, 12);
+    spark(o.x, y, o.z, Math.cos(a) * s, rand(2, 10), Math.sin(a) * s, rand(.25, .6), .75, .9, 1);
+  }
+  o.zapUntil = realT + 1.1;                           // keeps crackling for a moment afterwards
+  popup(o.x, y, o.z, t('ẦM!', 'ZAP!'));
+  sfx.zap();
+}
+
+function aiWantsSkill(a) {
+  const foe = nearest(a);
+  if (!foe) return false;
+  const d = Math.hypot(foe.x - a.x, foe.z - a.z), weaker = Math.abs(a.w) < Math.abs(foe.w);
+  switch (a.skill === 'god' ? GOD_ROTATION[a.godI % GOD_ROTATION.length] : a.skill) {
+    case 'storm': return d < 4.5;
+    case 'thunder': return d < 7;
+    case 'dash': return d < 6 && d > 2;
+    case 'fire': case 'ice': return d < 4;
+    case 'ghost': return d < 2 && weaker;
+    case 'moon': return d < 4.5 && weaker;
+    default: return d < 2.6;                  // lotus, iron, vajra: brace for the hit
+  }
+}
+
+// per-step skill effects that are not just modifiers on movement
+function skillStep() {
+  for (const a of tops) {
+    if (!a.alive || a.skillT <= 0) continue;
+    if (on(a, 'fire') && simT - a.lastFire > .08) { a.lastFire = simT; fires.push({ x: a.x, z: a.z, born: simT, owner: a }); }
+    if (on(a, 'moon')) for (const o of tops) {
+      if (o === a || !o.alive || Math.hypot(o.x - a.x, o.z - a.z) > 4.5) continue;
+      const flow = clamp((Math.abs(a.w) - Math.abs(o.w)) * .6, -16, 16) * H;   // the faster side bleeds into the slower
+      a.w -= sgn(a.w) * flow; o.w += sgn(o.w) * flow;
+      if (flow < 0) { o.lastHitBy = a; o.lastHitT = simT; }
+    }
+    if ((a.skillT -= H) <= 0) {
+      a.skillT = 0;
+      // a phantom that ends up outside the wall has no way back in
+      if (a.active === 'ghost' && level.wall && Math.hypot(a.x, a.z) + a.r > arenaR() + .05) kill(a, 'ring');
+    }
+  }
+  if (fires.length) {
+    fires = fires.filter(f => { if (simT - f.born < 5) return true; disposeFx(f.fx); return false; });
+    for (const o of tops) {
+      if (!o.alive || o.yOff > .3) continue;
+      for (const f of fires) {
+        if (f.owner === o && simT - f.born < .7) continue;
+        if (Math.hypot(o.x - f.x, o.z - f.z) > .45 + o.r * .5) continue;
+        o.w -= sgn(o.w) * Math.min(Math.abs(o.w), 18 * H); o.burnT = simT;
+        if (f.owner !== o) { o.lastHitBy = f.owner; o.lastHitT = simT; }
+        break;
+      }
+    }
+  }
+  if (fields.length) fields = fields.filter(f => {
+    if (simT < f.until) return true;
+    if (f.mesh) { iceShatter(f); disposeFx(f.mesh); }
+    return false;
+  });
+}
+const inField = a => fields.some(f => Math.hypot(a.x - f.x, a.z - f.z) < f.r);
+function resetSkillFx() {
+  for (const f of fields) disposeFx(f.mesh);
+  for (const b of bolts) disposeFx(b);
+  for (const f of fires) disposeFx(f.fx);
+  fires = []; fields = []; bolts = []; fireLight.intensity = 0;
+}
+
+// ---- what an active skill looks like: every skill gets its own shape, not just a coloured bubble ----
+const flameTex = canvasTex(64, 128, (c, w, h) => {
+  const g = c.createRadialGradient(w / 2, h * .74, 2, w / 2, h * .6, w * .6);
+  g.addColorStop(0, 'rgba(255,255,225,1)'); g.addColorStop(.25, 'rgba(255,205,70,.95)');
+  g.addColorStop(.6, 'rgba(255,90,20,.75)'); g.addColorStop(1, 'rgba(200,20,0,0)');
+  c.fillStyle = g; c.beginPath(); c.moveTo(w / 2, 2);
+  c.bezierCurveTo(w * .98, h * .45, w * .92, h * .97, w / 2, h * .99);
+  c.bezierCurveTo(w * .08, h * .97, w * .02, h * .45, w / 2, 2); c.fill();
+});
+const fireGlowGeo = new THREE.CircleGeometry(.85, 20);
+const fireLight = new THREE.PointLight(0xff7a1a, 0, 9, 1.6);
+scene.add(fireLight);
+const additive = (color, opacity, extra = {}) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false,
+  blending: THREE.AdditiveBlending, ...extra });
+
+function makeBubble() { return new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), additive(0xffffff, .22)); }
+function makeLotus(a) {                       // two rings of pink petals that open around the top
+  const g = new THREE.Group(), petal = new THREE.SphereGeometry(1, 14, 8), pivots = [];
+  const outer = new THREE.MeshPhongMaterial({ color: 0xf48fb1, emissive: 0xad1457, emissiveIntensity: .45, shininess: 70, transparent: true, opacity: .92, side: THREE.DoubleSide });
+  const inner = new THREE.MeshPhongMaterial({ color: 0xfce4ec, emissive: 0xec407a, emissiveIntensity: .35, shininess: 70, transparent: true, opacity: .92, side: THREE.DoubleSide });
+  for (let ring = 0; ring < 2; ring++) for (let k = 0; k < 8; k++) {
+    const turn = new THREE.Group(), pivot = new THREE.Group(), m = new THREE.Mesh(petal, ring ? inner : outer);
+    turn.rotation.y = (k + ring * .5) / 8 * Math.PI * 2;
+    pivot.position.z = a.r * (ring ? .7 : .95);
+    m.scale.set(a.r * (ring ? .32 : .42), .05, a.r * (ring ? .7 : .9)); m.position.z = a.r * (ring ? .55 : .75);
+    pivot.add(m); turn.add(pivot); g.add(turn); pivots.push([pivot, ring]);
+  }
+  const haze = new THREE.Mesh(new THREE.SphereGeometry(a.r * 1.9, 20, 14), additive(0xf48fb1, .1));
+  g.add(haze); g.userData.pivots = pivots;
+  return g;
+}
+function makeIron() {                         // a faceted steel shell
+  const g = new THREE.Group(), geo = new THREE.IcosahedronGeometry(1, 1);
+  g.add(new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ color: 0x90a4ae, specular: 0xffffff, shininess: 140, flatShading: true,
+    transparent: true, opacity: .6, depthWrite: false })));
+  g.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xeceff1 })));
+  return g;
+}
+function makeVajra() {                        // a golden ring on the floor and a pillar of light
+  const g = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.RingGeometry(1.15, 1.45, 48), additive(0xffc107, .85, { side: THREE.DoubleSide }));
+  const ring2 = new THREE.Mesh(new THREE.RingGeometry(.75, .85, 6), additive(0xffe082, .9, { side: THREE.DoubleSide }));
+  ring.rotation.x = ring2.rotation.x = -Math.PI / 2;
+  const pillar = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 8, 24, 1, true), additive(0xffd54f, .2, { side: THREE.DoubleSide }));
+  pillar.position.y = 4;
+  g.add(ring, ring2, pillar);
+  return g;
+}
+function makeBeams() {
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6 * 2 * 3), 3));
+  const l = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0xff1744, transparent: true, opacity: .9, blending: THREE.AdditiveBlending }));
+  l.frustumCulled = false;
+  return l;
+}
+function fxPart(a, key, show, make) {
+  if (!show) { if (a[key]) a[key].visible = false; return null; }
+  if (!a[key]) { a[key] = make(a); scene.add(a[key]); }
+  a[key].visible = true;
+  return a[key];
+}
+function disposeFx(o) {
+  if (!o) return;
+  scene.remove(o);
+  o.traverse(m => { if (m.geometry && m.geometry !== fireGlowGeo) m.geometry.dispose(); if (m.material) m.material.dispose(); });
+}
+
+function skillVisuals(a, dt) {
+  const act = a.alive && a.skillT > 0 ? a.active : null, y = a.g.position.y, since = a.skillDur - a.skillT;
+  if (act && act !== a.fxAct) {                // one-off burst the moment a skill starts
+    if (act === 'iron') { shockRing(a.x, y, a.z, 0xb0bec5); sfx.clang(1); for (let i = 0; i < 40; i++) spark(a.x, y + .5, a.z, rand(-7, 7), rand(1, 6), rand(-7, 7), .4, .9, .95, 1); }
+    if (act === 'lotus') for (let i = 0; i < 50; i++) spark(a.x, y + .4, a.z, rand(-5, 5), rand(1, 5), rand(-5, 5), .7, 1, .45, .7, .3);
+    if (act === 'vajra') { shockRing(a.x, y, a.z, 0xffc107); shockRing(a.x, y + .5, a.z, 0xffe082); shake = Math.max(shake, .5); }
+    if (act === 'fire') { shockRing(a.x, y, a.z, 0xff6d00); for (let i = 0; i < 50; i++) spark(a.x, y + .3, a.z, rand(-6, 6), rand(2, 8), rand(-6, 6), .6, 1, .5, .1); }
+  }
+  a.fxAct = act;
+
+  const bubble = fxPart(a, 'bubble', act === 'ghost' || act === 'moon', makeBubble);
+  if (bubble) {
+    bubble.material.color.setHex(SKILLS[act].color);
+    bubble.position.set(a.x, y + a.height * .5, a.z); bubble.scale.setScalar(a.r * 1.7 * (1 + Math.sin(realT * 12) * .05));
+  }
+  const lotus = fxPart(a, 'lotusG', act === 'lotus', makeLotus);
+  if (lotus) {
+    lotus.position.set(a.x, y + .1, a.z); lotus.rotation.y += dt * .6;
+    const open = Math.max(.45, 1.35 - since * 4);
+    for (const [pivot, ring] of lotus.userData.pivots) pivot.rotation.x = -(ring ? open + .35 : open);
+    for (let k = 0; k < 2; k++) { const ang = rand(0, 6.28); spark(a.x + Math.cos(ang) * a.r * 1.3, y + .3, a.z + Math.sin(ang) * a.r * 1.3, 0, rand(1, 2.5), 0, .8, 1, .5, .75, -.05); }
+  }
+  const iron = fxPart(a, 'ironG', act === 'iron', makeIron);
+  if (iron) {
+    iron.position.set(a.x, y + a.height * .45, a.z); iron.scale.set(a.r * 1.5, a.height * .75, a.r * 1.5);
+    iron.rotation.y -= dt * 1.2;
+  }
+  const vajra = fxPart(a, 'vajraG', act === 'vajra', makeVajra);
+  if (vajra) {
+    vajra.position.set(a.x, floorY(a.x, a.z) + .08, a.z); vajra.scale.set(a.r, 1, a.r);
+    vajra.children[0].rotation.z += dt * 2; vajra.children[1].rotation.z -= dt * 3;
+    vajra.children[2].material.opacity = .14 + .08 * Math.sin(realT * 8);
+  }
+  const beams = fxPart(a, 'moonG', act === 'moon', makeBeams);
+  if (beams) {                                 // red lines to every top whose spin is being evened out
+    const arr = beams.geometry.attributes.position.array; arr.fill(0); let n = 0;
+    for (const o of tops) {
+      if (o === a || !o.alive || n >= 6 || Math.hypot(o.x - a.x, o.z - a.z) > 4.5) continue;
+      arr.set([a.x, y + a.height * .6, a.z, o.x, o.g.position.y + o.height * .6, o.z], n++ * 6);
+    }
+    beams.geometry.attributes.position.needsUpdate = true;
+  }
+  const ghost = act === 'ghost';
+  if (ghost !== a.ghosted) {
+    a.ghosted = ghost;
+    a.spinG.traverse(o => { for (const m of [].concat(o.material || [])) { m.transparent = ghost; m.opacity = ghost ? .3 : 1; } });
+  }
+  if (ghost) spark(a.x + rand(-.3, .3), y + rand(.2, a.height), a.z + rand(-.3, .3), 0, rand(0, .5), 0, .5, .4, 1, 1, 0);
+  if (act === 'dash') for (let k = 0; k < 6; k++) spark(a.x, y + .3, a.z, -a.vx * .25 + rand(-1, 1), rand(0, 1), -a.vz * .25 + rand(-1, 1), .4, .4, 1, .7, 0);
+  if (act === 'fire') for (let k = 0; k < 4; k++) { const ang = rand(0, 6.28); spark(a.x + Math.cos(ang) * a.r, y + rand(.2, a.height), a.z + Math.sin(ang) * a.r, rand(-.5, .5), rand(2, 4), rand(-.5, .5), .45, 1, .5, .1, -.1); }
+  if (a.alive && a.zapUntil > realT) {         // crackling after a lightning hit
+    const ys = y + a.height * .5;
+    for (let k = 0; k < 2; k++) { const ang = rand(0, 6.28); spark(a.x + Math.cos(ang) * a.r, ys + rand(-.3, .4), a.z + Math.sin(ang) * a.r, rand(-2, 2), rand(0, 2), rand(-2, 2), .15, .7, .85, 1, 0); }
+    if (Math.random() < .4) {
+      const a0 = rand(0, 6.28), a1 = a0 + rand(.6, 1.6), arc = new THREE.Group();
+      arc.add(boltTube(jagged(a.x + Math.cos(a0) * a.r, ys + rand(-.3, .3), a.z + Math.sin(a0) * a.r, a.x + Math.cos(a1) * a.r, ys + rand(-.3, .3), a.z + Math.sin(a1) * a.r, 4, .18), .03, 0xbbdefb, 1));
+      arc.life = .45; scene.add(arc); bolts.push(arc);
+    }
+  }
+  if (a.alive && fields.length && inField(a)) for (let k = 0; k < 2; k++)   // frosted over while inside a frost field
+    spark(a.x + rand(-a.r, a.r), y + rand(0, a.height), a.z + rand(-a.r, a.r), 0, rand(.2, .8), 0, .5, .85, .95, 1, 0);
+  if (a.alive && simT - a.burnT < .15) for (let k = 0; k < 3; k++)   // standing in someone's flames
+    spark(a.x + rand(-a.r, a.r), y + rand(0, a.height), a.z + rand(-a.r, a.r), rand(-1, 1), rand(2, 4), rand(-1, 1), .35, 1, .3, .05, -.1);
+}
+
+function skillWorldVisuals(dt) {
+  let burning = null;
+  for (const f of fires) {
+    if (!f.fx) {
+      f.fx = new THREE.Group(); f.seed = rand(0, 6.28);
+      const glow = new THREE.Mesh(fireGlowGeo, additive(0xff6d00, .8, { map: auraTex }));
+      glow.rotation.x = -Math.PI / 2; glow.position.y = .06;
+      const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: flameTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+      f.fx.add(glow, flame); f.fx.position.set(f.x, floorY(f.x, f.z), f.z); scene.add(f.fx);
+    }
+    const age = simT - f.born, k = Math.max(0, Math.min(1, age * 8, (5 - age) / 1.2));
+    const [glow, flame] = f.fx.children, h = (1.7 + .5 * Math.sin(realT * 18 + f.seed)) * k;
+    flame.scale.set(1.1 * k + .05, h + .05, 1); flame.position.y = h * .45; flame.material.opacity = k;
+    glow.material.opacity = .8 * k;
+    if (f.owner.skillT > 0 && f.owner.active === 'fire') burning = f.owner;
+  }
+  for (let k = 0; k < Math.min(20, fires.length); k++) {
+    const f = fires[Math.floor(Math.random() * fires.length)];
+    spark(f.x + rand(-.25, .25), floorY(f.x, f.z) + .2, f.z + rand(-.25, .25), rand(-.4, .4), rand(2, 4.5), rand(-.4, .4), rand(.3, .7), 1, rand(.35, .6), .1, -.15);
+  }
+  // one flickering orange light rides with whoever is laying fire
+  if (burning) { fireLight.position.set(burning.x, burning.g.position.y + 1.5, burning.z); fireLight.intensity = 22 + rand(0, 10); }
+  else fireLight.intensity *= .85;
+  for (const f of fields) frostTick(f, dt);
+  for (let i = bolts.length - 1; i >= 0; i--) {
+    const b = bolts[i]; b.life += dt;
+    b.visible = b.life > .18 || Math.floor(b.life * 40) % 2 === 0;    // strobe first, then fade out
+    const fade = Math.max(0, 1 - b.life / .6);
+    b.traverse(m => { if (m.material) m.material.opacity = m.material.userData.base * fade; });
+    if (b.life > .6) { disposeFx(b); bolts.splice(i, 1); }
+  }
+}
+
+// ---------- arena surroundings: each chapter's arena gets its own weather ----------
+// storm (lightning), steam (pho), wind, fire ring, braziers, ghost fog + lanterns, incense motes,
+// sea + snow, blood moon, lava moat. Lives in its own group so shared textures are never disposed.
+const EP = 900;
+const epPos = new Float32Array(EP * 3).fill(-999), epVel = new Float32Array(EP * 3), epCol = new Float32Array(EP * 3);
+const epBase = new Float32Array(EP * 3), epLife = new Float32Array(EP), epMax = new Float32Array(EP);
+const epGeo = new THREE.BufferGeometry();
+epGeo.setAttribute('position', new THREE.BufferAttribute(epPos, 3));
+epGeo.setAttribute('color', new THREE.BufferAttribute(epCol, 3));
+const envPoints = new THREE.Points(epGeo, new THREE.PointsMaterial({ size: .55, map: dotTex, vertexColors: true, transparent: true,
+  depthWrite: false, blending: THREE.AdditiveBlending }));
+envPoints.frustumCulled = false; scene.add(envPoints);
+let epNext = 0, envG = null, envNext = 0;
+function envDot(x, y, z, vx, vy, vz, life, r, g, b) {
+  const i = epNext; epNext = (epNext + 1) % EP;
+  epPos.set([x, y, z], i * 3); epVel.set([vx, vy, vz], i * 3); epBase.set([r, g, b], i * 3); epLife[i] = epMax[i] = life;
+}
+const ringPoint = (r0, r1) => { const a = rand(0, 6.28), r = rand(r0, r1); return [Math.cos(a) * r, Math.sin(a) * r, a]; };
+const glowSprite = (color, size) => {
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: auraTex, color, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  s.scale.set(size, size, 1); return s;
+};
+const flameSpriteOf = () => new THREE.Sprite(new THREE.SpriteMaterial({ map: flameTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+const moatTex = (draw) => { const tx = canvasTex(512, 64, draw); tx.wrapS = tx.wrapT = THREE.RepeatWrapping; return tx; };
+const waterTex = moatTex((c, w, h) => {
+  c.fillStyle = '#0d47a1'; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 90; i++) { c.strokeStyle = `rgba(144,202,249,${rand(.15, .5)})`; c.lineWidth = rand(1, 3); const y = rand(0, h), x = rand(0, w);
+    c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + 20, y - 4, x + 40, y); c.stroke(); }
+});
+const lavaTex = moatTex((c, w, h) => {
+  c.fillStyle = '#bf360c'; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 60; i++) { c.fillStyle = `rgba(255,${rand(140, 230) | 0},40,${rand(.4, .9)})`; c.beginPath(); c.ellipse(rand(0, w), rand(0, h), rand(8, 30), rand(3, 10), 0, 0, 7); c.fill(); }
+  for (let i = 0; i < 40; i++) { c.strokeStyle = 'rgba(40,10,0,.6)'; c.lineWidth = rand(1, 3); c.beginPath(); const x = rand(0, w); c.moveTo(x, rand(0, h)); c.lineTo(x + rand(-30, 30), rand(0, h)); c.stroke(); }
+});
+
+function disposeEnv() {
+  if (!envG) return;
+  scene.remove(envG);
+  envG.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+  envG = null;
+}
+function buildEnv() {
+  disposeEnv();
+  epLife.fill(0); epPos.fill(-999);
+  envG = new THREE.Group(); scene.add(envG); envNext = 0;
+  const L = level, R = L.R, r0 = R * 1.3 + 2.6, add = (m, x, y, z) => { m.position.set(x, y, z); envG.add(m); return m; };
+  const moat = (tex, lit) => {                 // a ring of water or lava between the arena and the stands
+    const m = new THREE.Mesh(new THREE.RingGeometry(R + .55, r0 - .25, 96, 1), lit
+      ? new THREE.MeshBasicMaterial({ map: tex, color: 0xffffff })
+      : new THREE.MeshPhongMaterial({ map: tex, shininess: 90, specular: 0x88aaff, transparent: true, opacity: .92 }));
+    m.rotation.x = -Math.PI / 2; m.userData.tex = tex; return add(m, 0, -.5, 0);
+  };
+  if (L.env === 'fire') for (let i = 0; i < 18; i++) {           // a gas burner ring under the wok
+    const a = i / 18 * Math.PI * 2, f = add(flameSpriteOf(), Math.cos(a) * (R + .9), .2, Math.sin(a) * (R + .9));
+    f.userData.seed = rand(0, 6.28); f.userData.flame = true;
+    add(glowSprite(0xff6d00, 2.4), Math.cos(a) * (R + .9), -.3, Math.sin(a) * (R + .9));
+  }
+  if (L.env === 'braziers') for (let i = 0; i < 6; i++) {        // iron braziers around the yard
+    const a = i / 6 * Math.PI * 2 + .3, x = Math.cos(a) * (R + 1.8), z = Math.sin(a) * (R + 1.8);
+    add(new THREE.Mesh(new THREE.CylinderGeometry(.12, .16, 2.4, 8), lambert(0x37474f)), x, .5, z);
+    add(new THREE.Mesh(new THREE.CylinderGeometry(.55, .3, .45, 12), lambert(0x263238)), x, 1.85, z);
+    const f = add(flameSpriteOf(), x, 2.8, z); f.userData.seed = rand(0, 6.28); f.userData.flame = 1.6;
+    add(glowSprite(0xff8f00, 3), x, 2.4, z);
+  }
+  if (L.env === 'ghost') for (let i = 0; i < 9; i++) {           // red paper lanterns drifting round the restaurant
+    const lan = new THREE.Group();
+    lan.add(new THREE.Mesh(new THREE.SphereGeometry(.38, 14, 10), new THREE.MeshBasicMaterial({ color: 0xff5252 })), glowSprite(0xff8a65, 2.2));
+    lan.children[0].scale.y = 1.25; lan.userData = { a: i / 9 * Math.PI * 2, r: R + rand(1.5, 3), h: rand(3, 5.5), seed: rand(0, 6.28), lantern: true };
+    envG.add(lan);
+  }
+  if (L.env === 'sea') moat(waterTex, false);
+  if (L.env === 'lava') { moat(lavaTex, true); add(new THREE.PointLight(0xff5722, 30, R * 3, 1.2), 0, 1, 0); }
+  if (L.env === 'bloodmoon') {                                     // a huge red moon over the far stands
+    const moon = add(glowSprite(0xff1744, 26), 0, 20, -r0 - 18); moon.userData.moon = true;
+    add(new THREE.Mesh(new THREE.CircleGeometry(5.5, 40), new THREE.MeshBasicMaterial({ color: 0xb71c1c })), 0, 20, -r0 - 18.5);
+  }
+}
+
+function envTick(dt) {
+  if (!envG) return;
+  const L = level, R = L.R, r0 = R * 1.3 + 2.6, now = realT;
+  for (const o of envG.children) {
+    const u = o.userData;
+    if (u.flame) { const h = (1.6 + .6 * Math.sin(now * 14 + u.seed)) * (u.flame === true ? 1 : u.flame); o.scale.set(h * .55, h, 1); }
+    if (u.lantern) { const a = u.a + now * .15; o.position.set(Math.cos(a) * u.r, u.h + Math.sin(now * 1.3 + u.seed) * .4, Math.sin(a) * u.r); }
+    if (u.tex) { u.tex.offset.x += dt * (L.env === 'lava' ? .01 : .02); u.tex.offset.y += dt * .05; }
+    if (u.moon) o.material.opacity = .75 + .25 * Math.sin(now * 1.5);
+  }
+  const n = k => Math.random() < k % 1 ? Math.ceil(k) : Math.floor(k);
+  switch (L.env) {
+    case 'storm':                                                  // lightning keeps striking beyond the stands
+      if (now > envNext) {
+        envNext = now + rand(1.6, 4);
+        const [x, z] = ringPoint(r0 + 2, r0 + 10), g = new THREE.Group(), pts = jagged(x + rand(-3, 3), 26, z + rand(-3, 3), x, -.7, z, 16, 2);
+        g.add(boltTube(pts, .18, 0xffffff, 1), boltTube(pts, .8, 0x82b1ff, .45)); g.life = 0; scene.add(g); bolts.push(g);
+        if (state === 'battle') { $('flash').animate([{ opacity: .35 }, { opacity: 0 }], { duration: 220 }); sfx.rumble(); }
+      }
+      for (let k = 0; k < n(1.5); k++) { const [x, z] = ringPoint(R + .3, R + .6); envDot(x, bowlDepth + .8, z, rand(-1, 1), rand(0, 1), rand(-1, 1), .25, .6, .8, 1); }
+      break;
+    case 'steam':                                                  // steam rising off the pho
+      for (let k = 0; k < n(6); k++) { const [x, z] = ringPoint(0, R * .95); envDot(x, floorY(x, z) + .3, z, rand(-.3, .3), rand(.5, 1.1), rand(-.3, .3), rand(2.5, 4), .28, .28, .3); }
+      break;
+    case 'wind':                                                   // gusts circling the table, with a few leaves
+      for (let k = 0; k < n(7); k++) { const [x, z, a] = ringPoint(R + .8, r0 - .8); envDot(x, rand(-.3, 2.5), z, -Math.sin(a) * 9, 0, Math.cos(a) * 9, .5, .55, .6, .65); }
+      for (let k = 0; k < n(.8); k++) { const [x, z, a] = ringPoint(R + 1, r0 - 1); envDot(x, rand(1, 3), z, -Math.sin(a) * 4, -.3, Math.cos(a) * 4, 2, .45, .7, .2); }
+      break;
+    case 'fire':
+      for (let k = 0; k < n(5); k++) { const [x, z] = ringPoint(R + .7, R + 1.1); envDot(x, .3, z, rand(-.3, .3), rand(2, 4), rand(-.3, .3), rand(.6, 1.2), 1, .45, .1); }
+      break;
+    case 'braziers':
+      for (const o of envG.children) if (o.userData.flame && Math.random() < .5) envDot(o.position.x, o.position.y + .3, o.position.z, rand(-.3, .3), rand(1.5, 3), rand(-.3, .3), rand(.8, 1.4), 1, .5, .1);
+      for (let k = 0; k < n(1); k++) { const [x, z, a] = ringPoint(R + .5, r0 - 1); envDot(x, rand(0, .6), z, -Math.sin(a) * .6, .05, Math.cos(a) * .6, 3, .35, .3, .25); }
+      break;
+    case 'ghost':                                                  // cold wisps swirling round the lazy Susan
+      for (let k = 0; k < n(4); k++) { const [x, z, a] = ringPoint(R + .6, r0 - 1); envDot(x, rand(0, 2.5), z, -Math.sin(a) * 1.6, rand(.1, .4), Math.cos(a) * 1.6, rand(2, 3), .3, .9, 1); }
+      break;
+    case 'incense':                                                // golden motes drifting up through the temple
+      for (let k = 0; k < n(4); k++) { const [x, z] = ringPoint(R * .3, r0 - 1); envDot(x, rand(0, 1.5), z, rand(-.15, .15), rand(.3, .7), rand(-.15, .15), rand(3, 5), 1, .8, .3); }
+      break;
+    case 'sea':                                                    // snow over the waves
+      for (let k = 0; k < n(7); k++) { const [x, z] = ringPoint(0, r0 + 4); envDot(x, rand(10, 14), z, rand(-.6, .6), rand(-2.2, -1.2), rand(-.6, .6), 7, .8, .85, .95); }
+      for (let k = 0; k < n(1.5); k++) { const [x, z] = ringPoint(R + .6, r0 - .4); envDot(x, -.4, z, 0, rand(.2, .6), 0, .8, .6, .8, 1); }
+      break;
+    case 'bloodmoon':                                              // red mist hugging the floor, red ash falling
+      for (let k = 0; k < n(2.5); k++) { const [x, z, a] = ringPoint(R + .4, r0 - .8); envDot(x, rand(-.3, .8), z, -Math.sin(a) * .5, .1, Math.cos(a) * .5, rand(2.5, 4), .9, .1, .15); }
+      for (let k = 0; k < n(2); k++) { const [x, z] = ringPoint(0, r0); envDot(x, rand(8, 12), z, rand(-.4, .4), rand(-1.5, -.8), rand(-.4, .4), 7, .8, .15, .1); }
+      break;
+    case 'lava':                                                   // embers off the lava, and now and then a fireball
+      for (let k = 0; k < n(6); k++) { const [x, z] = ringPoint(R + .6, r0 - .4); envDot(x, -.4, z, rand(-.3, .3), rand(1.5, 3.5), rand(-.3, .3), rand(.8, 1.6), 1, .4, .05); }
+      if (now > envNext) {
+        envNext = now + rand(1.5, 3.5);
+        const [x, z, a] = ringPoint(R + 1, r0 - 1), s = rand(5, 9);
+        for (let k = 0; k < 26; k++) spark(x, -.3, z, -Math.cos(a) * rand(1, 3) + rand(-.6, .6), s + rand(-1, 1), -Math.sin(a) * rand(1, 3) + rand(-.6, .6), rand(1, 1.6), 1, rand(.3, .6), .05, .55);
+        sfx.rumble();
+      }
+      break;
+  }
+  for (let i = 0; i < EP; i++) {
+    if (epLife[i] <= 0) continue;
+    const k = i * 3;
+    if ((epLife[i] -= dt) <= 0) { epPos[k + 1] = -999; continue; }
+    epPos[k] += epVel[k] * dt; epPos[k + 1] += epVel[k + 1] * dt; epPos[k + 2] += epVel[k + 2] * dt;
+    const f = Math.sin(Math.PI * epLife[i] / epMax[i]);          // fade in, then out
+    epCol[k] = epBase[k] * f; epCol[k + 1] = epBase[k + 1] * f; epCol[k + 2] = epBase[k + 2] * f;
+  }
+  epGeo.attributes.position.needsUpdate = true; epGeo.attributes.color.needsUpdate = true;
+}
+
+// ---- frost field: a cracked-ice disc with crystals round the edge, snow inside, and a shatter at the end ----
+const frostTex = canvasTex(256, 256, (c, w) => {
+  const m = w / 2, g = c.createRadialGradient(m, m, 0, m, m, m);
+  g.addColorStop(0, 'rgba(225,245,254,.95)'); g.addColorStop(.7, 'rgba(179,229,252,.8)'); g.addColorStop(1, 'rgba(129,212,250,.95)');
+  c.fillStyle = g; c.beginPath(); c.arc(m, m, m - 1, 0, 7); c.fill();
+  c.strokeStyle = 'rgba(255,255,255,.9)';
+  for (let i = 0; i < 22; i++) {                 // frost cracks spreading from the middle
+    let x = m, y = m, a = rand(0, 6.28); c.lineWidth = rand(1, 2.5); c.beginPath(); c.moveTo(x, y);
+    for (let s = 0; s < 6; s++) { a += rand(-.5, .5); x += Math.cos(a) * rand(10, 24); y += Math.sin(a) * rand(10, 24); c.lineTo(x, y); }
+    c.stroke();
+  }
+  c.lineWidth = 5; c.strokeStyle = 'rgba(255,255,255,.95)'; c.beginPath(); c.arc(m, m, m - 4, 0, 7); c.stroke();
+});
+function makeFrost(f) {
+  const g = new THREE.Group();
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(f.r, 48), new THREE.MeshBasicMaterial({ map: frostTex, transparent: true, opacity: .8, depthWrite: false }));
+  disc.rotation.x = -Math.PI / 2; disc.position.y = .1;
+  const rim = new THREE.Mesh(new THREE.RingGeometry(f.r - .15, f.r + .1, 64), additive(0xb3e5fc, .9, { side: THREE.DoubleSide }));
+  rim.rotation.x = -Math.PI / 2; rim.position.y = .14;
+  g.add(disc, rim);
+  const crystal = new THREE.MeshPhongMaterial({ color: 0xe1f5fe, emissive: 0x4fc3f7, emissiveIntensity: .5, shininess: 120, transparent: true, opacity: .85 });
+  for (let i = 0; i < 16; i++) {                 // ice spikes standing round the edge
+    const a = i / 16 * Math.PI * 2 + rand(-.1, .1), h = rand(.6, 1.3);
+    const sp = new THREE.Mesh(new THREE.ConeGeometry(rand(.12, .22), h, 5), crystal);
+    sp.position.set(Math.cos(a) * f.r * rand(.85, 1), h / 2, Math.sin(a) * f.r * rand(.85, 1)); sp.rotation.set(rand(-.3, .3), 0, rand(-.3, .3));
+    g.add(sp);
+  }
+  g.position.set(f.x, floorY(f.x, f.z), f.z); g.scale.setScalar(.01);
+  return g;
+}
+function frostTick(f, dt) {
+  if (!f.mesh) { f.mesh = makeFrost(f); scene.add(f.mesh); f.born = realT; sfx.freeze(); }
+  f.mesh.scale.setScalar(Math.min(1, (realT - f.born) * 5));
+  for (let k = 0; k < 4; k++) {
+    const [x, z] = ringPoint(0, f.r);
+    spark(f.x + x, floorY(f.x + x, f.z + z) + rand(1.5, 3), f.z + z, rand(-.4, .4), rand(-1.5, -.5), rand(-.4, .4), 1.2, .85, .95, 1, .05);
+  }
+}
+function iceShatter(f) {
+  if (headless) return;
+  for (let k = 0; k < 60; k++) { const [x, z] = ringPoint(0, f.r); spark(f.x + x, floorY(f.x + x, f.z + z) + .3, f.z + z, rand(-3, 3), rand(2, 6), rand(-3, 3), rand(.4, .9), .8, .95, 1); }
+  sfx.shatter();
+}
+
+// ---------- story ----------
+const storyOn = !params.has('debug') || params.has('story');
+let storyQ = [], storyDone = null, seen = {};
+try { seen = JSON.parse(localStorage.getItem('tops.seen') || '{}'); } catch (e) {}
+function markSeen(k) {
+  seen[k] = 1;
+  if (!params.has('debug')) try { localStorage.setItem('tops.seen', JSON.stringify(seen)); } catch (e) {}
+}
+function speaker(who) {
+  if (who === 'me') return [t('Bạn', 'You'), '#ffd23f'];
+  if (who === 'narr') return [t('Người kể chuyện', 'Narrator'), '#cfc8e8'];
+  if (who === 'dad') return [t('Cha', 'Dad'), hex(FOES.god.color)];
+  return [FOES[who].name, hex(FOES[who].color)];
+}
+function playStory(lines, done) {
+  if (headless || !storyOn || !lines || !lines.length) { if (done) done(); return; }
+  storyQ = lines.slice(); storyDone = done || null;
+  $('story').classList.remove('hidden');
+  nextLine();
+}
+function nextLine() {
+  const line = storyQ.shift();
+  if (!line) {
+    $('story').classList.add('hidden');
+    const d = storyDone; storyDone = null;
+    if (d) d();
+    return;
+  }
+  const [name, color] = speaker(line[0]);
+  $('storyWho').textContent = name; $('storyWho').style.color = color; $('storyBox').style.borderColor = color;
+  $('storyText').textContent = line[1];
+}
+const storyOpen = () => !$('story').classList.contains('hidden');
+
+// ---------- live commentary ----------
+// A play-by-play caster: always shown as text, and read aloud by the browser's own speech voice when one exists
+// for the game language (Edge ships Vietnamese voices; desktop Chrome on Windows usually does not).
+const LINES = {
+  start: [t('Và trận đấu bắt đầu! Con quay vàng lao vào {arena} với {rpm} vòng mỗi phút!', 'And we are under way! The golden top drops into {arena} at {rpm} rpm!'),
+    t('Chào mừng quý vị đến với {arena}! Các con quay đã vào vị trí, trận đấu bắt đầu!', 'Welcome to {arena}! The tops are in position, and we are off!'),
+    t('Khán đài đã kín chỗ! {arena} hôm nay sẽ rất nóng!', 'A full house tonight! {arena} is going to be hot!')],
+  boss: [t('Đây rồi, trận đấu với trùm {foe}! Coi chừng chiêu {skill}!', 'Here it is, the boss fight with {foe}! Watch out for {skill}!'),
+    t('{foe} bước ra sân! Cả khán đài nín thở!', '{foe} takes the floor! The whole stadium holds its breath!')],
+  course: [t('Con quay vàng bắt đầu đổ dốc {arena}! Về đích trước khi hết vòng quay nào!', 'The golden top starts down {arena}! Reach the line before the spin runs out!')],
+  hit: [t('KENG! Một cú va chạm như trời giáng!', 'CLANG! What a collision!'), t('Ối giời ơi, tia lửa bắn tung toé!', 'Oh my, sparks everywhere!'),
+    t('Va chạm cực mạnh! Cả khán đài đứng bật dậy!', 'Massive impact! The whole stand is on its feet!'), t('Một cú húc trời giáng! Ai chịu nổi?', 'What a hit! Who can take that?')],
+  koMe: [t('HẠ GỤC! {foe} {how}! Không thể tin nổi!', 'DOWN! {foe} {how}! Unbelievable!'), t('Quá đẳng cấp! {foe} {how}!', 'Pure class! {foe} {how}!'),
+    t('Vàooo! {foe} {how}, con quay vàng đang thăng hoa!', 'Yes! {foe} {how}, the golden top is on fire!')],
+  koOther: [t('{foe} {how}! Bạn chỉ việc đứng xem!', '{foe} {how}! You just watch it happen!'), t('{foe} {how}! Họ tự loại nhau rồi!', '{foe} {how}! They are knocking each other out!')],
+  meDown: [t('Ôi không! Con quay vàng {how}!', 'Oh no! The golden top {how}!'), t('Không! Con quay vàng {how}! Thật đáng tiếc!', 'No! The golden top {how}! What a shame!')],
+  skillMe: [t('Con quay vàng tung chiêu {skill}!', 'The golden top unleashes {skill}!'), t('{skill}! Đúng lúc lắm!', '{skill}! Perfect timing!')],
+  skillFoe: [t('{foe} tung chiêu {skill}! Cẩn thận!', '{foe} unleashes {skill}! Watch out!'), t('Nguy hiểm! {foe} dùng {skill}!', 'Danger! {foe} goes for {skill}!')],
+  storm2: [t('SIÊU BÃO! Cả khán đài nín thở!', 'SUPER STORM! The whole stadium holds its breath!'), t('Lốc xoáy cấp cao! Chưa từng thấy bao giờ!', 'A high-level tornado! Never seen anything like it!')],
+  shock: [t('Ôi! Điện giật ngược! Sàn ướt mà lại dùng Sấm Sét!', 'Ouch! It backfires! Thunder on a wet floor!')],
+  lowSpin: [t('Con quay vàng đang loạng choạng... nguy hiểm, cực kỳ nguy hiểm!', 'The golden top is wobbling... danger, real danger!'),
+    t('Vòng quay đang yếu dần! Phải làm gì đó ngay!', 'The spin is fading! Something has to happen now!')],
+  blood: [t('Con quay vàng chạm vòng máu! Mất sức nhanh lắm, thoát ra ngay!', 'The golden top is in the blood ring! It is bleeding spin, get out now!')],
+  edge: [t('Sát mép rồi! Chỉ một li nữa thôi!', 'Right on the edge! Inches from disaster!'), t('Coi chừng mép sàn!', 'Watch the edge!')],
+  duel: [t('Chỉ còn lại hai con quay! Đây là khoảnh khắc quyết định!', 'Just two tops left! This is the decisive moment!')],
+  sudden: [t('Sàn bắt đầu dốc dần, không còn chỗ trốn nữa rồi!', 'The floor is getting steeper. Nowhere left to hide!')],
+  leader: [t('{lead} vẫn đang quay khoẻ nhất với {rpm} vòng mỗi phút.', '{lead} is still spinning strongest at {rpm} rpm.'),
+    t('Thế trận giằng co! {lead} đang nhỉnh hơn một chút.', 'It is tight! {lead} has a slight edge.')],
+  mash: [t('Đập phím đi! Đập nữa đi!', 'Mash it! Keep mashing!'), t('Nạp năng lượng! Nhanh tay lên!', 'Charge it up! Faster!')],
+  jump: [t('Nhảy! Bay qua rồi!', 'Jump! And over it goes!'), t('Cú nhảy đẹp mắt!', 'Beautiful jump!')],
+  progress: [t('Còn {m} mét nữa là về đích!', '{m} metres to the finish!')],
+  win: [t('CHIẾN THẮNG! Một màn trình diễn tuyệt vời!', 'VICTORY! What a performance!'), t('Kết thúc! Con quay vàng đứng vững đến cuối cùng!', 'It is over! The golden top is the last one standing!')],
+  finish: [t('VỀ ĐÍCH! Thật ngoạn mục!', 'ACROSS THE LINE! Spectacular!')],
+  lose: [t('Tiếc quá! {foe} đứng vững đến cuối cùng.', 'So close! {foe} is the last one standing.'), t('Thua rồi! Chỉnh lại con quay và làm lại thôi!', 'Defeat! Retune the top and go again!')],
+};
+const pickLine = (key, vars = {}) => pick(LINES[key]).replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
+const rpmOf = a => Math.round(Math.abs(a.w) * 9.549);
+const howOf = why => why === 'ring' ? t('văng khỏi sàn', 'flies off the edge') : t('hết pin', 'runs out of spin');
+
+const VOICE_FEATURE = false;       // spoken commentary is parked for now: text only, and the 🎙 button stays hidden
+let voiceOn = true, voice = null, castLast = -99, castPrio = 0, castHide = 0;
+const watch = {};                   // one-off lines already used in this battle
+try { voiceOn = localStorage.getItem('tops.voice') !== '0'; } catch (e) {}
+function pickVoice() {
+  if (!('speechSynthesis' in window)) return;
+  const lang = VI ? 'vi' : 'en', mine = speechSynthesis.getVoices().filter(v => v.lang.toLowerCase().startsWith(lang));
+  voice = mine.find(v => /natural|online/i.test(v.name)) || mine.find(v => /google/i.test(v.name)) || mine[0] || null;
+}
+if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.addEventListener('voiceschanged', pickVoice); }
+
+// prio 0 filler, 1 normal, 2 big moment, 3 result; a bigger moment cuts off whatever is being said
+function say(text, prio = 1) {
+  if (headless || state === 'shop') return;
+  if (realT - castLast < 2.4 && prio <= castPrio) return;
+  castLast = realT; castPrio = prio; castHide = realT + 4.5;
+  $('casterText').textContent = text;
+  $('caster').classList.add('on');
+  if (!VOICE_FEATURE || !voiceOn || !voice || !soundOn) return;
+  if (prio >= 2) speechSynthesis.cancel(); else if (speechSynthesis.speaking) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.voice = voice; u.lang = voice.lang; u.rate = 1.12; u.pitch = 1.05; u.volume = 1;
+  speechSynthesis.speak(u);
+}
+function hushCaster() {
+  $('caster').classList.remove('on'); castPrio = 0; castLast = -99;
+  for (const k in watch) delete watch[k];
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+}
+function commentStart() {
+  hushCaster();
+  const boss = level.boss && tops[1];
+  if (level.track) say(pickLine('course', { arena: level.name }), 2);
+  else if (boss) say(pickLine('boss', { foe: boss.name, skill: SKILLS[boss.skill === 'god' ? 'storm' : boss.skill]?.name ?? '' }), 2);
+  else say(pickLine('start', { arena: level.name, rpm: rpmOf(player) }), 2);
+}
+function commentKO(a, credited) {
+  const how = howOf(a.why);
+  if (a.isPlayer) say(pickLine('meDown', { how }), 3);
+  else say(pickLine(credited && credited.isPlayer ? 'koMe' : 'koOther', { foe: a.name, how }), 2);
+}
+function commentSkill(a, id, lv = 1) {
+  if (id === 'storm' && lv > 1) return say(pickLine('storm2'), 2);
+  const name = id === 'storm' ? SKILLS.storm.name : SKILLS[id].name;
+  say(pickLine(a.isPlayer ? 'skillMe' : 'skillFoe', { foe: a.name, skill: name }), 1);
+}
+// things worth saying that are not a single event
+function commentaryTick() {
+  if (realT > castHide) $('caster').classList.remove('on');
+  if (realT - castLast > 3) castPrio = 0;
+  if (state !== 'battle' || !player.alive) return;
+  if (!watch.low && Math.abs(player.w) / player.w0 < .3) { watch.low = 1; return say(pickLine('lowSpin'), 1); }
+  if (level.track) {
+    const left = Math.round(level.track.len + player.z);
+    if (!watch.half && left < level.track.len / 2) { watch.half = 1; return say(pickLine('progress', { m: left }), 0); }
+    return;
+  }
+  if (level.bloodRing && simT - player.inBlood < .1 && realT - (watch.blood || -99) > 6) { watch.blood = realT; return say(pickLine('blood'), 1); }
+  if (!level.wall && Math.hypot(player.x, player.z) > arenaR() * .82 && realT - (watch.edge || -99) > 6) { watch.edge = realT; return say(pickLine('edge'), 1); }
+  const alive = tops.filter(a => a.alive);
+  if (!watch.duel && alive.length === 2 && tops.length > 2) { watch.duel = 1; return say(pickLine('duel'), 2); }
+  if (!watch.sudden && simT > SUDDEN_DEATH) { watch.sudden = 1; return say(pickLine('sudden'), 1); }
+  if (realT - castLast > 7) {
+    const lead = alive.sort((a, b) => Math.abs(b.w) - Math.abs(a.w))[0];
+    say(pickLine('leader', { lead: lead.isPlayer ? t('Con quay vàng', 'The golden top') : lead.name, rpm: rpmOf(lead) }), 0);
   }
 }
 
 // ---------- flow ----------
 function clearTops() {
-  for (const a of tops) { disposeTopMesh(a); scene.remove(a.trail); a.trail.geometry.dispose(); if (a.cone) scene.remove(a.cone); }
+  for (const a of tops) { disposeTopMesh(a); scene.remove(a.trail); a.trail.geometry.dispose(); if (a.cone) scene.remove(a.cone); for (const k of ['bubble', 'lotusG', 'ironG', 'vajraG', 'moonG']) disposeFx(a[k]); }
   tops = [];
 }
 
 function placeTops() {
   clearTops();
-  player = makeTop({ name: t('Bạn', 'You'), color: 0xffd23f, m: build.m, r: build.r, grip: build.grip, dir: build.dir, blades: 4 }, true);
+  player = makeTop({ name: t('Bạn', 'You'), color: 0xffd23f, m: build.m, r: build.r, grip: build.grip, dir: build.dir, blades: 4, skill: level.track ? null : build.skill }, true);
   player.x = dropPt().x; player.z = dropPt().z;
   player.vx = aimVec().x * 2; player.vz = aimVec().z * 2;
   player.head = Math.atan2(player.vz, player.vx);
   tops.push(player);
   level.foes.forEach((f, i) => {
-    const a = makeTop(f, false), ang = -Math.PI / 2 + (i - (level.foes.length - 1) / 2) * 1.0, rr = level.R * .5;
+    // once the twist is out, the final boss is no longer a stranger
+    const a = makeTop(level.boss && level.chapter === 9 && i === 0 && seen.b9 ? { ...f, name: t('Cha · Thần Quay Bất Bại', 'Dad · The Undefeated Spin God') } : f, false), ang = -Math.PI / 2 + (i - (level.foes.length - 1) / 2) * 1.0, rr = level.R * .5;
     a.x = Math.cos(ang) * rr; a.z = Math.sin(ang) * rr;
     a.head = ang + Math.PI / 2; a.vx = Math.cos(a.head) * 3; a.vz = Math.sin(a.head) * 3;
     tops.push(a);
@@ -1208,20 +2071,25 @@ function enterShop() {
   $('btnStorm').classList.add('hidden'); $('btnView').classList.add('hidden');
   $('title').textContent = '';
   if (humGain) humGain.gain.value = 0;
+  resetSkillFx(); hushCaster();
   refreshShop();
+  const c = level.chapter;
+  if (c !== undefined && level.stage === 0 && !seen['i' + c] && storyOn && !headless) { markSeen('i' + c); playStory(STORY[c].intro); }
 }
 
 function launch() {
-  if (state !== 'shop') return;
+  if (state !== 'shop' || storyOpen()) return;
+  if (level.boss && !seen['b' + level.chapter] && storyOn && !headless) { markSeen('b' + level.chapter); return playStory(STORY[level.chapter].boss, launch); }
   try { compileSteer(); } catch (e) { showTab('adv'); $('fErr').textContent = e.message; return; }
   if (!headless) { initAudio(); save(); }
-  placeTops();
+  placeTops(); resetSkillFx();
   player.yOff = 2.5;
   state = 'battle'; simT = 0; acc = 0; slowT = 0; stats = { hits: 0, maxHit: 0 }; clashUntil = -1; finished = false;
   $('shop').classList.add('hidden');
   $('btnStorm').classList.remove('hidden'); $('btnView').classList.remove('hidden');
   $('title').textContent = stageLabel();
-  sfx.drop();
+  sfx.drop(); excite = Math.max(excite, .7);   // the stands jump up as the top drops in
+  commentStart();
 }
 
 function checkEnd(dt) {
@@ -1245,9 +2113,9 @@ function showResult() {
   if (won) {
     if (course) unlockedT = Math.max(unlockedT, Math.min(LEVELS.length - ARENAS - 1, levelIndex - ARENAS + 1));
     else unlocked = Math.max(unlocked, Math.min(ARENAS - 1, levelIndex + 1));
-    save(); sfx.win(); sfx.cheer(1);
+    save(); sfx.win();
   } else sfx.lose();
-  $('rTitle').textContent = won ? (course ? t('VỀ ĐÍCH!', 'FINISHED!') : last ? t('VÔ ĐỊCH XÓM!', 'NEIGHBOURHOOD CHAMPION!') : t('THẮNG!', 'YOU WIN!')) : t('THUA RỒI', 'YOU LOSE');
+  $('rTitle').textContent = won ? (course ? t('VỀ ĐÍCH!', 'FINISHED!') : last ? t('VÔ ĐỊCH!', 'CHAMPION!') : t('THẮNG!', 'YOU WIN!')) : t('THUA RỒI', 'YOU LOSE');
   const why = won ? (course ? t('Con quay của bạn đã về đích.', 'Your top made it to the finish.') : '')
     : player.why === 'ring' ? (course ? t('Bạn rơi khỏi đường đua.', 'You fell off the course.') : t('Bạn văng khỏi sàn.', 'You flew off the edge.'))
     : player.why === 'spin' ? t('Con quay của bạn hết pin.', 'Your top ran out of spin.')
@@ -1255,11 +2123,17 @@ function showResult() {
   const rival = !won && !course && tops.filter(a => !a.isPlayer && a.alive).sort((a, b) => Math.abs(b.w) - Math.abs(a.w))[0];
   $('rText').textContent = `${rival ? `${rival.name}: ${rival.quote} ` : ''}${why || t('Con quay cuối cùng còn trụ lại là của bạn.', 'Yours was the last top standing.')} `
     + `${t('Thời gian', 'Time')}: ${simT.toFixed(1)}s · ${t('Va chạm', 'Hits')}: ${stats.hits}`;
+  say(won ? pickLine(course ? 'finish' : 'win') : pickLine('lose', { foe: rival ? rival.name : t('đối thủ', 'the rival') }), 3);
   $('rNext').textContent = course ? t('Chặng tiếp theo', 'Next course') : t('Màn tiếp theo', 'Next stage');
   $('rNext').classList.toggle('hidden', !won || last);
   $('rRetry').textContent = won ? t('Chơi lại', 'Play again') : t('Chỉnh lại con quay', 'Retune and retry');
   $('result').classList.remove('hidden');
   $('btnStorm').classList.add('hidden'); $('btnView').classList.add('hidden');
+  if (won && level.boss && !seen['w' + level.chapter]) {   // the beaten master hands over their skill
+    const c = level.chapter, lines = [...STORY[c].win], S = SKILLS[CHAPTERS[c].skill];
+    if (S) lines.push(['narr', `${t('Bạn nhận được kỹ năng', 'You gained the skill')} ${S.name}. ${S.desc} ${t('Cảnh báo:', 'Warning:')} ${S.warn}`]);
+    markSeen('w' + c); playStory(lines);
+  }
 }
 
 // ---------- workshop UI ----------
@@ -1274,6 +2148,8 @@ $('shop').innerHTML = `
     ${slider('r', t('Bán kính', 'Radius'), .5, 1.1, .02)}
     ${slider('grip', t('Mũi: nhọn ↔ bè', 'Tip: sharp ↔ flat'), 0, 1, .02)}
     <div class="rowb"><span>${t('Chiều quay', 'Spin direction')}</span><button id="dirBtn"></button></div>
+    <div class="rowb"><span>${t('Kỹ năng', 'Skill')}</span></div>
+    <div id="skills"></div><p class="hint" id="skInfo"></p>
     <div id="stats"></div>
     <p class="hint">${t('Bấm vào chỗ trống trên sàn để đặt con quay. Kéo từ con quay (hoặc từ chấm tròn đầu mũi tên) để chỉnh hướng và lực phóng.', 'Click an empty spot to place the top. Drag from the top (or from the knob on the arrow) to set launch direction and power.')}</p>
     <p class="hint">${t('Trong trận: đập SPACE ngay sau mỗi cú va chạm để nạp năng lượng nhanh hơn. Hạ gục đối thủ để nâng lốc xoáy lên V2, V3.',
@@ -1289,10 +2165,17 @@ $('shop').innerHTML = `
     <p class="hint">${t('x, z: vị trí bạn · w: tốc độ quay · d: khoảng cách tới tâm · ex, ez, ed, ew: vị trí, khoảng cách, tốc độ quay của địch gần nhất · t: thời gian · R: bán kính sàn · cx: tâm đường tại chỗ bạn, ca: tâm đường phía trước 3 m (chế độ địa hình).',
       'x, z: your position · w: your spin · d: distance from centre · ex, ez, ed, ew: nearest rival position, distance, spin · t: time · R: arena radius · cx: lane centre where you are, ca: lane centre 3 m ahead (courses).')}</p>
   </div>
+  <div class="rowb" id="viewRow"><span>${t('Góc nhìn trong trận', 'Battle camera')}</span>
+    <div id="viewSw"><button data-v="tv">${t('Toàn cảnh', 'Arena')}</button><button data-v="fp">${t('Con quay', 'Top-cam')}</button></div></div>
   <button id="go">${t('THẢ CON QUAY!', 'DROP IT!')}</button>`;
-$('lvls').innerHTML = `<small>${t('Đấu trường', 'Arena')}</small>`
-  + LEVELS.map((l, i) => (i === ARENAS ? `<small>${t('Vượt địa hình', 'Obstacle course')}</small>` : '') + `<button data-lv="${i}">${l.track ? i - ARENAS + 1 : i + 1}</button>`).join('');
-const stageLabel = () => level.track ? `${t('Chặng', 'Course')} ${levelIndex - ARENAS + 1} · ${level.name}` : `${t('Màn', 'Stage')} ${levelIndex + 1} · ${level.name}`;
+$('lvls').innerHTML = `<small>${t('Chương', 'Chapter')}</small>`
+  + CHAPTERS.map((_, c) => `<button data-ch="${c}">${c + 1}</button>`).join('')
+  + `<small id="pipLabel"></small><div id="pips"></div><small>${t('Vượt địa hình', 'Obstacle course')}</small>`
+  + LEVELS.slice(ARENAS).map((_, i) => `<button data-lv="${ARENAS + i}">${i + 1}</button>`).join('');
+$('skills').innerHTML = SKILL_ORDER.map(id => `<button data-sk="${id}">${SKILLS[id].name}</button>`).join('');
+let shownChapter = 0;
+const stageLabel = () => level.track ? `${t('Chặng', 'Course')} ${levelIndex - ARENAS + 1} · ${level.name}`
+  : `${t('Màn', 'Stage')} ${levelIndex + 1}/${ARENAS} · ${level.name}${level.boss ? ' · ' + t('TRÙM', 'BOSS') : ''}`;
 $('presets').innerHTML = PRESETS.map((p, i) => `<button data-p="${i}">${p[0]}</button>`).join('');
 
 function showTab(name) {
@@ -1305,7 +2188,24 @@ function refreshShop() {
   $('lvTraits').innerHTML = level.traits.map(x => `<span>${x}</span>`).join('');
   document.querySelectorAll('#langSw button').forEach(b => b.classList.toggle('on', (b.dataset.lang === 'vi') === VI));
   $('lvFoes').innerHTML = (level.track ? (level.track.guards || []).map(g => FOES[g.foe]) : level.foes).map(f => `<span>${f.name}</span>`).join('');
-  document.querySelectorAll('#lvls button').forEach((b, i) => { b.disabled = i < ARENAS ? i > unlocked : i - ARENAS > unlockedT; b.classList.toggle('on', i === levelIndex); });
+  if (!level.track) shownChapter = level.chapter;
+  $('pipLabel').textContent = `${t('Chương', 'Chapter')} ${shownChapter + 1} · ${t('các trận', 'bouts')}`;
+  $('pips').innerHTML = [0, 1, 2, 3, 4].map(k => {
+    const i = shownChapter * 5 + k;
+    return `<button data-lv="${i}" class="${i === levelIndex ? 'on' : ''}" ${i > unlocked ? 'disabled' : ''}>${k === 4 ? '👑' : k + 1}</button>`;
+  }).join('');
+  document.querySelectorAll('#lvls > button').forEach(b => {
+    if (b.dataset.ch) { b.disabled = +b.dataset.ch * 5 > unlocked; b.classList.toggle('on', !level.track && +b.dataset.ch === shownChapter); }
+    else { const i = +b.dataset.lv; b.disabled = i - ARENAS > unlockedT; b.classList.toggle('on', i === levelIndex); }
+  });
+  if (!skillUnlocked(SKILL_ORDER.indexOf(build.skill))) build.skill = 'storm';
+  document.querySelectorAll('#skills button').forEach((b, k) => {
+    b.disabled = !skillUnlocked(k); b.classList.toggle('on', b.dataset.sk === build.skill);
+    b.textContent = b.disabled ? `🔒 ${t('Trùm', 'Boss')} ${5 * k}` : SKILLS[b.dataset.sk].name;
+  });
+  const S = SKILLS[build.skill];
+  $('skInfo').innerHTML = (level.track ? `<i>${t('Chế độ địa hình không dùng kỹ năng: SPACE là nhảy.', 'Courses have no skills: SPACE jumps.')}</i><br>` : '')
+    + `<b>${S.name}:</b> ${S.desc}<br><span class="warn">⚠ ${S.warn}</span>`;
   for (const k of ['m', 'r', 'grip']) $(k).value = build[k];
   $('mV').textContent = build.m.toFixed(1) + ' kg'; $('rV').textContent = build.r.toFixed(2) + ' m';
   $('gripV').textContent = build.grip < .25 ? t('nhọn', 'sharp') : build.grip > .7 ? t('bè', 'flat') : t('vừa', 'medium');
@@ -1329,7 +2229,17 @@ function rebuildPlayer() {
 for (const k of ['m', 'r', 'grip']) $(k).addEventListener('input', e => { build[k] = +e.target.value; rebuildPlayer(); });
 $('dirBtn').addEventListener('click', () => { build.dir *= -1; rebuildPlayer(); });
 document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
-$('lvls').addEventListener('click', e => { if (e.target.dataset.lv && !e.target.disabled) setLevel(+e.target.dataset.lv); });
+$('lvls').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b || b.disabled) return;
+  if (b.dataset.ch) setLevel(Math.min(unlocked, +b.dataset.ch * 5 + 4));   // jump to the furthest bout reached in that chapter
+  else setLevel(+b.dataset.lv);
+});
+$('skills').addEventListener('click', e => {
+  const id = e.target.dataset.sk;
+  if (!id || e.target.disabled) return;
+  build.skill = id; refreshShop();
+});
 $('presets').addEventListener('click', e => {
   const p = PRESETS[e.target.dataset.p]; if (!p) return;
   build.fx = p[1]; build.fz = p[2]; $('fx').value = p[1]; $('fz').value = p[2]; $('fErr').textContent = '';
@@ -1353,11 +2263,22 @@ $('btnStorm').addEventListener('click', powerPress);
 $('btnView').addEventListener('click', toggleView);
 $('btnSound').addEventListener('click', () => { soundOn = !soundOn; initAudio(); setAudioSwitches(); });
 $('btnMusic').addEventListener('click', () => { musicOn = !musicOn; initAudio(); setAudioSwitches(); });
+$('btnVoice').addEventListener('click', () => { voiceOn = !voiceOn; if (!voiceOn && 'speechSynthesis' in window) speechSynthesis.cancel(); setAudioSwitches(); });
 setAudioSwitches();
 addEventListener('pointerdown', () => { if (!headless) initAudio(); }, { once: true });   // music can start with the first click
-function toggleView() { view = view === 'tv' ? 'fp' : 'tv'; }
+function setView(v) {        // the camera choice is shared by the workshop switch, the in-battle button and the V key
+  view = v;
+  try { if (!params.has('debug')) localStorage.setItem('tops.view', v); } catch (e) {}
+  document.querySelectorAll('#viewSw button').forEach(b => b.classList.toggle('on', b.dataset.v === view));
+}
+function toggleView() { setView(view === 'tv' ? 'fp' : 'tv'); }
+$('viewSw').addEventListener('click', e => { if (e.target.dataset.v) setView(e.target.dataset.v); });
+setView(view);
+$('story').addEventListener('click', nextLine);
+$('storyHint').textContent = t('Bấm chuột hoặc Space để tiếp', 'Click or press Space to continue');
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
+  if (storyOpen()) { if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); nextLine(); } return; }
   if (e.code === 'Space') { e.preventDefault(); state === 'shop' ? launch() : powerPress(); }
   else if (e.code === 'KeyV') toggleView();
   else if (e.code === 'Enter' && state === 'result') $('rNext').classList.contains('hidden') ? enterShop() : setLevel(levelIndex + 1);
@@ -1436,8 +2357,7 @@ function announce(text) {
 
 const EDGE_RED = new THREE.Color(0xff4d4d), SUN_OFFSET = new THREE.Vector3(8, 22, 10);
 const camPos = new THREE.Vector3(0, 16, 10), camLook = new THREE.Vector3(), wantPos = new THREE.Vector3(), wantLook = new THREE.Vector3();
-let orbit = 0, fpAim = 0, clapT = 0, clapI = 0;
-const CLAP = [1, 0, 1, 0, 1, 1, 1, 0];
+let orbit = 0, fpAim = 0;
 
 function visuals(dt) {
   realT += dt;
@@ -1480,8 +2400,10 @@ function visuals(dt) {
       }
       shake = Math.max(shake, .12);
     } else if (a.cone) a.cone.visible = false;
+    skillVisuals(a, dt);
     // roster
     const row = $('roster').children[i];
+    if (a.alive && simT - a.inBlood < .1) spark(a.x + rand(-a.r, a.r), a.g.position.y + rand(0, a.height), a.z + rand(-a.r, a.r), 0, rand(1, 2.5), 0, .5, 1, .1, .15, -.05);
     if (row) { row.classList.toggle('dead', !a.alive); row.lastElementChild.firstElementChild.style.transform = `scaleX(${clamp(sp / a.w0, 0, 1)})`; }
     const tag = $('tags').children[i];
     if (tag) {
@@ -1517,10 +2439,13 @@ function visuals(dt) {
     const ang = rand(0, 6.28), rr = Math.sqrt(Math.random()) * level.hot * arenaR();
     spark(Math.cos(ang) * rr, floorY(Math.cos(ang) * rr, Math.sin(ang) * rr) + .1, Math.sin(ang) * rr, rand(-.3, .3), rand(1.5, 3.5), rand(-.3, .3), rand(.5, 1), 1, .45, .1, -.05);
   }
-  // crowd noise: a murmur that swells, plus a clap chant while they are worked up
-  if (crowdGain) crowdGain.gain.value = fighting ? .05 + excite * .17 : 0;
-  if (fighting && excite > .25 && (clapT -= dt) <= 0) { clapT = .22; if (CLAP[clapI++ % CLAP.length]) { sfx.clap(excite); if (clapI % 2) sfx.chant(excite); } }
+  commentaryTick();
+  const ducking = VOICE_FEATURE && voiceOn && 'speechSynthesis' in window && speechSynthesis.speaking ? .45 : 1;
+  if (bedGain) bedGain.gain.setTargetAtTime((fighting ? .5 + excite * .3 : state === 'shop' ? .3 : .35) * ducking, ac.currentTime, .3);
+  if (bloodBand) bloodBand.material.opacity = .3 + .18 * Math.sin(realT * 3);
   if (edgeGlow && !level.wall) edgeGlow.material.color.setScalar(.6 + Math.sin(realT * 5) * .4).multiply(EDGE_RED);
+  skillWorldVisuals(dt);
+  envTick(dt);
   updateSparks(dt);
   for (let i = rings.length - 1; i >= 0; i--) {
     const m = rings[i]; m.life += dt; m.scale.setScalar(1 + m.life * 22); m.material.opacity = .9 * (1 - m.life / .45);
@@ -1580,6 +2505,13 @@ function visuals(dt) {
       : clash ? `${t('ĐẬP SPACE! +NĂNG LƯỢNG', 'MASH SPACE! +ENERGY')} ${pips}`
       : lvReady ? `SPACE — ${t('LỐC XOÁY', 'TORNADO')} V${lvReady}! ${pips}`
       : `${t('Đang tích năng lượng…', 'Charging…')} ${pips}`;
+    if (!level.track && p.skill && p.skill !== 'storm') {      // a boss skill costs one full bar
+      const S = SKILLS[p.skill], ready = p.alive && p.energy >= 1 && p.skillT <= 0;
+      $('stormFill').style.transform = `scaleX(${p.skillT > 0 ? p.skillT / p.skillDur : Math.min(1, p.energy)})`;
+      $('btnStorm').classList.toggle('ready', ready && !clash);
+      $('stormLabel').textContent = p.skillT > 0 ? S.name : clash ? t('ĐẬP SPACE! +NĂNG LƯỢNG', 'MASH SPACE! +ENERGY')
+        : ready ? `SPACE — ${S.name}!` : t('Đang tích năng lượng…', 'Charging…');
+    }
     if (level.track) {                     // on a course the bar buys jumps instead of tornadoes
       const canJump = p.alive && p.energy >= JUMP_COST;
       $('stormFill').style.transform = `scaleX(${Math.min(1, p.energy)})`;
@@ -1614,8 +2546,15 @@ function frame(now) {
 
 // open with ?debug to drive the simulation from the console
 if (params.has('debug')) window.game = {
-  build, launch, setLevel, storm: () => castStorm(player), press: powerPress, toggleView, levels: LEVELS,
+  build, launch, setLevel, storm: () => castStorm(player), skill: () => castSkill(player), story: () => [storyOpen(), $('storyText').textContent], press: powerPress, toggleView, levels: LEVELS,
   boost: lv => { player.stormMax = lv; player.energy = lv; },
+  audio: () => {      // RMS of the final mix, for checking levels without ears
+    const rms = m => { if (!m) return null; const a = new Float32Array(m.fftSize); m.getFloatTimeDomainData(a); return +Math.sqrt(a.reduce((s, x) => s + x * x, 0) / a.length).toFixed(4); };
+    return { state: ac && ac.state, soundOn, musicOn, voiceOn, voice: voice && voice.name, crowd: Object.keys(crowdBufs), crowdLevel: rms(crowdMeter), mix: rms(mixMeter) };
+  },
+  sfx, setExcite: v => { excite = v; },
+  nodes: () => ({ ac, master, crowdBus, bedGain, musicGain, mixMeter, crowdMeter }),
+  solo: on => { if (musicGain) musicGain.gain.value = on ? 0 : musicOn ? MUSIC_VOL : 0; if (humGain) humGain.gain.value = 0; },
   tick: n => { for (let i = 0; i < n && (state === 'battle' || state === 'ending'); i++) { stepPhysics(); checkEnd(H); } visuals(1 / 60); },
   sim: (b, lv, runs = 3, auto = true) => {
     Object.assign(build, b); headless = true; let wins = 0, time = 0, hits = 0;
@@ -1624,7 +2563,7 @@ if (params.has('debug')) window.game = {
       while (state === 'battle' || state === 'ending') {
         stepPhysics(); checkEnd(H);
         if (auto && level.track) { if (player.yOff <= 0 && inHole(-(player.z + player.vz * .08))) jump(); }
-        else if (auto && player.energy >= 1) { const f = nearest(player); if (f && Math.hypot(f.x - player.x, f.z - player.z) < 4) castStorm(player); }
+        else if (auto && player.energy >= 1) { const f = nearest(player); if (f && Math.hypot(f.x - player.x, f.z - player.z) < 4) castSkill(player); }
       }
       wins += won; time += simT; hits += stats.hits;
     }
@@ -1633,7 +2572,7 @@ if (params.has('debug')) window.game = {
   },
   unlockAll: () => { unlocked = ARENAS - 1; unlockedT = LEVELS.length - ARENAS - 1; refreshShop(); },
   info: () => ({ state, level: levelIndex, t: +simT.toFixed(1), won, hits: stats.hits, maxHit: +stats.maxHit.toFixed(1),
-    tops: tops.map(a => ({ n: a.name, alive: a.alive, why: a.why, w: Math.round(a.w), e: +a.energy.toFixed(2), max: a.stormMax, kos: a.kos,
+    tops: tops.map(a => ({ n: a.name, alive: a.alive, why: a.why, w: Math.round(a.w), e: +a.energy.toFixed(2), max: a.stormMax, kos: a.kos, skill: a.skill, act: a.skillT > 0 ? a.active : null,
       x: +a.x.toFixed(1), z: +a.z.toFixed(1) })) }),
 };
 
