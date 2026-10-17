@@ -172,13 +172,16 @@
   body:has(#result:not(.hidden)) #caster, body:has(#result:not(.hidden)) #tags { opacity: 0; }
   /* the final boss: soul-style title cards, the equation overlay and the colour of stopped time */
   #soul { position: fixed; left: 0; right: 0; top: 40%; z-index: 21; padding: 18px 0; text-align: center; pointer-events: none; opacity: 0;
-    font: 400 clamp(26px, 5vw, 58px) Georgia, 'Times New Roman', serif; letter-spacing: .22em; text-transform: uppercase;
+    font: 400 clamp(26px, 5vw, 58px) 'Noto Serif', 'Times New Roman', Georgia, serif; letter-spacing: .22em; text-transform: uppercase;
     background: linear-gradient(90deg, transparent, rgba(0,0,0,.78) 18%, rgba(0,0,0,.78) 82%, transparent); }
   #soul small { display: block; margin-top: 6px; font-size: .32em; letter-spacing: .3em; opacity: .8; }
   #soul.go { animation: soulIn 3.4s ease forwards; }
   #soul.felled { color: #f0dca0; text-shadow: 0 0 24px rgba(255,200,110,.55); }
   #soul.died { color: #b3201f; text-shadow: 0 0 24px rgba(160,0,0,.6); }
   #soul.boss { color: #d8ccff; text-shadow: 0 0 26px rgba(150,110,255,.8); }
+  #glory { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity 1.2s; mix-blend-mode: screen;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255,214,120,.55), rgba(255,170,60,.12) 45%, transparent 70%); }
+  #glory.on { opacity: 1; }
   #soul.dragon { color: #ffd54f; text-shadow: 0 0 26px rgba(255,120,0,.85), 0 3px 0 #8d2b00; }
   @keyframes soulIn { 0% { opacity: 0; letter-spacing: .1em; } 18% { opacity: 1; } 78% { opacity: 1; } 100% { opacity: 0; letter-spacing: .32em; } }
   #euler { position: fixed; left: 0; right: 0; bottom: 84px; z-index: 6; text-align: center; pointer-events: none; opacity: 0; transition: opacity .25s, transform .25s;
@@ -230,6 +233,7 @@
 </div>
 <div id="pops"></div>
 <div id="flash"></div>
+<div id="glory"></div>
 <div id="soul"></div>
 <div id="euler"></div>
 <aside id="shop"></aside>
@@ -255,6 +259,7 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const sgn = v => v < 0 ? -1 : 1;
 document.title = t('Đại Chiến Con Quay', 'Spin Top Showdown');
+$('caster').querySelector('b').textContent = t('🎙 BLV', '🎙 COMMENTARY');
 
 // ---------- tuning ----------
 const H = 1 / 120;            // physics step
@@ -476,7 +481,7 @@ const STORY = [
 ];
 const LEVELS = [...buildCampaign(), ...COURSES];
 const ARENAS = LEVELS.filter(l => !l.track).length;
-const HIT_WORDS = ['KENG!', 'CHOANG!', 'XOẸT!', 'CỐP!', 'RẦM!'];
+const HIT_WORDS = () => t(['KENG!', 'CHOANG!', 'XOẸT!', 'CỐP!', 'RẦM!'], ['CLANG!', 'BAM!', 'WHOOSH!', 'CLONK!', 'CRASH!']);
 const PRESETS = [
   [t('Tự nhiên', 'None'), '', ''],
   [t('Đuổi địch', 'Chase'), '(ex - x) * 3', '(ez - z) * 3'],
@@ -1374,7 +1379,7 @@ function hitFx(x, y, z, J) {
   hitLight.color.setHex(0xffc266); hitLight.position.set(x, y + .8, z); hitLight.intensity = Math.min(45, J * 2.5);
   shake = Math.max(shake, Math.min(1, J / 22));
   if (J > 11) slowT = .09;
-  if (J > 13) popup(x, y, z, pick(HIT_WORDS));
+  if (J > 13) popup(x, y, z, pick(HIT_WORDS()));
   sfx.clang(clamp(J / 14, .3, 1.4));
 }
 
@@ -1457,7 +1462,7 @@ function stepPhysics() {
       if (d > c.stormReach) continue;
       const f = (1 + .5 * (c.stormLv - 1)) / (1 + d * .25) * c.stormK;
       o.ax += (dx / d * 40 - dz / d * 16 * s) * f; o.az += (dz / d * 40 + dx / d * 16 * s) * f;
-      const drain = Math.min(spareSpin(o), 12 * f * H);
+      const drain = Math.min(spareSpin(o), 12 * f * H * (o.voidGod ? VOID_TUNE.drainK : 1));
       if (d < STORM_RANGE) { o.lastHitBy = c; o.lastHitT = simT; }
       o.w -= sgn(o.w) * drain; c.w += sgn(c.w) * drain * .5;
     }
@@ -1653,6 +1658,7 @@ function skillStep() {
     if (on(a, 'moon')) for (const o of tops) {
       if (o === a || !o.alive || Math.hypot(o.x - a.x, o.z - a.z) > 4.5) continue;
       let flow = clamp((Math.abs(a.w) - Math.abs(o.w)) * .6, -16, 16) * H;     // the faster side bleeds into the slower
+      if (a.voidGod || o.voidGod) flow *= VOID_TUNE.drainK;
       flow = flow > 0 ? Math.min(flow, spareSpin(a)) : -Math.min(-flow, spareSpin(o));
       a.w -= sgn(a.w) * flow; o.w += sgn(o.w) * flow;
       if (flow < 0) { o.lastHitBy = a; o.lastHitT = simT; }
@@ -2915,7 +2921,7 @@ const VOID_GOD = { ...FINAL.foes[0], name: t('Hư Vô Thần Quay', 'The Void Sp
   skill: 'void', stormMax: 2, spikes: true, crown: true, finalBoss: false, voidGod: true,
   quote: t('"Thời gian của ngươi đã hết từ lâu rồi."', '"Your time ran out long ago."') };
 // how the second phase plays: a barrier rim, how often time stops, what the counter and the crush take away
-const VOID_TUNE = { R: 8, K: 1.5, wall: true, gap: [4.5, 5.5], first: 3.5, counter: .6, crush: .4, steal: .35, storm: .75, minW: 14, hits: 4 };
+const VOID_TUNE = { R: 8, K: 1.5, wall: true, gap: [4.5, 5.5], first: 3.5, counter: .6, crush: .4, steal: .35, storm: .75, minW: 14, hits: 4, drainK: .01 };
 const voidLevel = () => ({ ...FINAL, name: t('Hư Vô', 'The Void'), R: VOID_TUNE.R, K: VOID_TUNE.K, wall: VOID_TUNE.wall, theme: 'void', base: '#0b0716', accent: '#7c4dff',
   env: 'void', hot: 0, shrink: null, void: true, foes: [VOID_GOD] });
 // the very end: a giant top drops out of the sky beside the two of them, and everyone knows who it is
@@ -2984,6 +2990,7 @@ function swell(dur, gain) {                     // a reversed cymbal: noise that
   src.connect(f).connect(g).connect(master); src.start(now); src.stop(now + dur + .05);
 }
 Object.assign(sfx, {
+  choirMajor(dur = 6) { [[110, 650], [138.59, 900], [164.81, 1100], [220, 750], [277.18, 1250], [329.63, 1400]].forEach(([f, fm]) => pad(f, dur, .055, fm)); swell(dur * .4, .1); },
   ultra() { swell(.6, .12); [523.25, 783.99, 1046.5, 1567.98].forEach((f, i) => tone('triangle', f, f, 2, .07, i * .04)); tone('sine', 55, 110, .8, .5); },
   roar() { tone('sawtooth', 130, 70, 1.4, .22); tone('sawtooth', 98, 60, 1.5, .18); noise(1.3, 'bandpass', 500, .45, 1.5, 180); },
   heartbeat() { tone('sine', 62, 36, .25, .9); tone('sine', 55, 34, .22, .6, .27); },
@@ -3015,7 +3022,7 @@ function soulCard(text, kind, sub = '') {
   el.innerHTML = `${text}${sub ? `<small>${sub}</small>` : ''}`; el.className = 'go ' + kind;
 }
 function clearFinale() {
-  if (combo) { dropFx(combo.dragon.group); combo = null; }
+  comboCleanup();
   if (tstop) dropFx(tstop.ui);
   if (momTop) { disposeTopMesh(momTop); scene.remove(momTop.trail); momTop.trail.geometry.dispose(); momTop = null; }
   if (tstop) { dropFx(tstop.chains); dropFx(tstop.fx); dropFx(tstop.halo); if (tstop.light) { scene.remove(tstop.light); tstop.light.dispose(); } }
@@ -3326,109 +3333,451 @@ function uiAuraTick(g, dt) {
   }
 }
 
-// ---- the final combo: the fourth answer calls the Dragon Warrior. Pure cutscene: the god is beaten. ----
-const dragonGeo = new THREE.SphereGeometry(1, 14, 10);
-function makeDragon() {
-  const group = new THREE.Group(), segs = [];
-  const gold = new THREE.MeshPhongMaterial({ color: 0xffc107, emissive: 0x6d3a00, shininess: 90, specular: 0xffffff });
-  const red = new THREE.MeshPhongMaterial({ color: 0xd32f2f, emissive: 0x4a0000, shininess: 60 });
-  const ivory = new THREE.MeshPhongMaterial({ color: 0xfff8e1, shininess: 80 });
-  const N = 46;
-  for (let i = 0; i < N; i++) {
-    const s = new THREE.Group(), u = i / N, rad = 1.05 * (u < .1 ? .8 + u * 2 : 1 - (u - .1) * .85);
-    const body = new THREE.Mesh(dragonGeo, gold); body.scale.set(rad, rad, rad * 1.3); s.add(body);
-    if (i % 3 === 1) { const fin = new THREE.Mesh(new THREE.ConeGeometry(rad * .32, rad * 1.2, 5), red); fin.position.y = rad * .95; fin.rotation.x = -.6; s.add(fin); }
-    if (i === 7 || i === 24) for (const sx of [-1, 1]) {                       // legs with ivory claws
-      const leg = new THREE.Mesh(new THREE.CylinderGeometry(rad * .18, rad * .12, rad * 1.6, 6), gold);
-      leg.position.set(sx * rad * .8, -rad * .7, 0); leg.rotation.z = sx * .7; s.add(leg);
-      const claw = new THREE.Mesh(new THREE.ConeGeometry(rad * .14, rad * .45, 4), ivory);
-      claw.position.set(sx * rad * 1.35, -rad * 1.2, .2); claw.rotation.x = 1.4; s.add(claw);
+// ---- the final combo: the fourth answer calls down the Dragon Warrior. Nine souls fuse to end the fight. ----
+// The sky tears open into a golden vortex, nine dragons fuse into one that coils round the arena, your top leaps onto its
+// head, and the two of you climb into the sky and dive onto the god.
+const DR_RINGS = 72, DR_SIDES = 18, DR_SEG = .5;
+const CB_RISE = 1.2, CB_FUSE = 4.2, CB_LAND = 11, CB_RIDE = CB_LAND + 4.8, CB_END = CB_RIDE + 3;
+const dragonGeo = new THREE.SphereGeometry(1, 16, 12);
+const dragonScaleTex = canvasTex(1024, 512, (c, w, h) => {
+  // u=.25 is +B (large dorsal scales); u=.75 is -B (cream belly plates).
+  c.fillStyle = '#75400e'; c.fillRect(0, 0, w, h);
+  const columns = [0, .055, .12, .205, .295, .38, .445, .5, .55, .6, .65, .7, .75, .8, .85, .9, .95, 1];
+  const rows = 8, rh = h / rows;
+  for (let row = -1; row <= rows; row++) for (let col = 0; col < columns.length - 1; col++) {
+    const sw = (columns[col + 1] - columns[col]) * w, y = row * rh;
+    const tone = .5 + .5 * Math.sin((row + rows) % rows * 2.7 + col * 4.3);
+    for (const wrap of [-w, 0, w]) {
+      const x = (columns[col] + columns[col + 1]) * .5 * w + (row & 1 ? sw * .45 : 0) + wrap;
+      const g = c.createLinearGradient(x, y - rh * .4, x, y + rh * .9);
+      g.addColorStop(0, '#845015'); g.addColorStop(.22, tone > .5 ? '#fff0a0' : '#eac565');
+      g.addColorStop(.5, tone > .35 ? '#eeb437' : '#ce9225'); g.addColorStop(1, '#945216');
+      c.fillStyle = g; c.beginPath(); c.moveTo(x - sw * .57, y - rh * .35);
+      c.quadraticCurveTo(x, y - rh * .6, x + sw * .57, y - rh * .35);
+      c.bezierCurveTo(x + sw * .57, y + rh * .2, x + sw * .27, y + rh * .7, x, y + rh * .9);
+      c.bezierCurveTo(x - sw * .27, y + rh * .7, x - sw * .57, y + rh * .2, x - sw * .57, y - rh * .35);
+      c.fill(); c.strokeStyle = '#754215'; c.lineWidth = 2.3; c.stroke();
+      c.beginPath(); c.moveTo(x - sw * .42, y - rh * .13);
+      c.quadraticCurveTo(x - sw * .32, y + rh * .35, x - sw * .06, y + rh * .65);
+      c.strokeStyle = 'rgba(255,244,177,.6)'; c.lineWidth = 1.5; c.stroke();
     }
-    group.add(s); segs.push(s);
   }
+  // Each plate spans the belly, with curved dark joints and a raised ivory centre.
+  c.save(); c.beginPath(); c.rect(w * .64, 0, w * .22, h); c.clip();
+  const bg = c.createLinearGradient(w * .64, 0, w * .86, 0);
+  bg.addColorStop(0, '#9e6525'); bg.addColorStop(.12, '#e0b777'); bg.addColorStop(.38, '#fff0cc');
+  bg.addColorStop(.62, '#fff4da'); bg.addColorStop(.88, '#e0b777'); bg.addColorStop(1, '#9e6525');
+  c.fillStyle = bg; c.fillRect(w * .64, 0, w * .22, h);
+  for (let row = -1; row <= rows; row++) {
+    const y = row * rh;
+    c.beginPath(); c.moveTo(w * .64, y); c.quadraticCurveTo(w * .75, y + rh * .38, w * .86, y);
+    c.strokeStyle = '#a7773e'; c.lineWidth = 5; c.stroke();
+    c.beginPath(); c.moveTo(w * .65, y + 6); c.quadraticCurveTo(w * .75, y + rh * .38 + 6, w * .85, y + 6);
+    c.strokeStyle = '#fff7dd'; c.lineWidth = 3; c.stroke();
+  }
+  c.restore();
+});
+dragonScaleTex.wrapS = dragonScaleTex.wrapT = THREE.RepeatWrapping;
+const vortexTex = canvasTex(512, 512, (c, w) => {
+  const m = w / 2, g = c.createRadialGradient(m, m, 0, m, m, m);
+  g.addColorStop(0, 'rgba(255,255,240,1)'); g.addColorStop(.18, 'rgba(255,226,140,.9)'); g.addColorStop(.6, 'rgba(255,170,60,.25)'); g.addColorStop(1, 'rgba(255,140,0,0)');
+  c.fillStyle = g; c.fillRect(0, 0, w, w);
+  for (let k = 0; k < 360; k++) {                  // clouds wound into spiral arms
+    const arm = k % 4, a = k * .09 + arm * Math.PI / 2, r = m * (.1 + (k / 360) * .85);
+    c.fillStyle = `rgba(255,${200 + rand(0, 55) | 0},${130 + rand(0, 110) | 0},${.22 * (1 - k / 400)})`;
+    c.beginPath(); c.arc(m + Math.cos(a) * r, m + Math.sin(a) * r, rand(8, 34) * (1 - k / 520), 0, 7); c.fill();
+  }
+});
+const drRadius = i => {
+  const u = clamp(i / (DR_RINGS - 1), 0, 1);
+  return .035 + .91 * Math.pow(1 - u, 1.08) + .34 * Math.exp(-Math.pow((u - .13) / .12, 2));
+};
+
+function makeDragon({ scale = 1, tint = null, lite = false } = {}) {
+  const gold = new THREE.MeshPhongMaterial({ color: tint ?? 0xeab33e, emissive: tint === null ? 0x593009 : new THREE.Color(tint).multiplyScalar(.28), shininess: 95, specular: 0xffe6a0 });
+  const red = new THREE.MeshPhongMaterial({ color: tint ?? 0xa82916, emissive: tint === null ? 0x481007 : new THREE.Color(tint).multiplyScalar(.23), shininess: 55 });
+  const ember = new THREE.MeshPhongMaterial({ color: tint ?? 0xff9c35, emissive: tint === null ? 0x853008 : new THREE.Color(tint).multiplyScalar(.4), shininess: 75 });
+  const ivory = new THREE.MeshPhongMaterial({ color: tint === null ? 0xffe5a6 : new THREE.Color(tint).lerp(new THREE.Color(0xffffff), .65), emissive: 0x33230d, shininess: 75 });
+  const dark = new THREE.MeshPhongMaterial({ color: 0x280b09, emissive: 0x100403, shininess: 30 });
+  const eyeMat = new THREE.MeshBasicMaterial({ color: tint ?? 0xffe787 });
+  // Primitives are shared within this dragon, never across dragons disposed at different cues.
+  const group = new THREE.Group(), sphere = lite ? new THREE.SphereGeometry(1, 10, 7) : dragonGeo.clone();
+  const cone = new THREE.ConeGeometry(1, 1, lite ? 5 : 7), cylinder = lite ? null : new THREE.CylinderGeometry(.72, 1, 1, 7);
+  const part = (parent, geo, mat, p, s, r = [0, 0, 0]) => {
+    const m = new THREE.Mesh(geo, mat); m.position.set(...p); m.scale.set(...s); m.rotation.set(...r); parent.add(m); return m;
+  };
+  const link = (parent, a, b, radius, mat, tip = false) => {
+    const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b), d = B.clone().sub(A);
+    const m = part(parent, tip ? cone : cylinder, mat, A.add(B).multiplyScalar(.5).toArray(), [radius, d.length(), radius]);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); return m;
+  };
+  // Curved, tapered solid locks/horns: no intersecting double-sided cards.
+  const lock = (parent, points, radius, mat, segments = lite ? 7 : 12, sides = 5) => {
+    const curve = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(...p)));
+    const g = new THREE.TubeGeometry(curve, segments, 1, sides, false), p = g.attributes.position, normal = g.attributes.normal;
+    for (let j = 0; j <= segments; j++) {
+      const t = j / segments, center = curve.getPointAt(t), r = radius * (.025 + .975 * Math.pow(1 - t, .8));
+      for (let k = 0; k <= sides; k++) {
+        const v = j * (sides + 1) + k;
+        p.setXYZ(v, center.x + normal.getX(v) * r, center.y + normal.getY(v) * r, center.z + normal.getZ(v) * r);
+      }
+    }
+    g.computeVertexNormals(); const m = new THREE.Mesh(g, mat); parent.add(m); return m;
+  };
+  // One outward-facing body tube; its existing transported frame supplies the silhouette.
+  const n = DR_RINGS * (DR_SIDES + 1), pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), uv = new Float32Array(n * 2), idx = [];
+  for (let i = 0; i < DR_RINGS; i++) for (let j = 0; j <= DR_SIDES; j++) { const k = i * (DR_SIDES + 1) + j; uv[k * 2] = j / DR_SIDES; uv[k * 2 + 1] = i / DR_RINGS * 9; }
+  for (let i = 0; i < DR_RINGS - 1; i++) for (let j = 0; j < DR_SIDES; j++) { const a = i * (DR_SIDES + 1) + j, b = a + DR_SIDES + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); geo.setIndex(idx);
+  const body = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ map: dragonScaleTex, color: tint ?? 0xffffff, emissive: tint === null ? 0x452707 : new THREE.Color(tint).multiplyScalar(.32), shininess: 85, specular: 0xffd781 }));
+  body.frustumCulled = false; group.add(body);
+  // An imperial lung: long muzzle, lifted nose, open jaw, swept branching antlers.
+  // All facial coordinates use +z forward, +y back/sky, +x side.
   const head = new THREE.Group();
-  const skull = new THREE.Mesh(dragonGeo, gold); skull.scale.set(1.15, .95, 1.35); head.add(skull);
-  const snout = new THREE.Mesh(dragonGeo, gold); snout.scale.set(.75, .55, 1.15); snout.position.set(0, -.1, 1.35); head.add(snout);
-  const jaw = new THREE.Mesh(dragonGeo, red); jaw.scale.set(.62, .28, 1); jaw.position.set(0, -.6, 1.15); head.add(jaw);
+  head.scale.setScalar(scale);
+  part(head, sphere, gold, [0, .14, -.05], [1.03, .85, 1.22]);
+  part(head, sphere, gold, [0, .16, 1.45], [.63, .4, 1.4]);
+  part(head, sphere, gold, [0, .39, 2.67], [.73, .36, .59], [.14, 0, 0]);
+  part(head, sphere, dark, [0, -.24, 1.8], [.54, .15, 1.02]);
+  part(head, sphere, gold, [0, -.75, 1.47], [.59, .21, 1.26], [-.22, 0, 0]);
+  part(head, sphere, red, [0, -.54, 1.58], [.44, .065, .84], [-.22, 0, 0]);
+  part(head, sphere, ivory, [0, -.87, 1.19], [.42, .12, .85], [-.22, 0, 0]);
   for (const sx of [-1, 1]) {
-    const horn = new THREE.Mesh(new THREE.ConeGeometry(.16, 1.8, 6), ivory); horn.position.set(sx * .45, .85, -.6); horn.rotation.set(-1.05, 0, sx * -.3); head.add(horn);
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(.15, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff1744 })); eye.position.set(sx * .5, .28, .8); head.add(eye);
-    const whisker = new THREE.Mesh(new THREE.CylinderGeometry(.035, .01, 2.6, 4), red); whisker.position.set(sx * .75, -.25, 1.6); whisker.rotation.set(1.1, 0, sx * -1.1); head.add(whisker);
-    for (let k = 0; k < 3; k++) { const mane = new THREE.Mesh(new THREE.ConeGeometry(.2, 1, 5), red); mane.position.set(sx * (.3 + k * .25), .3 - k * .2, -1); mane.rotation.set(-1.9, 0, sx * (.4 + k * .3)); head.add(mane); }
+    part(head, sphere, gold, [sx * .79, -.13, .43], [.43, .55, .73]);
+    part(head, sphere, dark, [sx * .81, .35, .82], [.19, .24, .4], [0, sx * .3, sx * -.2]);
+    const eye = part(head, sphere, eyeMat, [sx * .86, .37, .92], [.125, .14, .28], [0, sx * .3, sx * -.2]);
+    part(head, sphere, dark, [sx * .955, .37, 1], [.025, .11, .04]);
+    part(head, sphere, gold, [sx * .76, .64, .82], [.32, .18, .64], [0, sx * -.15, sx * -.22]);
+    if (!lite) { const glint = glowSprite(tint ?? 0xffb838, .65); glint.material.opacity = .42; glint.position.copy(eye.position); head.add(glint); }
+    part(head, sphere, gold, [sx * .4, .59, 2.83], [.28, .16, .34]);
+    part(head, sphere, dark, [sx * .42, .69, 2.91], [.13, .055, .17], [.15, 0, sx * .2]);
+    for (let k = 0; k < (lite ? 2 : 4); k++) {
+      const z = 1.04 + k * .46;
+      link(head, [sx * .48, -.1, z], [sx * .45, -.1 - (k === 2 ? .46 : .26), z + .05], k === 2 ? .11 : .075, ivory, true);
+    }
+    if (!lite) link(head, [sx * .43, -.61, 2.25], [sx * .4, -.3, 2.33], .09, ivory, true);
+    part(head, sphere, gold, [sx * .64, .82, -.46], [.27, .26, .34]);
+    lock(head, [[sx * .64, .8, -.45], [sx * .83, 1.55, -.95], [sx * 1.08, 1.94, -2], [sx * 1.4, 2.45, -3.3]], .21, ivory);
+    lock(head, [[sx * .84, 1.57, -1], [sx * 1.4, 2.1, -1.35], [sx * 1.64, 2.55, -1.85]], .115, ivory);
+    if (!lite) lock(head, [[sx * 1.13, 2.04, -2.25], [sx * 1.02, 2.75, -2.35], [sx * .87, 3.02, -2.8]], .085, ivory);
+    // Layered, swept fur behind the cheeks, with amber inner locks.
+    for (let k = 0; k < (lite ? 2 : 5); k++) {
+      const y = .8 - k * .36, x = sx * (.72 + Math.sin(k * .7) * .25);
+      lock(head, [[x, y, -.5], [x + sx * .38, y + .22, -1.2], [x + sx * .55, y - .1, -2.12], [x + sx * .25, y - .24, -2.85 + k * .1]], .25, k & 1 ? ember : red);
+    }
+    lock(head, [[sx * .3, -.86, 1.18], [sx * .5, -1.35, .55], [sx * .4, -1.43, -.5], [sx * .18, -1.24, -1.5]], .19, ember);
   }
+  lock(head, [[0, -.9, 1.2], [0, -1.66, .3], [.1, -1.7, -.95], [0, -1.4, -2.2]], .23, red);
+  // Two continuous tapered whiskers, updated in head-local space by poseDragon.
+  const whiskers = [-1, 1].map(side => {
+    const segments = lite ? 16 : 28, sides = lite ? 4 : 5;
+    const mesh = lock(head, [[side * .64, .22, 2.82], [side * 2.5, .5, 0], [side * 2.1, .1, -4.2]], .085, ivory, segments, sides);
+    mesh.geometry.attributes.position.setUsage(THREE.DynamicDrawUsage); mesh.geometry.attributes.normal.setUsage(THREE.DynamicDrawUsage);
+    mesh.frustumCulled = false;
+    return { mesh, side, segments, sides, centers: Array.from({ length: segments + 1 }, () => new THREE.Vector3()) };
+  });
   group.add(head);
-  return { group, segs, head, hist: [] };
+  // Bent upper/lower legs hang below -B; three forward talons and an opposing thumb.
+  const legs = (lite ? [] : [[10, 1], [10, -1], [37, 1], [37, -1]]).map(([ring, side]) => {
+    const g = new THREE.Group(); g.scale.setScalar(scale * (ring > 20 ? .85 : 1));
+    const elbow = [side * .52, -.85, -.55], wrist = [side * .8, -1.64, -.84];
+    link(g, [0, 0, 0], elbow, .27, gold); part(g, sphere, gold, elbow, [.24, .26, .25]);
+    link(g, elbow, wrist, .18, gold);
+    part(g, sphere, gold, [side * .84, -1.77, -.63], [.34, .17, .4]);
+    for (let k = 0; k < 4; k++) {
+      const thumb = k === 3, x = side * .84 + (k - 1) * .22;
+      const a = thumb ? [side * .62, -1.76, -.8] : [x, -1.76, -.48];
+      const b = thumb ? [side * .31, -1.86, -1.1] : [x + (k - 1) * .08, -1.84, -.08];
+      const tip = thumb ? [side * .23, -2.08, -1.27] : [b[0], -2.08, .12];
+      link(g, a, b, .095, gold); link(g, b, tip, .105, ivory, true);
+    }
+    group.add(g); return { g, ring, side };
+  });
+  // Solid swept spines carry the silhouette; restrained flame wisps only accent them.
+  const crest = [];
+  for (let i = 3; i < DR_RINGS - 3; i += lite ? 7 : 3) {
+    const g = new THREE.Group(), height = (.16 + .95 * Math.pow(1 - i / (DR_RINGS - 1), .7));
+    g.scale.setScalar(scale);
+    link(g, [0, -.09, .12], [0, height * .7, -.26], .22 * height, gold, true);
+    link(g, [0, height * .42, -.13], [0, height, -.52], .13 * height, i % 2 ? ember : red, true);
+    group.add(g); crest.push({ g, ring: i });
+  }
+  const tail = new THREE.Group(); tail.scale.setScalar(scale);
+  for (let k = 0; k < (lite ? 3 : 7); k++) {
+    const a = k * 2.399, spread = k ? .35 + (k % 3) * .16 : 0;
+    const x = Math.cos(a) * spread, y = Math.sin(a) * spread, length = 2.1 + (k % 3) * .35;
+    lock(tail, [[0, 0, .15], [x * .65, y * .65, -.55], [x, y + .16, -length * .65], [x * .75, y + .3, -length]], k ? .16 : .23, k & 1 ? ember : red);
+  }
+  group.add(tail);
+  const flames = [];
+  for (let i = 5; i < DR_RINGS - 5; i += lite ? 24 : 12) {
+    const f = new THREE.Sprite(new THREE.SpriteMaterial({ map: flameTex, color: tint ?? 0xffa432, opacity: .18, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    f.userData = { ring: i, seed: rand(0, 6.28) }; group.add(f); flames.push(f);
+  }
+  const glows = [];
+  for (let i = 0; i < DR_RINGS; i += lite ? 30 : 16) { const s = glowSprite(tint ?? 0xffbe42, 3 * scale); s.material.opacity = lite ? .1 : .14; s.userData.ring = i; group.add(s); glows.push(s); }
+  return { group, body, head, whiskers, legs, crest, tail, flames, glows, scale, hist: [], pts: Array.from({ length: DR_RINGS }, () => new THREE.Vector3()),
+    T: Array.from({ length: DR_RINGS }, () => new THREE.Vector3()), N: Array.from({ length: DR_RINGS }, () => new THREE.Vector3()), B: Array.from({ length: DR_RINGS }, () => new THREE.Vector3()) };
 }
+// lay the body along the head's own path: rings at fixed distances back along it, framed by parallel transport
+function poseDragon(D) {
+  const Hs = D.hist, P = D.pts;
+  let hi = Hs.length - 1, prev = Hs[hi].clone();
+  P[0].copy(prev);
+  for (let i = 1; i < DR_RINGS; i++) {
+    let need = DR_SEG * D.scale;
+    while (need > 0 && hi > 0) {
+      const q = Hs[hi - 1], d = prev.distanceTo(q);
+      if (d >= need) { prev.lerp(q, need / d); need = 0; } else { need -= d; prev.copy(q); hi--; }
+    }
+    P[i].copy(prev);
+  }
+  // B is the back: the sky side of each ring, so the belly always faces the ground. Where the body runs nearly straight
+  // up or down that is undefined, so the back carries on from the ring before (or from the last frame, for the head).
+  const up = new THREE.Vector3(0, 1, 0), carry = new THREE.Vector3();
+  for (let i = 0; i < DR_RINGS; i++) {
+    const T = D.T[i].copy(P[Math.max(0, i - 1)]).sub(P[Math.min(DR_RINGS - 1, i + 1)]);
+    if (T.lengthSq() < 1e-8) T.set(0, 0, 1); T.normalize();
+    const B = D.B[i].copy(up).addScaledVector(T, -T.y), w = clamp(B.length() / .5, 0, 1);
+    carry.copy(i ? D.B[i - 1] : D.back || new THREE.Vector3(P[0].x, 0, P[0].z));
+    carry.addScaledVector(T, -carry.dot(T));
+    if (carry.lengthSq() < 1e-6) carry.set(1, 0, 0).addScaledVector(T, -T.x);
+    B.normalize().multiplyScalar(w).addScaledVector(carry.normalize(), 1 - w).normalize();
+    D.N[i].crossVectors(B, T).normalize();
+  }
+  D.back = (D.back || new THREE.Vector3()).copy(D.B[0]);
+  const pos = D.body.geometry.attributes.position, nor = D.body.geometry.attributes.normal, dv = new THREE.Vector3();
+  for (let i = 0; i < DR_RINGS; i++) {
+    const r = drRadius(i) * D.scale, N = D.N[i], B = D.B[i];
+    for (let j = 0; j <= DR_SIDES; j++) {
+      const a = j / DR_SIDES * Math.PI * 2, k = i * (DR_SIDES + 1) + j;
+      dv.copy(N).multiplyScalar(Math.cos(a)).addScaledVector(B, Math.sin(a));
+      pos.setXYZ(k, P[i].x + dv.x * r, P[i].y + dv.y * r, P[i].z + dv.z * r); nor.setXYZ(k, dv.x, dv.y, dv.z);
+    }
+  }
+  pos.needsUpdate = nor.needsUpdate = true;
+  // Dressing uses the established +B back, -B belly, +T head frame unchanged.
+  D.head.position.copy(P[0]); D.head.up.copy(D.B[0]); D.head.lookAt(P[0].clone().add(D.T[0]));
+  const tangent = new THREE.Vector3(), across = new THREE.Vector3(), vertical = new THREE.Vector3(), radial = new THREE.Vector3();
+  for (const W of D.whiskers) {
+    const { mesh, side, segments, sides, centers } = W;
+    for (let j = 0; j <= segments; j++) {
+      const t = j / segments, wave = t * t;
+      centers[j].set(side * (.64 + 2.3 * Math.sin(t * Math.PI * .82) + .55 * t) + .18 * Math.sin(realT * 1.8 - t * 9 + side) * wave,
+        .23 + .55 * Math.sin(t * Math.PI) - .45 * t + .3 * Math.sin(realT * 2.1 - t * 7 + side * .8) * wave,
+        2.82 - 7.5 * t + .18 * Math.sin(realT * 1.6 - t * 8) * wave);
+    }
+    const wp = mesh.geometry.attributes.position, wn = mesh.geometry.attributes.normal;
+    for (let j = 0; j <= segments; j++) {
+      tangent.copy(centers[Math.min(segments, j + 1)]).sub(centers[Math.max(0, j - 1)]).normalize();
+      across.set(0, 1, 0).cross(tangent).normalize(); vertical.crossVectors(tangent, across).normalize();
+      const t = j / segments, radius = .08 * Math.pow(1 - t, .85) + .003;
+      for (let k = 0; k <= sides; k++) {
+        const a = k / sides * Math.PI * 2, v = j * (sides + 1) + k;
+        // TubeGeometry's index order winds clockwise when viewed along its tangent.
+        radial.copy(across).multiplyScalar(Math.cos(a)).addScaledVector(vertical, -Math.sin(a));
+        wp.setXYZ(v, centers[j].x + radial.x * radius, centers[j].y + radial.y * radius, centers[j].z + radial.z * radius);
+        wn.setXYZ(v, radial.x, radial.y, radial.z);
+      }
+    }
+    wp.needsUpdate = wn.needsUpdate = true;
+  }
+  const frame = new THREE.Matrix4();
+  for (const L of D.legs) {
+    const i = L.ring, r = drRadius(i) * D.scale;
+    L.g.position.copy(P[i]).addScaledVector(D.N[i], L.side * r * .67).addScaledVector(D.B[i], -r * .58);
+    frame.makeBasis(D.N[i], D.B[i], D.T[i]); L.g.quaternion.setFromRotationMatrix(frame);
+    L.g.rotateX(Math.sin(realT * 2.6 + i * .25 + L.side) * .12);
+  }
+  for (const C of D.crest) {
+    const i = C.ring;
+    C.g.position.copy(P[i]).addScaledVector(D.B[i], drRadius(i) * D.scale * .96);
+    frame.makeBasis(D.N[i], D.B[i], D.T[i]); C.g.quaternion.setFromRotationMatrix(frame);
+  }
+  const tailRing = DR_RINGS - 1;
+  D.tail.position.copy(P[tailRing]); frame.makeBasis(D.N[tailRing], D.B[tailRing], D.T[tailRing]); D.tail.quaternion.setFromRotationMatrix(frame);
+  D.tail.rotateZ(Math.sin(realT * 3.2) * .13); D.tail.rotateX(Math.sin(realT * 2.4) * .09);
+  for (const f of D.flames) {
+    const i = f.userData.ring, r = drRadius(i) * D.scale, flicker = Math.sin(realT * 7 + f.userData.seed);
+    const h = (.6 + .12 * flicker) * (r + .2 * D.scale);
+    f.position.copy(P[i]).addScaledVector(D.B[i], r + h * .45).addScaledVector(D.T[i], -.2 * D.scale);
+    f.scale.set(h * .32, h, 1); f.material.opacity = .13 + .035 * flicker;
+  }
+  for (const s of D.glows) {
+    const i = s.userData.ring, size = (drRadius(i) * 3.1 + .12 * Math.sin(realT * 3 + i)) * D.scale;
+    s.position.copy(P[i]).addScaledVector(D.B[i], drRadius(i) * D.scale * .25); s.scale.set(size, size, 1);
+  }
+}
+
 function startCombo(g) {
   if (headless) { g.floorW = 0; g.w = sgn(g.w); g.lastHitBy = player; g.lastHitT = simT; return; }
   state = 'combo'; tstop = null;
   hushCaster(); $('btnStorm').classList.add('hidden'); $('btnView').classList.add('hidden');
-  document.body.classList.add('cine');
-  const dx = g.x - player.x, dz = g.z - player.z, d = Math.hypot(dx, dz) || 1, sx = -dz / d, sz = dx / d;
+  document.body.classList.add('cine'); $('glory').classList.add('on');
+  const dx = g.x - player.x, dz = g.z - player.z, d = Math.hypot(dx, dz) || 1;
+  const dir = new THREE.Vector3(dx / d, 0, dz / d), side = new THREE.Vector3(-dz / d, 0, dx / d);
   const S = new THREE.Vector3(player.x, floorY(player.x, player.z) + 6.5, player.z), G = new THREE.Vector3(g.x, floorY(g.x, g.z) + 1.4, g.z);
-  const curve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(sx * 46, 22, sz * 46), new THREE.Vector3(sx * 17, 8, sz * 17), new THREE.Vector3(player.x + sx * 6, 4.5, player.z + sz * 6),
-    S, new THREE.Vector3(S.x * .3 - sx * 4, 18, S.z * .3 - sz * 4), G]);
-  const dragon = makeDragon();
-  for (let i = 0; i < 200; i++) dragon.hist.push(curve.getPoint(0));
-  scene.add(dragon.group);
-  combo = { t: 0, g, curve, dragon, S, G, side: new THREE.Vector3(sx, 0, sz), dir: new THREE.Vector3(dx / d, 0, dz / d), shot: -1, titled: false, hit: false, py: player.g.position.y };
-  cine = { pos: new THREE.Vector3(), look: new THREE.Vector3(), t: 0, fresh: true, fov: 55 };
-  sfx.roar(); musicLevel(.4, .2); excite = 1;
-  say(t('Cái gì kia?! Một con RỒNG?!', 'What is that?! A DRAGON?!'), 3);
-}
-function comboTick(dt) {
-  const c = combo, D = c.dragon, g = c.g;
-  c.t += dt;
-  const u = clamp((c.t - .2) / 4.9, 0, 1), head = c.curve.getPoint(u), ahead = c.curve.getPoint(Math.min(1, u + .01));
-  if (u >= 1) ahead.copy(head).add(c.dir);
-  D.head.position.copy(head); D.head.lookAt(ahead);
-  D.hist.push(head.clone()); if (D.hist.length > 400) D.hist.shift();
-  D.segs.forEach((s, i) => {                        // the body follows the head's own path
-    const k = Math.max(0, D.hist.length - 2 - i * 3), p = D.hist[k], q = D.hist[Math.min(D.hist.length - 1, k + 2)];
-    s.position.copy(p); s.lookAt(q);
+  const tp = Math.atan2(player.z, player.x), rp = Math.max(3, Math.hypot(player.x, player.z));
+  // out of the vortex, a long spiral round the arena that ends under your top
+  const ptsA = [new THREE.Vector3(0, 31, 0)];
+  for (let k = 1; k <= 9; k++) {
+    const f = k / 10, a = tp - (1 - f) * 3.4 * Math.PI, r = 18 * (1 - f) + rp * f;
+    ptsA.push(new THREE.Vector3(Math.cos(a) * r, 25 * (1 - f) + S.y * f, Math.sin(a) * r));
+  }
+  ptsA.push(S);
+  // then up into the sky and straight down onto the god
+  const rot = (a, r, y) => new THREE.Vector3(Math.cos(tp + a) * r, y, Math.sin(tp + a) * r);
+  const ptsB = [S, rot(.9, 9, 15), rot(2, 9, 28), rot(3.8, 7, 38), new THREE.Vector3(G.x * .3, 37, G.z * .3), G];
+  const dragon = makeDragon(), A = new THREE.CatmullRomCurve3(ptsA, false, 'centripetal'), Bc = new THREE.CatmullRomCurve3(ptsB, false, 'centripetal');
+  // the body waits above the vortex and pours down out of it
+  for (let k = 160; k >= 0; k--) dragon.hist.push(ptsA[0].clone().add(new THREE.Vector3(Math.sin(k * .15) * 2, k * .5, Math.cos(k * .15) * 2)));
+  dragon.group.visible = false; scene.add(dragon.group);
+  const small = ['thunder', 'lotus', 'wind', 'dragon', 'tyrant', 'phantom', 'vajra', 'ice', 'moon'].map((key, i) => {
+    const D = makeDragon({ scale: .4, tint: FOES[key].color, lite: true }), pts = [];
+    for (let k = 0; k <= 16; k++) {
+      const u = k / 16, a = i / 9 * Math.PI * 2 + u * Math.PI * 2.4, r = 14 * (1 - u) ** .8;
+      pts.push(new THREE.Vector3(Math.cos(a) * r, 1.2 + 29.8 * u, Math.sin(a) * r));
+    }
+    const path = new THREE.CatmullRomCurve3(pts, false, 'centripetal'), back = path.getTangentAt(0).negate();
+    for (let k = 100; k >= 0; k--) D.hist.push(pts[0].clone().addScaledVector(back, k * DR_SEG * D.scale));
+    poseDragon(D); D.group.visible = false; scene.add(D.group);
+    return { D, path, color: new THREE.Color(FOES[key].color) };
   });
-  const fwd = ahead.clone().sub(head).normalize();
-  // your top: a jump onto the dragon's head as it passes, then a ride down onto the god
-  if (c.t > 2.4 && !c.hit) {
+  // the vortex and the rays of light falling out of it
+  const sky = new THREE.Group();
+  const vortex = new THREE.Mesh(new THREE.CircleGeometry(30, 64), new THREE.MeshBasicMaterial({ map: vortexTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide, opacity: 0 }));
+  vortex.rotation.x = Math.PI / 2; vortex.position.y = 31; sky.add(vortex);
+  const rays = [];
+  for (let k = 0; k < 7; k++) {
+    const ray = new THREE.Mesh(new THREE.CylinderGeometry(.5, 3.2, 34, 16, 1, true), additive(0xffd27a, 0, { side: THREE.DoubleSide, fog: false }));
+    const a = k / 7 * Math.PI * 2, r = rand(3, 9); ray.position.set(Math.cos(a) * r, 14, Math.sin(a) * r); ray.rotation.set(rand(-.2, .2), 0, rand(-.2, .2));
+    ray.userData.seed = rand(0, 6.28); sky.add(ray); rays.push(ray);
+  }
+  const flash = glowSprite(0xfff8df, 1), wave = new THREE.Mesh(new THREE.RingGeometry(.85, 1, 64), additive(0xffe5a0, 0, { side: THREE.DoubleSide, fog: false }));
+  flash.position.set(0, 31, 0); flash.visible = wave.visible = false; wave.position.copy(flash.position); wave.rotation.x = -Math.PI / 2; sky.add(flash, wave);
+  scene.add(sky);
+  combo = { t: 0, g, A, B: Bc, dragon, small, S, G, dir, side, sky, vortex, rays, flash, wave, shot: -1, titled: false, hit: false, py: player.g.position.y, orbit: tp + Math.PI, events: {} };
+  cine = { pos: new THREE.Vector3(), look: new THREE.Vector3(), t: 0, fresh: true, fov: 60 };
+  musicLevel(.15, .3); sfx.rumble(); excite = 1;
+  say(t('Bầu trời... đang nứt ra?!', 'The sky... is splitting open?!'), 3);
+}
+const ease = u => u < .5 ? 2 * u * u : 1 - (-2 * u + 2) ** 2 / 2;
+function comboTick(dt) {
+  const c = combo, D = c.dragon, g = c.g, e = c.events;
+  c.t += dt;
+  const once = (k, at, fn) => { if (!e[k] && c.t >= at) { e[k] = 1; fn(); } };
+  if (c.t >= CB_RISE && c.t < CB_FUSE) for (const s of c.small) {
+    const head = s.path.getPointAt(clamp((c.t - CB_RISE) / (CB_FUSE - CB_RISE), 0, 1)), D = s.D;
+    D.group.visible = true; D.hist.push(head); poseDragon(D);
+    for (let k = 0; k < 2; k++) { const p = D.pts[Math.floor(rand(0, DR_RINGS))]; spark(p.x, p.y, p.z, rand(-1, 1), rand(0, 2), rand(-1, 1), rand(.4, .9), s.color.r, s.color.g, s.color.b, -.1); }
+  }
+  once('fusion', CB_FUSE, () => {
+    for (const s of c.small) dropFx(s.D.group); c.small = [];
+    D.group.visible = true; c.flash.visible = c.wave.visible = true;
+    for (let k = 0; k < 120; k++) { const a = rand(0, Math.PI * 2), sp = rand(4, 20); spark(0, 31, 0, Math.cos(a) * sp, rand(-8, 10), Math.sin(a) * sp, rand(.6, 1.4), 1, .85, .5, .1); }
+    sfx.gong(); sfx.choirMajor(CB_LAND - CB_FUSE); shake = Math.max(shake, .8);
+    $('flash').animate([{ opacity: .9 }, { opacity: 0 }], { duration: 700 });
+  });
+  if (e.fusion) {
+    const u = clamp((c.t - CB_FUSE) / (CB_RISE * .75), 0, 1);
+    c.flash.material.opacity = (1 - u) ** 2; c.flash.scale.setScalar(12 + u * 36);
+    c.wave.material.opacity = .9 * (1 - u); c.wave.scale.setScalar(1 + u * 32);
+    c.flash.visible = c.wave.visible = u < 1;
+  }
+  // the head: out of the vortex and round the arena, then up and down onto the god
+  let head;
+  if (c.t < CB_LAND) head = c.A.getPointAt(ease(clamp((c.t - CB_FUSE) / (CB_LAND - CB_FUSE), 0, 1)));
+  else head = c.B.getPointAt(Math.min(1, ((c.t - CB_LAND) / (CB_RIDE - CB_LAND)) ** 1.6));
+  if (e.fusion && !c.hit) {
+    D.hist.push(head.clone()); if (D.hist.length > 1600) D.hist.shift();
+    poseDragon(D);
+    for (let k = 0; k < 6; k++) {                    // golden sparkles shed from the body
+      const i = Math.floor(rand(0, DR_RINGS)), p = D.pts[i];
+      spark(p.x + rand(-1, 1), p.y + rand(-1, 1), p.z + rand(-1, 1), rand(-1, 1), rand(-1, 1), rand(-1, 1), rand(.6, 1.4), 1, .85, .35, .15);
+    }
+  }
+  // the sky: the vortex opens, the rays fade in and out
+  const open = clamp(c.t / CB_RISE, 0, 1) * (c.hit ? Math.max(0, 1 - (c.t - CB_RIDE) / 2) : 1);
+  c.vortex.material.opacity = .95 * open; c.vortex.scale.setScalar(.3 + .7 * open); c.vortex.rotation.z -= dt * .6;
+  for (const r of c.rays) r.material.opacity = .14 * open * (.7 + .3 * Math.sin(realT * 3 + r.userData.seed));
+  once('roar', .4, () => { sfx.roar(); shake = Math.max(shake, .6); });
+  once('choir', CB_RISE, () => { sfx.choirMajor(CB_FUSE - CB_RISE); });
+  // your top: a silver leap onto the dragon's head as it passes, then the ride
+  if (c.t > CB_LAND - .9 && !c.hit) {
     let pos;
-    if (c.t < 3.14) { const k = (c.t - 2.4) / .74; pos = new THREE.Vector3(player.x, c.py + (c.S.y - c.py) * k + Math.sin(Math.PI * k) * 2.5, player.z); }
-    else pos = head.clone().add(new THREE.Vector3(0, 1.1, 0));
-    player.x = pos.x; player.z = pos.z; player.yOff = pos.y - floorY(pos.x, pos.z); player.vy = 0;
-    player.g.position.copy(pos);
+    if (c.t < CB_LAND) { const k = (c.t - (CB_LAND - .9)) / .9; pos = new THREE.Vector3(player.x, c.py + (c.S.y - c.py) * k + Math.sin(Math.PI * k) * 3, player.z); }
+    else pos = D.pts[0].clone().addScaledVector(D.B[0], 1.7);
+    player.x = pos.x; player.z = pos.z; player.yOff = pos.y - floorY(pos.x, pos.z); player.vy = 0; player.g.position.copy(pos);
+    for (let k = 0; k < 3; k++) spark(pos.x + rand(-.6, .6), pos.y + rand(0, 1), pos.z + rand(-.6, .6), 0, rand(1, 3), 0, .5, .9, .95, 1, -.2);
   }
-  if (!c.titled && c.t > 3.2) {
-    c.titled = true;
-    soulCard(t('Thần Long Đại Hiệp', 'Dragon Warrior'), 'dragon', t('e^iπ + 1 = 0', 'e^iπ + 1 = 0'));
-    sfx.gong(); sfx.roar(); shake = Math.max(shake, .8);
+  once('jump', CB_LAND - .9, () => { sfx.jump(); sfx.ultra(); });
+  once('title', CB_LAND + .1, () => {
+    soulCard(t('Thần Long Đại Hiệp', 'Dragon Warrior'), 'dragon', 'e<sup>iπ</sup> + 1 = 0');
+    sfx.gong(); sfx.roar(); shake = Math.max(shake, 1); $('flash').animate([{ opacity: .6 }, { opacity: 0 }], { duration: 500 });
+  });
+  if (!c.hit && c.t >= CB_RIDE) comboImpact();
+  if (c.hit) {                                        // golden embers drift down over the fallen god
+    for (let k = 0; k < 5; k++) spark(c.G.x + rand(-9, 9), c.G.y + rand(6, 14), c.G.z + rand(-9, 9), rand(-.3, .3), rand(-1.5, -.5), rand(-.3, .3), rand(1.5, 2.5), 1, .8, .3, .05);
+    if (c.pillar) { const k = (c.t - CB_RIDE) / 2.5; c.pillar.material.opacity = .55 * Math.max(0, 1 - k); c.pillar.scale.set(1 + k * 1.5, 1, 1 + k * 1.5); }
   }
-  if (!c.hit && u >= 1) comboImpact();
-  // the camera: the dragon arriving, the jump, the ride down, the impact
-  const shot = c.hit ? 3 : c.t < 2.4 ? 0 : c.t < 3.9 ? 1 : 2;
+  // wide enough to keep all nine souls in view before the fusion cut
+  const fwd = c.hit ? c.dir : D.T[0];
+  const shot = c.hit ? 6 : c.t < CB_RISE ? 0 : c.t < CB_FUSE ? 1 : c.t < CB_FUSE + (CB_FUSE - CB_RISE) / 5 ? 2 : c.t < CB_LAND - CB_RISE ? 3 : c.t < CB_LAND + CB_RISE * 2 / 3 ? 4 : 5;
   if (shot !== c.shot) { c.shot = shot; cine.fresh = true; }
-  if (shot === 0) { cine.pos.set(player.x - c.side.x * 12, 6, player.z - c.side.z * 12); cine.look.copy(head); cine.fov = 55; }
-  // (both shots stand off to one side: the body trails right behind the head and would fill a camera placed there)
-  else if (shot === 1) { cine.pos.copy(c.S).addScaledVector(c.side, -14).addScaledVector(c.dir, 6).add(new THREE.Vector3(0, -3, 0)); cine.look.copy(c.S); cine.fov = 55; }
-  else if (shot === 2) {
-    const perp = new THREE.Vector3(-fwd.z, 0, fwd.x).normalize();
-    cine.pos.copy(head).addScaledVector(perp, 8).addScaledVector(fwd, -3).add(new THREE.Vector3(0, 3, 0)); cine.look.copy(head).addScaledVector(fwd, 4); cine.fov = 60;
+  if (shot === 0) { cine.pos.set(player.x, 1.4, player.z).addScaledVector(c.dir, -7); cine.look.set(0, 24, 0); cine.fov = 64; }
+  else if (shot === 1) {
+    c.orbit += dt * .12;
+    // from above the middle of the floor, looking up: inside the stands (radius 13) and over the tops' heads
+    cine.pos.set(Math.cos(c.orbit) * 4, 5, Math.sin(c.orbit) * 4); cine.look.set(0, 18, 0); cine.fov = 80;
   }
-  else { cine.pos.copy(c.G).addScaledVector(c.side, 9).addScaledVector(c.dir, -4).add(new THREE.Vector3(0, 4, 0)); cine.look.copy(c.G); cine.fov = 55; }
-  if (c.hit && c.t > c.hitT + 1.6) { combo = null; cine = null; document.body.classList.remove('cine'); }
+  else if (shot === 2) { cine.pos.set(Math.cos(c.orbit) * 16, 7, Math.sin(c.orbit) * 16); cine.look.set(0, 31, 0); cine.fov = 72; }
+  else if (shot === 3) {
+    c.orbit += dt * .22;
+    cine.pos.set(Math.cos(c.orbit) * 31, 13, Math.sin(c.orbit) * 31); cine.look.copy(head).multiplyScalar(.65); cine.fov = 58;
+  }
+  else if (shot === 4) { cine.pos.copy(c.S).addScaledVector(c.side, -14).addScaledVector(c.dir, 6).add(new THREE.Vector3(0, -3, 0)); cine.look.copy(c.S); cine.fov = 54; }
+  else if (shot === 5) {
+    const perp = new THREE.Vector3(-fwd.z, 0, fwd.x).normalize();
+    cine.pos.copy(head).addScaledVector(perp, 15).addScaledVector(fwd, -5).add(new THREE.Vector3(0, 5, 0)); cine.look.copy(head).addScaledVector(fwd, 3); cine.fov = 58;
+  }
+  else {
+    const k = Math.min(1, (c.t - CB_RIDE) / (CB_END - CB_RIDE));
+    cine.pos.copy(c.G).addScaledVector(c.side, 13 - 4 * k).addScaledVector(c.dir, -5).add(new THREE.Vector3(0, 6 - 2 * k, 0)); cine.look.copy(c.G); cine.fov = 55;
+  }
+  if (c.t >= CB_END) endCombo();
 }
 function comboImpact() {
-  const c = combo, g = c.g, y = floorY(g.x, g.z);
-  c.hit = true; c.hitT = c.t;
-  dropFx(c.dragon.group);
-  for (const col of [0xffd54f, 0xffffff, 0xff5252]) shockRing(g.x, y + rand(0, .6), g.z, col);
-  for (let i = 0; i < 300; i++) { const a = rand(0, 6.28), sp = rand(5, 22); spark(g.x, y + 1, g.z, Math.cos(a) * sp, rand(3, 14), Math.sin(a) * sp, rand(.5, 1.2), 1, rand(.6, .9), rand(.1, .4)); }
-  hitLight.color.setHex(0xffd27a); hitLight.position.set(g.x, y + 3, g.z); hitLight.intensity = 120;
-  $('flash').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 700 });
-  shake = 1.6; excite = 1; sfx.boom(); sfx.gong(); setTimeout(() => sfx.boom(), 120);
+  const c = combo, g = c.g, y = floorY(g.x, g.z), D = c.dragon;
+  c.hit = true;
+  // the dragon bursts into golden light
+  for (let i = 0; i < DR_RINGS; i += 2) { const p = D.pts[i]; for (let k = 0; k < 5; k++) spark(p.x, p.y, p.z, rand(-6, 6), rand(-2, 8), rand(-6, 6), rand(.8, 1.8), 1, rand(.75, .95), rand(.2, .5), .4); }
+  dropFx(D.group); D.group = null;
+  c.pillar = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 3.2, 44, 28, 1, true), additive(0xffe08a, .55, { side: THREE.DoubleSide, fog: false }));
+  c.pillar.position.set(g.x, y + 20, g.z); scene.add(c.pillar);
+  for (const col of [0xffd54f, 0xffffff, 0xff8f00, 0xffe082]) shockRing(g.x, y + rand(0, .8), g.z, col);
+  for (let i = 0; i < 360; i++) { const a = rand(0, 6.28), sp = rand(6, 26); spark(g.x, y + 1, g.z, Math.cos(a) * sp, rand(3, 16), Math.sin(a) * sp, rand(.6, 1.4), 1, rand(.6, .9), rand(.1, .4)); }
+  hitLight.color.setHex(0xffd27a); hitLight.position.set(g.x, y + 3, g.z); hitLight.intensity = 160;
+  $('flash').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 900 });
+  shake = 1.8; excite = 1; sfx.boom(); sfx.gong(); setTimeout(() => sfx.boom(), 140); setTimeout(() => sfx.boom(), 320);
   // you land beside the god, and the god goes down
   player.x = g.x - c.dir.x * (g.r + player.r + .4); player.z = g.z - c.dir.z * (g.r + player.r + .4); player.yOff = 0; player.vx = player.vz = 0;
-  state = 'battle'; g.floorW = 0; g.lastHitBy = player; g.lastHitT = simT;
-  kill(g, 'spin');
+  g.floorW = 0; g.lastHitBy = player; g.lastHitT = simT;
+  state = 'battle'; kill(g, 'spin'); state = 'combo';    // it falls now; the fight is scored once the scene ends
+  musicLevel(1, 1.5);
+}
+function endCombo() {
+  comboCleanup();
+  cine = null; document.body.classList.remove('cine');
+  state = 'battle';                                    // checkEnd now sees the god down and calls the win
+}
+function comboCleanup() {
+  if (!combo) return;
+  for (const s of combo.small) dropFx(s.D.group);
+  dropFx(combo.dragon.group); dropFx(combo.sky); dropFx(combo.pillar);
+  $('glory').classList.remove('on');
+  combo = null;
 }
 
 function eulerHud(s) {
@@ -4040,7 +4389,7 @@ if (params.has('debug')) window.game = {
     return [wins, crushed, Math.round(time / runs)];
   },
   ko: () => { const g = tops.find(a => a.voidGod && a.alive); if (g && state === 'battle' && !tstop) return startCombo(g); tops.forEach(a => { if (!a.isPlayer) { a.w = sgn(a.w); a.lastHitBy = player; a.lastHitT = simT; } }); },
-  voidTune: o => Object.assign(VOID_TUNE, o), eqSet: toks => { build.eq = { s: toks.map(k => k && { v: k.replace('^', ''), up: k.startsWith('^') }) }; syncEq(); },
+  comboT: () => combo && +combo.t.toFixed(2), voidTune: o => Object.assign(VOID_TUNE, o), eqSet: toks => { build.eq = { s: toks.map(k => k && { v: k.replace('^', ''), up: k.startsWith('^') }) }; syncEq(); },
   tier: n => { tierOverride = n; }, eulerPass: v => { eulerOverride = v; }, checkEuler, shards: () => shardsOwned(),
   toVoid: () => { if (state === 'shop') launch(); pendingRebirth = true; },
   last: () => ({ void: !!level.void, won, why: player.why, crushed: player.crushed, t: +simT.toFixed(1), foes: tops.filter(a => !a.isPlayer).map(a => [a.alive, Math.round(a.w)]) }),
