@@ -14,6 +14,11 @@ function replaceOnce(from, to) {
 replaceOnce('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js', './three.module.js');
 replaceOnce("const BUILD = 'web';", "const BUILD = 'crazygames';");
 replaceOnce('</head>', '<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>\n</head>');
+// Remove local test navigation itself, not just its runtime gate.
+const debugRegions = html.match(/\/\/ DEBUG NAV BEGIN[\s\S]*?\/\/ DEBUG NAV END\r?\n/g) || [];
+if (debugRegions.length !== 2) throw new Error('Expected both local debug navigation regions');
+html = html.replace(/\/\/ DEBUG NAV BEGIN[\s\S]*?\/\/ DEBUG NAV END\r?\n/g, '');
+if (/game\.testLevel|debugNav|debugLevel|params\.get\('(?:level|boss)'\)|code !== 'F8'/.test(html)) throw new Error('Local debug navigation leaked into production');
 await stat(join(root, 'vendor', 'three.module.js'));
 await stat(join(root, 'sounds'));
 
