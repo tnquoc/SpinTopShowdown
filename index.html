@@ -224,6 +224,11 @@
   body.timestop canvas { filter: grayscale(1) contrast(1.25) brightness(.92); }
   body.timefree canvas { filter: saturate(.55) brightness(1.1) contrast(1.15); }   /* a cold silver light, like a fighter beyond their limits */
   body.dread canvas { filter: saturate(.3) brightness(.62) contrast(1.2); transition: filter 1.4s; }
+  /* The equation's cold filter must not bleach the golden dragon cinematic. */
+  body.dragon-finale canvas { filter: saturate(1.12) contrast(1.04); transition: filter .12s; }
+  body.dragon-finale #flash { background: #fff0bd; }
+  body.dragon-finale #glory { transition: opacity .2s;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255,190,55,.16), rgba(255,145,20,.035) 42%, transparent 66%); }
   body.dread::after { content: ''; position: fixed; inset: 0; z-index: 18; pointer-events: none; background: radial-gradient(ellipse at center, transparent 30%, rgba(40,0,0,.75)); }
   #shardBox { margin-bottom: 10px; padding: 8px 10px; border: 1px solid #4a4470; border-radius: 10px; background: #1a1628; }
   .shard { display: inline-block; min-width: 24px; margin-left: 4px; padding: 2px 6px; border-radius: 6px; text-align: center;
@@ -4203,6 +4208,16 @@ function uiAuraTick(g, dt) {
 // head, and the two of you climb into the sky and dive onto the god.
 const DR_RINGS = 72, DR_SIDES = 18, DR_SEG = .5;
 const CB_RISE = 1.2, CB_FUSE = 4.2, CB_LAND = 11, CB_RIDE = CB_LAND + 4.8, CB_END = CB_RIDE + 3;
+// Presentation only: short warm flashes preserve the scales and the silhouette.
+function dragonFlash(strength = .4, duration = 240) {
+  $('flash').animate([{ opacity: strength }, { opacity: strength * .12, offset: .35 }, { opacity: 0 }], { duration });
+}
+function dragonWave(c, position, radius = 3, vertical = false) {
+  const ring = new THREE.Mesh(new THREE.RingGeometry(.965, 1, 96), additive(0xffcc55, .8, { side: THREE.DoubleSide, fog: false }));
+  ring.position.copy(position); if (!vertical) ring.rotation.x = -Math.PI / 2;
+  ring.userData = { age: 0, radius }; ring.scale.setScalar(radius);
+  c.sky.add(ring); c.halos.push(ring);
+}
 const dragonGeo = new THREE.SphereGeometry(1, 16, 12);
 const dragonScaleTex = canvasTex(1024, 512, (c, w, h) => {
   // u=.25 is +B (large dorsal scales); u=.75 is -B (cream belly plates).
@@ -4298,6 +4313,24 @@ function makeDragon({ scale = 1, tint = null, lite = false } = {}) {
   geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); geo.setIndex(idx);
   const body = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ map: dragonScaleTex, color: tint ?? 0xffffff, emissive: tint === null ? 0x452707 : new THREE.Color(tint).multiplyScalar(.32), shininess: 85, specular: 0xffd781 }));
   body.frustumCulled = false; group.add(body);
+  // A second skin follows the very same transported body geometry. Its Fresnel
+  // falloff lights the silhouette without painting over the scale texture.
+  let aura = null;
+  if (!lite) {
+    aura = new THREE.Mesh(geo, new THREE.ShaderMaterial({
+      uniforms: { gold: { value: new THREE.Color(0xffbd36) }, thickness: { value: .16 * scale }, strength: { value: .48 } },
+      vertexShader: `uniform float thickness; varying vec3 haloNormal; varying vec3 haloView;
+        void main(){ vec4 p=modelViewMatrix*vec4(position+normal*thickness,1.0);
+          haloNormal=normalize(normalMatrix*normal); haloView=-p.xyz; gl_Position=projectionMatrix*p; }`,
+      fragmentShader: `uniform vec3 gold; uniform float strength; varying vec3 haloNormal; varying vec3 haloView;
+        void main(){float rim=pow(1.0-abs(dot(normalize(haloNormal),normalize(haloView))),2.1);
+          gl_FragColor=vec4(gold,strength*rim);
+          #include <colorspace_fragment>
+        }`,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false,
+    }));
+    aura.frustumCulled = false; group.add(aura);
+  }
   // An imperial lung: long muzzle, lifted nose, open jaw, swept branching antlers.
   // All facial coordinates use +z forward, +y back/sky, +x side.
   const head = new THREE.Group();
@@ -4382,8 +4415,10 @@ function makeDragon({ scale = 1, tint = null, lite = false } = {}) {
     f.userData = { ring: i, seed: rand(0, 6.28) }; group.add(f); flames.push(f);
   }
   const glows = [];
-  for (let i = 0; i < DR_RINGS; i += lite ? 30 : 16) { const s = glowSprite(tint ?? 0xffbe42, 3 * scale); s.material.opacity = lite ? .1 : .14; s.userData.ring = i; group.add(s); glows.push(s); }
-  return { group, body, head, whiskers, legs, crest, tail, flames, glows, scale, hist: [], pts: Array.from({ length: DR_RINGS }, () => new THREE.Vector3()),
+  for (let i = 0; i < DR_RINGS; i += lite ? 18 : 4) { const s = glowSprite(tint ?? 0xffb52e, 3 * scale); s.material.opacity = lite ? .12 : .22; s.userData.ring = i; group.add(s); glows.push(s); }
+  const headHalo = lite ? null : glowSprite(0xffb324, 5.5 * scale);
+  if (headHalo) { headHalo.material.opacity = .24; group.add(headHalo); }
+  return { group, body, aura, headHalo, head, whiskers, legs, crest, tail, flames, glows, scale, hist: [], pts: Array.from({ length: DR_RINGS }, () => new THREE.Vector3()),
     T: Array.from({ length: DR_RINGS }, () => new THREE.Vector3()), N: Array.from({ length: DR_RINGS }, () => new THREE.Vector3()), B: Array.from({ length: DR_RINGS }, () => new THREE.Vector3()) };
 }
 // lay the body along the head's own path: rings at fixed distances back along it, framed by parallel transport
@@ -4425,6 +4460,7 @@ function poseDragon(D) {
   pos.needsUpdate = nor.needsUpdate = true;
   // Dressing uses the established +B back, -B belly, +T head frame unchanged.
   D.head.position.copy(P[0]); D.head.up.copy(D.B[0]); D.head.lookAt(P[0].clone().add(D.T[0]));
+  if (D.headHalo) D.headHalo.position.copy(P[0]).addScaledVector(D.B[0], .4 * D.scale);
   const tangent = new THREE.Vector3(), across = new THREE.Vector3(), vertical = new THREE.Vector3(), radial = new THREE.Vector3();
   for (const W of D.whiskers) {
     const { mesh, side, segments, sides, centers } = W;
@@ -4471,7 +4507,7 @@ function poseDragon(D) {
     f.scale.set(h * .32, h, 1); f.material.opacity = .13 + .035 * flicker;
   }
   for (const s of D.glows) {
-    const i = s.userData.ring, size = (drRadius(i) * 3.1 + .12 * Math.sin(realT * 3 + i)) * D.scale;
+    const i = s.userData.ring, size = (drRadius(i) * 4.4 + .12 * Math.sin(realT * 3 + i)) * D.scale;
     s.position.copy(P[i]).addScaledVector(D.B[i], drRadius(i) * D.scale * .25); s.scale.set(size, size, 1);
   }
 }
@@ -4480,7 +4516,7 @@ function startCombo(g) {
   if (headless) { g.floorW = 0; g.w = sgn(g.w); g.lastHitBy = player; g.lastHitT = simT; return; }
   state = 'combo'; tstop = null;
   hushCaster(); $('btnStorm').classList.add('hidden'); $('btnView').classList.add('hidden');
-  document.body.classList.add('cine'); $('glory').classList.add('on');
+  document.body.classList.add('cine', 'dragon-finale'); $('glory').classList.add('on');
   const dx = g.x - player.x, dz = g.z - player.z, d = Math.hypot(dx, dz) || 1;
   const dir = new THREE.Vector3(dx / d, 0, dz / d), side = new THREE.Vector3(-dz / d, 0, dx / d);
   const S = new THREE.Vector3(player.x, floorY(player.x, player.z) + 6.5, player.z), G = new THREE.Vector3(g.x, floorY(g.x, g.z) + 1.4, g.z);
@@ -4514,16 +4550,30 @@ function startCombo(g) {
   const sky = new THREE.Group();
   const vortex = new THREE.Mesh(new THREE.CircleGeometry(30, 64), new THREE.MeshBasicMaterial({ map: vortexTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide, opacity: 0 }));
   vortex.rotation.x = Math.PI / 2; vortex.position.y = 31; sky.add(vortex);
+  // Solid luminous spirals keep their shape even when the sky disc is edge-on.
+  const spirals = [];
+  for (let arm = 0; arm < 3; arm++) {
+    const points = Array.from({ length: 100 }, (_, i) => {
+      const u = i / 99, a = arm * Math.PI * 2 / 3 + u * Math.PI * 3.5, r = 2 + u * 24;
+      return new THREE.Vector3(Math.cos(a) * r, 31 + Math.sin(u * Math.PI) * .9, Math.sin(a) * r);
+    });
+    const spiral = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 120, .075, 5, false), additive(0xffc64a, 0, { fog: false }));
+    sky.add(spiral); spirals.push(spiral);
+  }
+  const crown = new THREE.Mesh(new THREE.TorusGeometry(26, .12, 6, 128), additive(0xffd76a, 0, { fog: false }));
+  crown.rotation.x = Math.PI / 2; crown.position.y = 31; sky.add(crown);
+  const headLight = new THREE.PointLight(0xffb83e, 0, 15, 1.5), rimLight = new THREE.DirectionalLight(0xffc45e, 0);
+  const rimTarget = new THREE.Object3D(); rimLight.target = rimTarget; sky.add(headLight, rimLight, rimTarget);
   const rays = [];
   for (let k = 0; k < 7; k++) {
-    const ray = new THREE.Mesh(new THREE.CylinderGeometry(.5, 3.2, 34, 16, 1, true), additive(0xffd27a, 0, { side: THREE.DoubleSide, fog: false }));
+    const ray = new THREE.Mesh(new THREE.CylinderGeometry(.22, 1.35, 34, 16, 1, true), additive(0xffb72e, 0, { side: THREE.DoubleSide, fog: false }));
     const a = k / 7 * Math.PI * 2, r = rand(3, 9); ray.position.set(Math.cos(a) * r, 14, Math.sin(a) * r); ray.rotation.set(rand(-.2, .2), 0, rand(-.2, .2));
     ray.userData.seed = rand(0, 6.28); sky.add(ray); rays.push(ray);
   }
   const flash = glowSprite(0xfff8df, 1), wave = new THREE.Mesh(new THREE.RingGeometry(.85, 1, 64), additive(0xffe5a0, 0, { side: THREE.DoubleSide, fog: false }));
   flash.position.set(0, 31, 0); flash.visible = wave.visible = false; wave.position.copy(flash.position); wave.rotation.x = -Math.PI / 2; sky.add(flash, wave);
   scene.add(sky);
-  combo = { t: 0, g, A, B: Bc, dragon, small, S, G, dir, side, sky, vortex, rays, flash, wave, shot: -1, titled: false, hit: false, py: player.g.position.y, orbit: tp + Math.PI, events: {} };
+  combo = { t: 0, g, A, B: Bc, dragon, small, S, G, dir, side, sky, vortex, spirals, crown, headLight, rimLight, rimTarget, halos: [], rays, flash, wave, shot: -1, titled: false, hit: false, py: player.g.position.y, orbit: tp + Math.PI, events: {} };
   cine = { pos: new THREE.Vector3(), look: new THREE.Vector3(), t: 0, fresh: true, fov: 60 };
   musicLevel(.15, .3); sfx.rumble(); excite = 1;
   say(t('Bầu trời... đang nứt ra?!', 'The sky... is splitting open?!'), 3);
@@ -4541,13 +4591,15 @@ function comboTick(dt) {
   once('fusion', CB_FUSE, () => {
     for (const s of c.small) dropFx(s.D.group); c.small = [];
     D.group.visible = true; c.flash.visible = c.wave.visible = true;
+    dragonWave(c, new THREE.Vector3(0, 31, 0), 4);
+    dragonWave(c, new THREE.Vector3(0, 31, 0), 2.5, true);
     for (let k = 0; k < 120; k++) { const a = rand(0, Math.PI * 2), sp = rand(4, 20); spark(0, 31, 0, Math.cos(a) * sp, rand(-8, 10), Math.sin(a) * sp, rand(.6, 1.4), 1, .85, .5, .1); }
     sfx.gong(); sfx.choirMajor(CB_LAND - CB_FUSE); shake = Math.max(shake, .8);
-    $('flash').animate([{ opacity: .9 }, { opacity: 0 }], { duration: 700 });
+    dragonFlash(.42, 240);
   });
   if (e.fusion) {
-    const u = clamp((c.t - CB_FUSE) / (CB_RISE * .75), 0, 1);
-    c.flash.material.opacity = (1 - u) ** 2; c.flash.scale.setScalar(12 + u * 36);
+    const u = clamp((c.t - CB_FUSE) / .42, 0, 1);
+    c.flash.material.opacity = .6 * (1 - u) ** 2; c.flash.scale.setScalar(8 + u * 20);
     c.wave.material.opacity = .9 * (1 - u); c.wave.scale.setScalar(1 + u * 32);
     c.flash.visible = c.wave.visible = u < 1;
   }
@@ -4558,15 +4610,29 @@ function comboTick(dt) {
   if (e.fusion && !c.hit) {
     D.hist.push(head.clone()); if (D.hist.length > 1600) D.hist.shift();
     poseDragon(D);
-    for (let k = 0; k < 6; k++) {                    // golden sparkles shed from the body
+    c.headLight.position.copy(D.pts[0]).addScaledVector(D.B[0], 2);
+    c.headLight.intensity = 18; c.rimLight.intensity = 2.6;
+    c.rimTarget.position.copy(D.pts[8]); c.rimLight.position.copy(D.pts[0]).add(new THREE.Vector3(-8, 10, -6));
+    for (let k = 0; k < 8; k++) {                    // embers peel off the aura and trail behind each moving segment
       const i = Math.floor(rand(0, DR_RINGS)), p = D.pts[i];
-      spark(p.x + rand(-1, 1), p.y + rand(-1, 1), p.z + rand(-1, 1), rand(-1, 1), rand(-1, 1), rand(-1, 1), rand(.6, 1.4), 1, .85, .35, .15);
+      const a = rand(0, Math.PI * 2), r = drRadius(i) * 1.25, radial = D.N[i].clone().multiplyScalar(Math.cos(a)).addScaledVector(D.B[i], Math.sin(a));
+      spark(p.x + radial.x * r, p.y + radial.y * r, p.z + radial.z * r,
+        radial.x * 1.4 - D.T[i].x * 2, radial.y * 1.4 + .5 - D.T[i].y * 2, radial.z * 1.4 - D.T[i].z * 2, rand(.7, 1.5), 1, .68 + k % 3 * .08, .12, .06);
     }
   }
   // the sky: the vortex opens, the rays fade in and out
   const open = clamp(c.t / CB_RISE, 0, 1) * (c.hit ? Math.max(0, 1 - (c.t - CB_RIDE) / 2) : 1);
-  c.vortex.material.opacity = .95 * open; c.vortex.scale.setScalar(.3 + .7 * open); c.vortex.rotation.z -= dt * .6;
-  for (const r of c.rays) r.material.opacity = .14 * open * (.7 + .3 * Math.sin(realT * 3 + r.userData.seed));
+  const skyAngle = Math.abs(camera.position.y - 31) / Math.max(1, camera.position.distanceTo(c.flash.position));
+  c.vortex.material.opacity = .9 * open * clamp(skyAngle * 3, 0, 1); c.vortex.scale.setScalar(.3 + .7 * open); c.vortex.rotation.z -= dt * .6;
+  c.crown.material.opacity = .55 * open;
+  for (const spiral of c.spirals) { spiral.rotation.y += dt * .18; spiral.material.opacity = .6 * open; }
+  for (const r of c.rays) r.material.opacity = .055 * open * (.8 + .2 * Math.sin(realT * 3 + r.userData.seed));
+  once('diveHalo', CB_RIDE - .9, () => { dragonWave(c, D.pts[0], 2, true); dragonWave(c, c.G, 3); });
+  for (let i = c.halos.length - 1; i >= 0; i--) {
+    const ring = c.halos[i], u = (ring.userData.age += dt) / .85;
+    ring.scale.setScalar(ring.userData.radius + u * 19); ring.material.opacity = .75 * (1 - Math.min(1, u)) ** 2;
+    if (u >= 1) { c.sky.remove(ring); dropFx(ring); c.halos.splice(i, 1); }
+  }
   once('roar', .4, () => { sfx.roar(); shake = Math.max(shake, .6); });
   once('choir', CB_RISE, () => { sfx.choirMajor(CB_FUSE - CB_RISE); });
   // your top: a silver leap onto the dragon's head as it passes, then the ride
@@ -4580,10 +4646,11 @@ function comboTick(dt) {
   once('jump', CB_LAND - .9, () => { sfx.jump(); sfx.ultra(); });
   once('title', CB_LAND + .1, () => {
     soulCard(t('Thần Long Đại Hiệp', 'Dragon Warrior'), 'dragon', 'e<sup>iπ</sup> + 1 = 0');
-    sfx.gong(); sfx.roar(); shake = Math.max(shake, 1); $('flash').animate([{ opacity: .6 }, { opacity: 0 }], { duration: 500 });
+    sfx.gong(); sfx.roar(); shake = Math.max(shake, 1); dragonFlash(.3, 200);
   });
   if (!c.hit && c.t >= CB_RIDE) comboImpact();
   if (c.hit) {                                        // golden embers drift down over the fallen god
+    c.headLight.intensity *= Math.exp(-dt * 7); c.rimLight.intensity *= Math.exp(-dt * 3);
     for (let k = 0; k < 5; k++) spark(c.G.x + rand(-9, 9), c.G.y + rand(6, 14), c.G.z + rand(-9, 9), rand(-.3, .3), rand(-1.5, -.5), rand(-.3, .3), rand(1.5, 2.5), 1, .8, .3, .05);
     if (c.pillar) { const k = (c.t - CB_RIDE) / 2.5; c.pillar.material.opacity = .55 * Math.max(0, 1 - k); c.pillar.scale.set(1 + k * 1.5, 1, 1 + k * 1.5); }
   }
@@ -4600,7 +4667,10 @@ function comboTick(dt) {
   else if (shot === 2) { cine.pos.set(Math.cos(c.orbit) * 16, 7, Math.sin(c.orbit) * 16); cine.look.set(0, 31, 0); cine.fov = 72; }
   else if (shot === 3) {
     c.orbit += dt * .22;
-    cine.pos.set(Math.cos(c.orbit) * 31, 13, Math.sin(c.orbit) * 31); cine.look.copy(head).multiplyScalar(.65); cine.fov = 58;
+    // Frame the luminous coil itself, including its sky-side tail in portrait.
+    const distance = innerHeight > innerWidth ? 60 : 38;
+    cine.pos.set(Math.cos(c.orbit) * distance, 21, Math.sin(c.orbit) * distance);
+    cine.look.copy(head).lerp(new THREE.Vector3(0, 24, 0), .25); cine.fov = 62;
   }
   else if (shot === 4) { cine.pos.copy(c.S).addScaledVector(c.side, -14).addScaledVector(c.dir, 6).add(new THREE.Vector3(0, -3, 0)); cine.look.copy(c.S); cine.fov = 54; }
   else if (shot === 5) {
@@ -4616,6 +4686,7 @@ function comboTick(dt) {
 function comboImpact() {
   const c = combo, g = c.g, y = floorY(g.x, g.z), D = c.dragon;
   c.hit = true;
+  dragonWave(c, c.G, 2); dragonWave(c, c.G, 4, true);
   // the dragon bursts into golden light
   for (let i = 0; i < DR_RINGS; i += 2) { const p = D.pts[i]; for (let k = 0; k < 5; k++) spark(p.x, p.y, p.z, rand(-6, 6), rand(-2, 8), rand(-6, 6), rand(.8, 1.8), 1, rand(.75, .95), rand(.2, .5), .4); }
   dropFx(D.group); D.group = null;
@@ -4624,7 +4695,7 @@ function comboImpact() {
   for (const col of [0xffd54f, 0xffffff, 0xff8f00, 0xffe082]) shockRing(g.x, y + rand(0, .8), g.z, col);
   for (let i = 0; i < 360; i++) { const a = rand(0, 6.28), sp = rand(6, 26); spark(g.x, y + 1, g.z, Math.cos(a) * sp, rand(3, 16), Math.sin(a) * sp, rand(.6, 1.4), 1, rand(.6, .9), rand(.1, .4)); }
   hitLight.color.setHex(0xffd27a); hitLight.position.set(g.x, y + 3, g.z); hitLight.intensity = 160;
-  $('flash').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 900 });
+  dragonFlash(.55, 280);
   shake = 1.8; excite = 1; sfx.boom(); sfx.gong(); setTimeout(() => sfx.boom(), 140); setTimeout(() => sfx.boom(), 320);
   // you land beside the god, and the god goes down
   player.x = g.x - c.dir.x * (g.r + player.r + .4); player.z = g.z - c.dir.z * (g.r + player.r + .4); player.yOff = 0; player.vx = player.vz = 0;
@@ -4641,6 +4712,8 @@ function comboCleanup() {
   if (!combo) return;
   for (const s of combo.small) dropFx(s.D.group);
   dropFx(combo.dragon.group); dropFx(combo.sky); dropFx(combo.pillar);
+  combo.headLight.dispose(); combo.rimLight.dispose();
+  document.body.classList.remove('dragon-finale');
   $('glory').classList.remove('on');
   combo = null;
 }
