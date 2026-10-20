@@ -53,7 +53,7 @@ try {
   let seq = 0;
   const pending = new Map();
   const send = (method, params = {}) => new Promise((ok, fail) => {
-    const id = ++seq, timer = setTimeout(() => { pending.delete(id); fail(new Error(method + ' timed out')); }, 30000);
+    const id = ++seq, timer = setTimeout(() => { pending.delete(id); fail(new Error(method + ' timed out')); }, 120000); // seeded campaign batches can be slow alongside a sweep
     pending.set(id, { ok, fail, timer }); socket.send(JSON.stringify({ id, method, params }));
   });
   const three = (await readFile(join(root, 'vendor/three.module.js'))).toString('base64');
@@ -175,6 +175,14 @@ try {
   check('All counter relationships match table', await evaluate(`(()=>{const p=game.inspect(0),f=game.inspect(1);return Object.entries(game.rules.COUNTERS).every(([id,targets])=>targets.every(target=>{f.skill=target;return Math.abs(game.rules.skillImpact(p,f,id)-1.35)<.001;}));})()`));
   check('Tornado has nerfed range and duration', await evaluate(`game.skill();game.inspect(0).stormDur===3 && game.inspect(0).stormK===.65 && game.inspect(0).stormReach===4.5`));
   check('HUD keeps active Tornado name after slot swap', await evaluate(`game.selectSkill(1);game.tick(0);document.querySelector('#stormLabel').textContent.includes('Tornado')`));
+  await setup(['storm']);
+  check('Tornado tiers are back to the original numbers (.4 / .55 / .65, reach 3.5 / 4 / 4.5, 2 s)', await evaluate(`(()=>{for(const [tier,k,reach] of [[0,.4,3.5],[1,.55,4],[2,.65,4.5]]){game.tier(tier);game.setLevel(9);game.launch();game.boost(1);game.skill();const p=game.inspect(0);if(p.stormK!==k||p.stormReach!==reach||p.stormDur!==2)return false;}game.tier(null);return true;})()`));
+  await setup(['storm'],9);
+  check('Lotus Queen keeps a 3 s opening even with full collision-fed energy', await evaluate(`(()=>{const p=game.inspect(0),f=game.inspect(1);f.skill='lotus';let first=null,second=null,exposed=false;for(let i=0;i<1100;i++){Object.assign(p,{x:-.5,z:0,vx:0,vz:0,w:500});Object.assign(f,{x:.5,z:0,vx:0,vz:0,w:500,energy:1});game.tick(1);if(f.lastCastAt>=0&&first===null)first={at:f.lastCastAt,end:f.lastCastEnd};if(first&&f.skillT<=0&&game.info().t>3.2&&game.info().t<5.8)exposed=document.querySelector('#tags').textContent.includes('Exposed');if(first&&f.lastCastAt>first.at){second=f.lastCastAt;break;}}return first&&second&&second-first.end>=3-1e-6&&exposed;})()`));
+  await setup(['lotus'],9);
+  check('Player Lotus keeps its original rest and full ward defense', await evaluate(`game.inspect(0).energy=1;game.skill();game.inspect(0).skillDur===3&&Math.abs(game.inspect(0).restAt-game.inspect(0).lastCastEnd-.9)<1e-6&&game.rules.skillImpact(game.inspect(1),game.inspect(0),'thunder')===.4`));
+  await setup(['storm'],24);
+  check('Later Lotus users keep their original cast rest', await evaluate(`(()=>{const f=game.inspect(1);Object.assign(f,{skill:'lotus',energy:1,x:1,z:0});Object.assign(game.inspect(0),{x:0,z:0});game.tick(1);return f.lastCast==='lotus'&&Math.abs(f.readyAt-f.lastCastEnd-.9)<1e-6;})()`));
   await setup(['ice']);
   check('Frost counter changes physical steering for Iron', await evaluate(`game.inspect(1).skill='iron';game.skill();game.tick(1);Math.abs(game.inspect(1).steerK-.2/1.35)<.001`));
   await setup(['ghost']);
@@ -229,17 +237,18 @@ try {
   check('Campaign has 51 stages: stage 50 is the Rumble, stage 51 the crater', await evaluate(`(()=>{game.setLevel(49);const r=game.last?.();return document.querySelector('#lvName').textContent.includes('50/51')&&document.querySelector('#lvName').textContent.includes('Rumble');})()`));
   await evaluate(`game.setLevel(49);game.closeMapIntro();game.launch();game.endStory();`);
   check('Rumble round 1 is the nine masters by their own names, in a full ring', await evaluate(`(()=>{const t=game.info().tops;return t.length===10&&t.slice(1).every(x=>!/Disciple/.test(x.n))&&new Set(t.slice(1).map(x=>x.n)).size===9&&game.info().state==='battle';})()`));
-  await evaluate(`game.tick(150);game.render();game.render();`);
+  // This checks the round transition, independently of the tuned foe spin.
+  await evaluate(`game.inspect(0).w=5000;game.tick(150);game.render();game.render();`);
   { const shot = await send('Page.captureScreenshot', { format: 'png' }); await writeFile(join(root, 'dist/polish-rumble.png'), Buffer.from(shot.data, 'base64')); }
-  await evaluate(`game.ko();for(let i=0;i<200;i++)game.tick(1);`);
+  await evaluate(`game.ko();for(let i=0;i<200;i++){{const p=game.inspect(0);p.phantomUntil=1e9;p.w=p.w0;}game.tick(1);}`);
   check('Beating round 1 does not end the stage: the god raises the nine masters', await evaluate(`['interlude','battle'].includes(game.info().state)&&game.info().won===false`));
   await evaluate(`if(game.info().state==='interlude')game.endStory();`);
   await evaluate(`if(game.info().state==='revive'){for(let i=0;i<300;i++)game.tick(1);game.render();}`);
   await evaluate(`if(game.info().state==='revive')window.dispatchEvent(new KeyboardEvent('keydown',{code:'Space'}));`);
-  await evaluate(`game.tick(150);game.render();game.render();`);
+  await evaluate(`game.inspect(0).w=5000;game.tick(150);game.render();game.render();`);
   { const shot = await send('Page.captureScreenshot', { format: 'png' }); await writeFile(join(root, 'dist/polish-rumble2.png'), Buffer.from(shot.data, 'base64')); }
   check('Round 2 is the nine masters, alive and fighting, with their skills', await evaluate(`(()=>{const t=game.info().tops;return t.length===10&&t.slice(1).filter(x=>x.skill).length>=7&&t.slice(1).every(x=>!/Disciple/.test(x.n));})()`));
-  await evaluate(`game.ko();for(let i=0;i<1500;i++)game.tick(1);`);
+  await evaluate(`game.ko();for(let i=0;i<1500;i++){{const p=game.inspect(0);p.phantomUntil=1e9;p.w=p.w0;}game.tick(1);}`);
   check('Beating round 2 wins stage 50 and unlocks the crater', await evaluate(`game.info().won===true&&game.info().state!=='battle'`));
   await evaluate(`game.setLevel(50);game.closeMapIntro();game.launch();game.endStory();`);
   check('Stage 51: the Spin God alone with his skills, one on one, no clones and no Blood Moon', await evaluate(`(()=>{const t=game.info().tops;return t.length===2&&t[1].skill==='god'&&!t.some(x=>/Clone|Blood Moon|Huyết/.test(x.n));})()`));
@@ -333,6 +342,25 @@ try {
   check('Final dragon sequence completes with victory', await evaluate(`(()=>{for(let i=0;i<2400&&game.info().state!=='result';i++)game.tick(1);return game.info().state==='result'&&game.info().won;})()`));
   const balanceSamples = await evaluate(`(()=>{const out=[];for(const [skill,level] of [['storm',19],['thunder',29],['lotus',44],['dash',39],['fire',9],['iron',14],['ghost',34],['vajra',14],['ice',24],['moon',34]])out.push({level:level+1,skill,result:game.sim({m:1.6,r:.6,grip:.45,skill,fx:'(ex-x)*4-vx*.5',fz:'(ez-z)*4-vz*.5'},level,3,true)});return out;})()`);
   console.log('Balance samples: ' + JSON.stringify(balanceSamples));
+  // First-visit regression: every stage needs at least one way to win (see tools/check-winnable.mjs).
+  const campaignBalance = await evaluate(`(()=>{
+    const measure=(stage,build)=>{let wins=0;for(let i=0;i<24;i++)wins+=game.campaignSim(build,stage,900001+i*104729).won;return wins/24;};
+    const base={m:2,r:.8,grip:.5,fx:'',fz:'',skills:['storm']}, chase={fx:'(ex-x)*4-vx*2',fz:'(ez-z)*4-vz*2'};
+    const early=[1,2,3,4].map(stage=>measure(stage,base));
+    const paths=[
+      [10,{m:1,r:.8,grip:0,fx:'',fz:'',skills:['storm']}],
+      [14,{m:1,r:.8,grip:0,fx:'',fz:'',skills:['thunder']}],
+      [33,{m:1,r:.8,grip:0,fx:'',fz:'',skills:['thunder']}],
+      [45,{m:2,r:.8,grip:.5,...chase,skills:['ghost','lotus']}]
+    ].map(([stage,b])=>({stage,rate:measure(stage,b)}));
+    const milestones=[5,10,20,21].map(stage=>game.campaignSim({...base,skills:['storm','moon']},stage,731));
+    return {early,paths,milestones};
+  })()`);
+  check('First-visit default bot wins at least 75% on each stage 1-4', campaignBalance.early.every(v=>v>=.75),JSON.stringify(campaignBalance.early));
+  check('Hard stages still have a known way to win (stages 10, 14, 33, 45)',campaignBalance.paths.every(v=>v.rate>=.2),JSON.stringify(campaignBalance.paths));
+  check('Campaign bot respects first-visit tiers and cannot equip a future skill',campaignBalance.milestones.every(v=>v.skills.length===1&&v.skills[0]==='storm')&&JSON.stringify(campaignBalance.milestones.map(v=>v.tier))==='[0,0,1,2]');
+  const phase1Only=await evaluate(`game.campaignSim({m:2,r:.8,grip:.5,fx:'',fz:'',skills:['ghost','lotus','iron','vajra']},51,731)`);
+  check('Final-stage balance stops at rebirth before the equation-only Void',phase1Only.scope==='phase1'&&phase1Only.rebirthReached&&phase1Only.won,JSON.stringify(phase1Only));
   // Capture the same game UI at phone size; also check no horizontal overflow.
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await setup(['dash','ghost']);
@@ -381,12 +409,12 @@ try {
   await evaluate(`game.unlockAll();game.setLevel(49);game.closeMapIntro();game.launch();`);
   check('Stage 50 opens with the god meeting scene before round 1', await evaluate(`!document.querySelector('#story').classList.contains('hidden')&&document.querySelector('#storyWho').textContent.length>0`));
   await evaluate(`game.endStory();`);
-  await evaluate(`game.ko();for(let i=0;i<200;i++)game.tick(1);`);
+  await evaluate(`game.ko();for(let i=0;i<200;i++){{const p=game.inspect(0);p.phantomUntil=1e9;p.w=p.w0;}game.tick(1);}`);
   check('Round 1 ends with the god scene, then the revive cut-scene', await evaluate(`!document.querySelector('#story').classList.contains('hidden')&&game.info().state==='interlude'`));
   await evaluate(`game.endStory();for(let i=0;i<330;i++)game.tick(1);game.render();game.render();`);
   check('Revive cut-scene: dread filter on, some souls still underground, some risen', await evaluate(`(()=>{const f=[...Array(10).keys()].slice(1).map(i=>game.inspect(i).yOff);return game.info().state==='revive'&&document.body.classList.contains('dread')&&f.some(y=>y<-3)&&f.some(y=>y>-1);})()`));
   { const shot = await send('Page.captureScreenshot', { format: 'png' }); await writeFile(join(root, 'dist/polish-revive.png'), Buffer.from(shot.data, 'base64')); }
-  await evaluate(`for(let i=0;i<500;i++)game.tick(1);`);
+  await evaluate(`for(let i=0;i<500;i++){{const p=game.inspect(0);p.phantomUntil=1e9;p.w=p.w0;}game.tick(1);}`);
   check('Revive cut-scene ends by itself and round 2 begins', await evaluate(`game.info().state==='battle'&&!document.body.classList.contains('dread')&&[...Array(10).keys()].slice(1).every(i=>game.inspect(i).yOff>-1)`));
   await navigate('/?debug&lang=en');
   await evaluate(`game.voidTune({first:.05});game.phase2();window.__g=game.inspect(1);window.__g.w=window.__g.w0*.5;window.__max=window.__g.w;for(let i=0;i<235;i++){if(window.__g.cycleSkills<2)window.__g.cycleSkills=2;window.__g.skillT=0;window.__g.stormT=0;game.tick(1);window.__max=Math.max(window.__max,Math.abs(window.__g.w));}game.render();game.render();`);
@@ -435,7 +463,7 @@ try {
   for(let i=0;i<4;i++){await key('Escape');await evaluate(`if(!document.querySelector('#shop').classList.contains('hidden'))document.querySelector('#go').click();`);}
   check('Normal web build starts battle without SDK', await evaluate(`!document.querySelector('#btnStorm').classList.contains('hidden')`));
   check('No browser console/page/network errors', errors.length === 0, JSON.stringify(errors));
-  await writeFile(join(root, 'dist/polish-test-results.json'), JSON.stringify({ passed: results.length, results, bossLog, balanceSamples, errors }, null, 2));
+  await writeFile(join(root, 'dist/polish-test-results.json'), JSON.stringify({ passed: results.length, results, bossLog, balanceSamples, campaignBalance, errors }, null, 2));
   console.log(`${results.length} checks passed. Screenshots/report in dist/.`);
   await send('Browser.close');
 } finally {

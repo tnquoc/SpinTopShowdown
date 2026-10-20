@@ -186,3 +186,26 @@ Chiến dịch giờ có **51 màn**:
 - **Lỗi:** Thần Quay bị Kim Thân Bất Hoại hất văng khỏi sàn ngay ở cửa sổ "hở sườn" nên thua quá nhanh. **Sửa:** Thần Quay chỉ có thể bị hất xuống núi lửa khi **sàn đã sập còn 50%** hoặc khi **quay còn dưới 30%** quay gốc (hàm `godMayFall`); trước đó ông luôn bị đẩy ngược lại vào sàn.
 - **Sàn miệng núi lửa đổi sang đá bazan đen gồ ghề** như chân núi (có vết nứt dung nham, tâm nóng đỏ rực, nổi khối bằng bump map), bao quanh là **hồ dung nham** chuyển động.
 - **Sàn "co lại" giờ là sập từng mảng:** còn **50%** sau 40 giây (trước là 55%). Quanh mép có vòng đá tảng đen vỡ nát; các tảng đá liên tục rời khỏi mép, rơi xuống dung nham kèm tia lửa và khói; càng thu nhỏ thì càng nhiều tảng rơi và mặt đất rung nhẹ càng mạnh; hồ dung nham toả sáng cam lên rìa đá.
+
+## Mỗi màn đều có ít nhất một cách thắng (21/10)
+Mục tiêu: không cần đường độ khó "đẹp", chỉ cần **màn nào cũng có ít nhất một cách để thắng**. Riêng Hư Vô (pha 2 màn 51) chỉ thắng được bằng **phương trình sự sống**, không cân bằng bằng mô phỏng.
+
+- **Lốc Xoáy trả về như cũ** (bậc .4 / .55 / .65, hút 3,5 / 4 / 4,5 m, 2 giây), vì đã có khắc chế nên khó spam.
+- **Hồng Liên màn 10:** sau khi hộ thể tắt, cô ấy phải nghỉ **3 giây** mới dùng lại (va chạm không rút ngắn được), trên đầu hiện "Hở sườn" + số giây. Trận boss màn 10 giờ **một chọi một**, bỏ đệ tử đi kèm.
+- **Bỏ bảng hệ số quay lệch** mà lần cân bằng trước đặt cho từng màn (có màn ×5–7, có màn ×0,15). Mọi màn về đúng sức thiết kế, **chỉ nới màn 13 (×0,61) và 14 (×0,52)** vì ở sức gốc không tìm ra cách thắng nào. Thần Quay màn 51 giữ mức đã chỉnh (nhẹ hơn, sàn dốc hơn) để pha 1 thắng được.
+- Giữ lại từ lần trước: công cụ mô phỏng chiến dịch (`game.campaignSim`, `game.balanceScale`), bước hạ con quay xuống sàn khi mô phỏng, Hư Vô giữ nguyên chỉ số gốc.
+- **Kiểm tra:** `node tools/check-winnable.mjs` thử cho từng màn các bộ hợp lý với đúng những chiêu người chơi đang có lần đầu tới màn đó (gồm cả các cặp hợp chiêu), 8 trận nhanh rồi xác nhận 20 trận; một màn "đạt" khi có bộ thắng từ 30% trở lên. Kết quả: **cả 51 màn đều đạt** (màn 51 tính pha Thần Quay). Đây là bot mô phỏng, không phải người chơi thật.
+
+Cách thắng gợi ý (khối lượng / bán kính / độ bám, kỹ năng):
+| Màn | Bộ thắng tìm được | Bot thắng |
+|---|---|---|
+| 1–9 | 2 / 0,8 / 0,5, Lốc Xoáy | 80–100% (màn 5: 40%) |
+| 10 (Hồng Liên) | 1 / 0,8 / 0, Lốc Xoáy; đánh khi "Hở sườn" | 75% |
+| 12–14 | 1 / 0,8 / 0, Sấm Sét (+ Lốc) | 30–35% |
+| 15–20 | 2 / 0,8 / 0,5, Lốc hoặc Tốc Biến; màn 17 dùng 3 / 0,6 / 0,2; màn 17–19 lái "đuổi" | 30–75% |
+| 21–34 | 2 / 0,8 / 0,5 hoặc 1 / 0,8 / 0, Sấm Sét | 30–100% |
+| 35–41 | Ảo Ảnh, Bạo Viêm hoặc Sấm Sét | 30–90% |
+| 42–49 | Hợp chiêu Liên Ảnh (Ảo Ảnh + Hồng Liên), lái "đuổi" | 35–100% |
+| 50 | Liên Ảnh + Kim Thân (4 ô) | 95% |
+| 51 pha 1 | Liên Ảnh + Kim Thân (4 ô) | 100% |
+Lối lái "đuổi": ô công thức fx = `(ex-x)*4-vx*2`, fz = `(ez-z)*4-vz*2`. Để trống hai ô là lối lái mặc định.

@@ -503,6 +503,7 @@ const CHAPTERS = [
 const FINAL_CH = CHAPTERS.length - 1;   // the Spin God's chapter: stages 46-49, then the Rumble (50), then the crater (51)
 const NUMERALS = VI ? ['Nhất', 'Nhị', 'Tam'] : ['I', 'II', 'III'];
 // Stage 50, the Rumble: nine at once, the nine masters you beat on the way. Round 1 they fight as the Spin God's generals, round 2 they are raised again, stronger.
+const STAGE_SPIN = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.61, 0.52, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.7]; // per-stage foe spin: 1 = as designed; only stages with no winning setup are eased (13, 14) plus the crater god (51)
 function rumbleFoes(round) {
   const out = [];
   for (let c = 0; c < FINAL_CH; c++) {
@@ -511,7 +512,7 @@ function rumbleFoes(round) {
     else out.push({ ...f, crown: false, stormMax: 1, m: +(f.m * (.85 + .035 * c)).toFixed(2), r: Math.max(.5, f.r * .85),
       w: Math.round(f.w * (.9 + .055 * c) * .9), skill: c >= 2 ? ch.skill : null, bloodImmune: false });
   }
-  return out;
+  return out.map(f => ({...f, w: f.w * STAGE_SPIN[49]}));
 }
 // Stages 46-50 are the foot of the volcano: black basalt split by lava, with a rim, so nobody can be thrown off. The crater is stage 51.
 const FOOT_DEF = { name: t('Chân núi lửa', 'Foot of the Volcano'), R: 8, K: 1.6, wall: true, theme: 'basalt', base: '#17100e', accent: '#ff5a1a', env: 'lava',
@@ -534,19 +535,20 @@ function buildCampaign() {
       }
       // difficulty climbs inside a chapter and from chapter to chapter; there are no free power-ups for the player
       const boss = s === (c === FINAL_CH ? 5 : 4), scale = (.9 + .055 * c) * (1 + .03 * s), foes = [];
-      if (boss) { const f = FOES[ch.boss]; foes.push({ ...f, m: +(f.m * (1 + .06 * c)).toFixed(2), w: Math.round(f.w * (1 + .08 * c)), skill: ch.skill, crown: true, finalBoss: c === 9 }); }
+      if (boss) { const f = FOES[ch.boss]; foes.push({ ...f, m: c === FINAL_CH ? 7 : +(f.m * (1 + .06 * c)).toFixed(2), w: Math.round(f.w * (1 + .08 * c)), skill: ch.skill, crown: true, finalBoss: c === 9 }); }
       // stage 51, the crater: the Spin God alone, one on one
-      const count = boss ? (c === FINAL_CH ? 0 : c < 3 ? 1 : 2) : [c < 2 ? 1 : 2, 2, c < 3 ? 2 : 3, 3][Math.min(s, 3)];
+      // the Crimson Lotus Queen (stage 10) and the Spin God fight alone
+      const count = boss ? (c === FINAL_CH || c === 1 ? 0 : c < 3 ? 1 : 2) : [c < 2 ? 1 : 2, 2, c < 3 ? 2 : 3, 3][Math.min(s, 3)];
       for (let k = 0; k < count; k++) {
         const src = CHAPTERS[Math.max(0, c - k)], f = FOES[src.boss];      // own sect first, then the sects already beaten
         foes.push({ ...f, name: `${t('Đệ tử', 'Disciple of the')} ${src.sect} ${NUMERALS[k]}`, crown: false, stormMax: 1,
           m: +(f.m * (.85 + .035 * c)).toFixed(2), r: Math.max(.5, f.r * .85), w: Math.round(f.w * scale * (boss ? .9 : 1)),
           skill: c >= 2 && s >= 1 && src.skill !== 'god' ? src.skill : null, bloodImmune: false });
       }
-      out.push({ ...base, K: base.K * [1, 1.08, .94, 1.12, 1][Math.min(s, 4)], chapter: c, stage: s, boss, wet: c === 1 || c === 7, blurb: base === FOOT_DEF ? FOOT_DEF.blurb : ch.blurb, foes });
+      out.push({ ...base, ...(boss && c === FINAL_CH ? {drag:1.35} : {}), K: (boss && c === FINAL_CH ? 3 : base.K) * [1, 1.08, .94, 1.12, 1][Math.min(s, 4)], chapter: c, stage: s, boss, wet: c === 1 || c === 7, blurb: base === FOOT_DEF ? FOOT_DEF.blurb : ch.blurb, foes });
     }
   });
-  return out;
+  return out.map((L,i) => L.rumble ? L : ({...L,foes:L.foes.map(f=>({...f,w:f.w*STAGE_SPIN[i]}))}));
 }
 
 // story beats: a chapter intro, the boss's words before the fight, and what they say once beaten
@@ -805,6 +807,7 @@ function crumbleTick(dt, f) {
   }
 }
 function buildArena() {
+  if (headless) { bowlDepth = level.K * .45; return; } // same analytic floor, no scenery
   arena.traverse(o => { if (o.geometry) { o.geometry.dispose(); if (o.material.map) o.material.map.dispose(); o.material.dispose(); } });
   arena.clear();
   stage = new THREE.Group(); arena.add(stage);     // the part that can turn, rock and shrink
@@ -1086,6 +1089,11 @@ const auraTex = canvasTex(128, 128, (c, w) => {
 });
 
 function buildTopMesh(a) {
+  if (headless) {
+    a.g = new THREE.Group();
+    a.height = a.r * (1.49 - .45 * a.grip) + .12 + .07 * a.m;
+    return;
+  }
   const g = new THREE.Group(), tilt = new THREE.Group(), spin = new THREE.Group();
   const r = a.r, coneH = r * (1.15 - .45 * a.grip), discH = .12 + .07 * a.m, n = a.blades || 3;
   const paint = phong(a.color, 80), steel = phong(0xdde3ea, 140), dark = phong(0x24242f, 40);
@@ -1969,6 +1977,8 @@ function phantomPass(g, o) {
   }
 }
 // the post-cast rest only stops you repeating the same skill: switching to your other skill is allowed at once
+const lotusQueen = a => !a.isPlayer && a.skill === 'lotus' && level.boss && level.chapter === 1;
+const LOTUS_WARD_GAP = 3;  // collisions can fill her energy, but cannot shorten this opening after the ward
 const canCast = (a, midCast = false, id = a && a.skill) => state === 'battle' && a && a.alive && a.skill && a.energy >= 1 && (midCast || (a.skillT <= 0 && a.stormT <= 0)) && simT >= a.readyAt && (simT >= a.restAt || id !== a.lastCast) && simT >= a.recoveryUntil && (!a.voidGod || a.cycleSkills < 2);
 function defenseSkill(a) {
   return a.stormT > 0 ? 'storm' : a.skillT > 0 ? a.active : a.isPlayer || a.skill === 'god' || a.skill === 'void' ? null : a.skill;
@@ -2034,7 +2044,7 @@ function castStarted(a, id, duration) {
   recordCast();
   function recordCast() {
     a.lastCast = id; a.lastCastAt = simT; a.lastCastEnd = simT + duration;
-    if (a.isPlayer) a.restAt = a.lastCastEnd + .9; else a.readyAt = a.lastCastEnd + .9;
+    if (a.isPlayer) a.restAt = a.lastCastEnd + .9; else a.readyAt = a.lastCastEnd + (lotusQueen(a) ? LOTUS_WARD_GAP : .9);
     if (id === 'vajra') a.vajraHits = new Map();
     if (a.finalBoss || a.voidGod) a.cycleSkills++;
   }
@@ -3459,6 +3469,7 @@ function enterShop() {
   if (level.void || level.round2) { level = LEVELS[levelIndex]; buildArena(); }   // a retry starts the final fight, or the Rumble, from the beginning
   clearFinale();
   state = 'shop'; simT = 0;
+  if (headless) { normalizeLoadout(); resetSkillFx(); return; }
   spLife.fill(0); spPos.fill(-999);   // no stray sparks from the last battle
   normalizeLoadout(); placeTops();
   $('shop').classList.remove('hidden'); $('result').classList.add('hidden');
@@ -3737,13 +3748,13 @@ function checkEuler(src) {
 }
 
 const FINAL = LEVELS[ARENAS - 1];
-const VOID_GOD = { ...FINAL.foes[0], name: t('Hư Vô Thần Quay', 'The Void Spin God'), color: 0x7c4dff, r: 1.75, w: Math.round(FINAL.foes[0].w * 1.1),
+const VOID_GOD = { ...FINAL.foes[0], name: t('Hư Vô Thần Quay', 'The Void Spin God'), color: 0x7c4dff, r: 1.75, m: 10.78, w: 136,
   skill: 'void', stormMax: 2, spikes: true, crown: true, finalBoss: false, voidGod: true,
   quote: t('"Thời gian của ngươi đã hết từ lâu rồi."', '"Your time ran out long ago."') };
 // how the second phase plays: a barrier rim, how often time stops, what the counter and the crush take away
 const VOID_TUNE = { R: 8, K: 1.5, wall: true, gap: [7, 9], first: 7, counter: .6, crush: .4, steal: .35, storm: .75, minW: 14, hits: 4, drainK: .01 };
 const voidLevel = () => ({ ...FINAL, name: t('Hư Vô', 'The Void'), R: VOID_TUNE.R, K: VOID_TUNE.K, wall: VOID_TUNE.wall, theme: 'void', base: '#0b0716', accent: '#7c4dff',
-  env: 'void', hot: 0, shrink: null, void: true, foes: [VOID_GOD] });
+  env: 'void', hot: 0, drag: 1, wear: 1, shrink: null, void: true, foes: [VOID_GOD] });
 // the very end: a giant top drops out of the sky beside the two of them, and everyone knows who it is
 let momTop = null;
 function momFall() {
@@ -5216,7 +5227,9 @@ function visuals(dt) {
     if (tag) {
       const id = a.stormT > 0 ? 'storm' : a.skillT > 0 ? a.active : null;
       const base = a.isPlayer ? t('BẠN', 'YOU') : a.name;
-      tag.textContent = id ? `${base} · ${SKILLS[id].name} ${(id === 'storm' ? a.stormT : a.skillT).toFixed(1)}s` : base;
+      const opening = lotusQueen(a) && a.lastCast === 'lotus' && a.skillT <= 0 && simT < a.readyAt;
+      tag.textContent = id ? `${base} · ${SKILLS[id].name} ${(id === 'storm' ? a.stormT : a.skillT).toFixed(1)}s`
+        : opening ? `${base} · ${t('Hở sườn', 'Exposed')} ${(a.readyAt - simT).toFixed(1)}s` : base;
       tag.style.borderColor = hex(id ? SKILLS[id].color : a.color);
       proj.set(a.x, a.g.position.y + a.height + (a.isPlayer ? 1.75 : .5), a.z).project(camera);
       const show = a.alive && proj.z < 1 && !(a.isPlayer && view === 'fp' && fighting);
@@ -5400,6 +5413,57 @@ if (DEBUG) window.game = {
   nodes: () => ({ ac, master, crowdBus, bedGain, musicGain, mixMeter, crowdMeter }),
   solo: on => { if (musicGain) musicGain.gain.value = on ? 0 : musicOn ? MUSIC_VOL : 0; if (humGain) humGain.gain.value = 0; },
   tick: n => { for (let i = 0; i < n && (state === 'battle' || state === 'ending'); i++) { stepPhysics(); checkEnd(H); } visuals(1 / 60); },
+  campaignSim: (b, stage, seed = 731) => {
+    const saved = { unlocked, tierOverride, eulerOverride, build: structuredClone(build), random: Math.random };
+    let elapsed = 0, nextDecision = 0, round2 = false, rebirthReached = false;
+    try {
+      Math.random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+      unlocked = stage - 1; tierOverride = null; eulerOverride = null;
+      Object.assign(build, {m:2,r:.8,grip:.5,dir:1,fx:'',fz:'',drop:{x:0,z:3.5},aim:{x:0,z:-3},euler:'',eq:{s:[]}}, b);
+      build.skills = [...b.skills]; build.skill = build.skills[0];
+      headless = true; eulerHits = 0; setLevel(stage - 1); normalizeLoadout(); launch();
+      while ((state === 'battle' || state === 'ending') && elapsed < 360) {
+        stepPhysics(); elapsed += H;
+        // Stop at the same boundary checkEnd uses to start rebirth. No Void simulation.
+        if (stage === 51 && pendingRebirth && player.alive && !tops.some(a => !a.isPlayer && a.alive)) {
+          rebirthReached = true; break;
+        }
+        checkEnd(H);
+        // Landing normally advances in visuals(); keep headless fire exposure accurate.
+        for (const a of tops) if (a.alive && a.yOff > 0 && (!tstop || a.voidGod || (a.isPlayer && tstop.free))) {
+          a.vy -= 40 * H; a.yOff = Math.max(0,a.yOff+a.vy*H); if (!a.yOff) a.vy = 0;
+        }
+        round2 ||= !!level.round2;
+        if (level.void) throw new Error('Campaign balance must stop before the Void');
+        if (state !== 'battle' || tstop || elapsed < nextDecision) continue;
+        nextDecision = elapsed + .18;
+        const f = nearest(player); if (!f) continue;
+        const d = Math.hypot(f.x-player.x, f.z-player.z);
+        if ((on(f,'lotus') || on(f,'vajra') || on(f,'iron')) && !loadout().some(id => COUNTERS[id]?.includes(defenseSkill(f)))) continue;
+        const offer = comboOffer(player);
+        if (offer && d < 7 && castFusion()) continue;
+        const choices = loadout().slice().sort((a,b) => skillImpact(player,f,b)-skillImpact(player,f,a));
+        for (const id of choices) {
+          if (id === 'thunder' && level.wet && choices.length > 1) continue;
+          if (!canCast(player,false,id)) continue;
+          if (d > (id === 'thunder' ? 7 : id === 'dash' ? 6 : ['lotus','iron','vajra','ghost'].includes(id) ? (f.finalBoss || f.voidGod ? 5 : 2.8) : 4.5)) continue;
+          build.skill = player.skill = id; castSkill(player); break;
+        }
+      }
+      return {won:stage === 51 ? rebirthReached : !!won && elapsed < 360 && (stage !== 50 || round2),scope:stage === 51 ? 'phase1' : 'arena',seconds:+elapsed.toFixed(2),round2,rebirthReached,why:player.why,skills:[...loadout()],tier:stormTier()};
+    } finally {
+      headless = false; unlocked = saved.unlocked; tierOverride = saved.tierOverride; eulerOverride = saved.eulerOverride;
+      Object.assign(build,saved.build); Math.random = saved.random;
+    }
+  },
+  balanceScales: STAGE_SPIN,
+  balanceScale: (stage, scale) => {
+    const L = LEVELS[stage-1], previous = STAGE_SPIN[stage-1];
+    // Recover the integer campaign stat before scaling; repeated probes must
+    // not accumulate floating-point drift in a chaotic collision simulation.
+    for (const f of L.foes) f.w = Math.round(f.w / previous) * scale;
+    STAGE_SPIN[stage-1] = scale;
+  },
   sim: (b, lv, runs = 3, auto = true) => {
     Object.assign(build, b); headless = true; let wins = 0, time = 0, hits = 0;
     if (b.skill && !b.skills) build.skills = [b.skill];
@@ -5408,7 +5472,7 @@ if (DEBUG) window.game = {
       while (state === 'battle' || state === 'ending') {
         stepPhysics(); checkEnd(H);
         if (auto && level.track) { if (player.yOff <= 0 && inHole(-(player.z + player.vz * .08))) jump(); }
-        else if (auto && player.energy >= 1) { const f = nearest(player); if (f && Math.hypot(f.x - player.x, f.z - player.z) < 4) castSkill(player); }
+        else if (auto && player.energy >= 1) { const f = nearest(player); if (f && Math.hypot(f.x - player.x, f.z - player.z) < 4 && (!b.avoidWard || !on(f, 'lotus'))) castSkill(player); }
       }
       wins += won; time += simT; hits += stats.hits;
     }
