@@ -370,7 +370,9 @@ const CHARGE_SECONDS = 6, STORM_TIME = 2, STORM_RANGE = 4.5;
 const chargeSeconds = a => a.finalBoss || a.voidGod ? 3 : a.isPlayer ? CHARGE_SECONDS - 2.8 * Math.min(1, levelIndex / 49) : CHARGE_SECONDS;
 const GOD_DECAY = .15;        // the Undefeated Spin God keeps 15% of the usual passive spin loss: you have to beat him, he does not tire himself out
 const FULL_MANA_FROM = 20;   // from stage 20 on you start every fight with a full bar
-const TIME_LIMIT = 75, SUDDEN_DEATH = 15, VOID_LIMIT = 120;
+// No more 75 s cut-off: players lost a won boss fight to the clock. After SUDDEN_DEATH the floor keeps steepening so a fight always
+// ends by itself; TIME_LIMIT is only a stalemate backstop far beyond any real fight.
+const TIME_LIMIT = 300, SUDDEN_DEATH = 15, VOID_LIMIT = 300;
 
 const FOES = {
   thunder: { name: t('Lôi Thần Tập Sự', 'Rookie Thunder God'), m: 2, r: .7, grip: .5, w: 85, color: 0x29b6f6, blades: 3,
@@ -525,7 +527,7 @@ function buildCampaign() {
     for (let s = 0; s < (c === FINAL_CH ? 6 : 5); s++) {
       const base = c === FINAL_CH && s < 5 ? FOOT_DEF : ARENA_DEFS[c];
       if (c === FINAL_CH && s === 4) {         // the Rumble: the foot of the volcano again, only bigger; a rim, so you fight until somebody drops
-        out.push({ ...FOOT_DEF, name: t('Đại hội Thần Quay', "The Spin God's Rumble"), env: 'necro', R: 11, K: 1.4, rumble: true, limit: 120, chapter: c, stage: s, boss: false, wet: false,
+        out.push({ ...FOOT_DEF, name: t('Đại hội Thần Quay', "The Spin God's Rumble"), env: 'necro', R: 11, K: 1.4, rumble: true, limit: 300, chapter: c, stage: s, boss: false, wet: false,
           blurb: t('Màn 50: chín đệ tử của Thần Quay, rồi chín cao thủ được hồi sinh. Tất cả đánh tất cả.', "Stage 50: the Spin God's nine disciples, then the nine masters you beat, raised again. Everyone hits everyone."),
           traits: [t('Royal Rumble: chín đối thủ cùng lúc, ai cũng đánh ai', 'Royal rumble: nine rivals at once, everybody hits everybody'),
             t('Hai vòng: vòng 1 là chín đệ tử, vòng 2 là chín cao thủ đã bại được hồi sinh', 'Two rounds: nine disciples, then the nine masters you beat, raised again'),
