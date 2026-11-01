@@ -371,30 +371,30 @@ const CHARGE_SECONDS = 6, STORM_TIME = 2, STORM_RANGE = 4.5;
 // your energy bar fills faster the further into the campaign you are (6 s at stage 1 down to 3.2 s at the Rumble), like a levelled-up fighter
 const chargeSeconds = a => a.finalBoss || a.voidGod ? 3 : a.isPlayer ? CHARGE_SECONDS - 2.8 * Math.min(1, levelIndex / RUMBLE_AT) : CHARGE_SECONDS;
 const GOD_DECAY = .15;        // the Undefeated Spin God keeps 15% of the usual passive spin loss: you have to beat him, he does not tire himself out
-const FULL_MANA_FROM = 12;   // from stage 12 (the Fire Dragon's bout) on you start every fight with a full bar
+const FULL_MANA_FROM = 16;   // from stage 16 (the Fire Dragon's bout) on you start every fight with a full bar
 // No more 75 s cut-off: players lost a won boss fight to the clock. After SUDDEN_DEATH the floor keeps steepening so a fight always
 // ends by itself; TIME_LIMIT is only a stalemate backstop far beyond any real fight.
 const TIME_LIMIT = 300, SUDDEN_DEATH = 15, VOID_LIMIT = 300;
 
 const FOES = {
   thunder: { name: t('Lôi Thần Tập Sự', 'Rookie Thunder God'), m: 2, r: .7, grip: .5, w: 85, color: 0x29b6f6, blades: 3,
-    quote: t('"Sấm sét của ta hơi yếu, nhưng vẫn là sấm sét!"', '"My thunder is weak, but it is still thunder!"') },
+    quote: t('"Sét đánh không báo trước đâu, nhóc!"', '"Lightning never warns you, kid!"') },
   lotus: { name: t('Hồng Liên Nữ Vương', 'Crimson Lotus Queen'), m: 2.4, r: .95, grip: .12, w: 115, dir: -1, color: 0xec407a, blades: 8,
     quote: t('"Ngươi quay chưa đủ đẹp để thắng ta."', '"You do not spin beautifully enough to beat me."') },
   wind: { name: t('Hắc Phong Sát Thủ', 'Black Wind Assassin'), m: 1.4, r: .6, grip: .9, w: 125, dir: -1, color: 0x00e676, blades: 3, spikes: true,
     quote: t('"Ngươi còn chưa kịp thấy ta ra đòn."', '"You never even saw me strike."') },
   tyrant: { name: t('Thiết Giáp Bạo Chúa', 'Iron Tyrant'), m: 3.6, r: .95, grip: .55, w: 70, ai: 'chase', color: 0xeceff1, blades: 4,
-    quote: t('"Nặng ký mới là chân lý."', '"Weight is the only truth."') },
+    quote: t('"Nhẹ thì về nhà. Nặng ký mới là chân lý."', '"Lightweights go home. Weight is the only truth."') },
   dragon: { name: t('Hoả Long Cuồng Nộ', 'Raging Fire Dragon'), m: 2.4, r: .8, grip: .7, w: 100, ai: 'chase', storm: true, color: 0xff5722, blades: 5, spikes: true,
-    quote: t('"Cháy lên đi, hỡi vòng quay định mệnh!"', '"Burn, O wheel of destiny!"') },
+    quote: t('"Tro tàn của ngươi vẫn còn ấm đấy."', '"Your ashes are still warm."') },
   phantom: { name: t('Ảo Ảnh Vô Hình', 'Formless Phantom'), m: 1.6, r: .65, grip: .85, w: 135, ai: 'chase', color: 0x00e5ff, blades: 6, spikes: true,
-    quote: t('"Ngươi chỉ đang đánh với cái bóng của ta thôi."', '"You are only fighting my shadow."') },
+    quote: t('"Ngươi vừa thua một cái bóng."', '"You just lost to a shadow."') },
   vajra: { name: t('Kim Cang Hộ Pháp', 'Vajra Guardian'), m: 5, r: 1.15, grip: .25, w: 62, color: 0xa1887f, blades: 8,
     quote: t('"Núi thì không cần né."', '"A mountain does not dodge."') },
   moon: { name: t('Huyết Nguyệt Ma Vương', 'Blood Moon Demon King'), m: 6, r: 1.5, grip: .35, w: 62, ai: 'chase', storm: true, color: 0xd32f2f, blades: 6, crown: true, bloodImmune: true,
     quote: t('"Trăng máu đã lên. Ngươi hết giờ rồi."', '"The blood moon has risen. Your time is up."') },
   ice: { name: t('Băng Tuyết Thánh Nữ', 'Snow Mountain Saint'), m: 2.2, r: .85, grip: .3, w: 120, dir: -1, ai: 'chase', color: 0x81d4fa, blades: 6,
-    quote: t('"Lạnh lắm không? Lát nữa còn lạnh hơn."', '"Cold yet? It gets colder."') },
+    quote: t('"Ngủ ngon nhé. Băng sẽ giữ ngươi mãi mãi."', '"Sleep well. The ice will keep you forever."') },
   god: { name: t('Thần Quay Bất Bại', 'The Undefeated Spin God'), m: 7, r: 1.6, grip: .4, w: 72, ai: 'chase', storm: true, stormMax: 2, color: 0xab47bc, blades: 8, crown: true,
     quote: t('"Một trăm năm nữa hãy quay lại gặp ta."', '"Come back in a hundred years."') },
 };
@@ -481,7 +481,7 @@ const COURSES = [
       holes: [{ s0: 42.5, s1: 44.3 }, { s0: 75, s1: 76.4 }],
       guards: [{ s: 64.5, off: 0, patrol: 1.6, foe: 'dragon' }, { s: 82, off: 1, patrol: 1.2, foe: 'wind' }] } },
 ];
-// ---------- campaign: 10 chapters × 3 bouts, a boss guards the third bout of every chapter ----------
+// ---------- campaign: 10 chapters × 4 bouts, a boss guards the fourth bout of every chapter ----------
 const CHAPTERS = [
   { boss: 'thunder', skill: 'thunder', sect: t('Lôi Môn', 'Thunder Sect'),
     blurb: t('Sân sau nhà: cái mâm nhôm của bà ngoại, nơi mọi huyền thoại bắt đầu.', "Grandma's tin tray in the backyard, where every legend starts.") },
@@ -504,16 +504,16 @@ const CHAPTERS = [
   { boss: 'god', skill: 'god', sect: t('Thần Quay Điện', 'Spin God Palace'),
     blurb: t('Miệng núi lửa: Thần Quay Bất Bại đang đợi. Sàn sụp dần vào trong.', 'The volcano crater: the Undefeated Spin God waits. The floor keeps collapsing.') },
 ];
-const FINAL_CH = CHAPTERS.length - 1;   // the Spin God's chapter: stages 28-29, then the Rumble (30), then the crater (31)
-// Each chapter keeps three of the five bouts it was designed with (warm-up, step up, boss); the final chapter keeps two bouts at
+const FINAL_CH = CHAPTERS.length - 1;   // the Spin God's chapter: stages 37-39, then the Rumble (40), then the crater (41)
+// Each chapter keeps four of the five bouts it was designed with (the second is dropped); the final chapter keeps three bouts at
 // the foot of the volcano, the Rumble and the crater. Foes are still built on the original five-bout difficulty scale.
-const BOUTS = 3, KEPT = [0, 2, 4], KEPT_FINAL = [1, 3, 4, 5];
+const BOUTS = 4, KEPT = [0, 2, 3, 4], KEPT_FINAL = [1, 2, 3, 4, 5];
 const chapterStart = c => c * BOUTS;                         // index of a chapter's first bout
 const bossIndex = c => chapterStart(c) + (c === FINAL_CH ? KEPT_FINAL.length : BOUTS) - 1;
-const RUMBLE_AT = chapterStart(FINAL_CH) + 2;               // index of the Rumble
+const RUMBLE_AT = chapterStart(FINAL_CH) + KEPT_FINAL.indexOf(4);   // index of the Rumble
 const NUMERALS = VI ? ['Nhất', 'Nhị', 'Tam'] : ['I', 'II', 'III'];
-// Stage 30, the Rumble: nine at once, the nine masters you beat on the way. Round 1 they fight as the Spin God's generals, round 2 they are raised again, stronger.
-const STAGE_SPIN = [1, 1, 1, 1, 1, 0.4, 1, 0.61, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.7]; // per-stage foe spin: 1 = as designed; only stages with no winning setup are eased (6, 8) plus the crater god (31)
+// Stage 40, the Rumble: nine at once, the nine masters you beat on the way. Round 1 they fight as the Spin God's generals, round 2 they are raised again, stronger.
+const STAGE_SPIN = [1, 1, 1, 1, 1, 1, 1, 0.4, 1, 0.61, 0.52, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.85, 1, 1, 1, 1, 0.7]; // per-stage foe spin: 1 = as designed; only stages with no winning setup are eased (8, 10, 11, 36) plus the crater god (41)
 function rumbleFoes(round) {
   const out = [];
   for (let c = 0; c < FINAL_CH; c++) {
@@ -524,7 +524,7 @@ function rumbleFoes(round) {
   }
   return out.map(f => ({...f, w: f.w * STAGE_SPIN[RUMBLE_AT]}));
 }
-// Stages 28-30 are the foot of the volcano: black basalt split by lava, with a rim, so nobody can be thrown off. The crater is stage 31.
+// Stages 37-40 are the foot of the volcano: black basalt split by lava, with a rim, so nobody can be thrown off. The crater is stage 41.
 const FOOT_DEF = { name: t('Chân núi lửa', 'Foot of the Volcano'), R: 8, K: 1.6, wall: true, theme: 'basalt', base: '#17100e', accent: '#ff5a1a', env: 'lava',
   blurb: t('Chân núi lửa: nền đá bazan đen nứt nẻ, có vành đai chắn. Không ai rơi khỏi sàn: chỉ gục khi hết quay.', 'The foot of the volcano: black basalt split by lava cracks, with a rim. Nobody falls off: you only go down when your spin runs out.'),
   traits: [t('Có vành đai: không bị văng khỏi sàn, chỉ thua khi hết quay', 'A rim: you cannot be thrown off, you only lose when your spin runs out'),
@@ -538,7 +538,7 @@ function buildCampaign() {
       const base = c === FINAL_CH && s < 5 ? FOOT_DEF : ARENA_DEFS[c];
       if (c === FINAL_CH && s === 4) {         // the Rumble: the foot of the volcano again, only bigger; a rim, so you fight until somebody drops
         out.push({ ...FOOT_DEF, name: t('Đại hội Thần Quay', "The Spin God's Rumble"), env: 'necro', R: 11, K: 1.4, rumble: true, limit: 300, chapter: c, stage, boss: false, wet: false,
-          blurb: t('Màn 30: chín đệ tử của Thần Quay, rồi chín cao thủ được hồi sinh. Tất cả đánh tất cả.', "Stage 30: the Spin God's nine disciples, then the nine masters you beat, raised again. Everyone hits everyone."),
+          blurb: t('Màn 40: chín đệ tử của Thần Quay, rồi chín cao thủ được hồi sinh. Tất cả đánh tất cả.', "Stage 40: the Spin God's nine disciples, then the nine masters you beat, raised again. Everyone hits everyone."),
           traits: [t('Royal Rumble: chín đối thủ cùng lúc, ai cũng đánh ai', 'Royal rumble: nine rivals at once, everybody hits everybody'),
             t('Hai vòng: vòng 1 là chín đệ tử, vòng 2 là chín cao thủ đã bại được hồi sinh', 'Two rounds: nine disciples, then the nine masters you beat, raised again'),
             t('Có vành đai, không ai rơi khỏi sàn: đấm nhau tới khi gục. Sau 15 giây sàn dốc dần để không ai trốn được', 'A rim, nobody falls off: fight until you drop. After 15 s the floor steepens so nobody can hide')],
@@ -548,8 +548,8 @@ function buildCampaign() {
       // difficulty climbs inside a chapter and from chapter to chapter; there are no free power-ups for the player
       const boss = s === (c === FINAL_CH ? 5 : 4), scale = (.9 + .055 * c) * (1 + .03 * s), foes = [];
       if (boss) { const f = FOES[ch.boss]; foes.push({ ...f, m: c === FINAL_CH ? 7 : +(f.m * (1 + .06 * c)).toFixed(2), w: Math.round(f.w * (1 + .08 * c)), skill: ch.skill, crown: true, finalBoss: c === 9 }); }
-      // stage 31, the crater: the Spin God alone, one on one
-      // the Crimson Lotus Queen (stage 6) and the Spin God fight alone
+      // stage 41, the crater: the Spin God alone, one on one
+      // the Crimson Lotus Queen (stage 8) and the Spin God fight alone
       const count = boss ? (c === FINAL_CH || c === 1 ? 0 : c < 3 ? 1 : 2) : [c < 2 ? 1 : 2, 2, c < 3 ? 2 : 3, 3][Math.min(s, 3)];
       for (let k = 0; k < count; k++) {
         const src = CHAPTERS[Math.max(0, c - k)], f = FOES[src.boss];      // own sect first, then the sects already beaten
@@ -568,46 +568,61 @@ const STORY = [
   // kept to two lines: a first-time player goes straight from these into their first fight
   { intro: [['narr', t('Mười năm trước, cao thủ con quay số một Việt Nam biến mất sau trận đấu với Thần Quay Bất Bại, chỉ để lại một con quay vàng.', "Ten years ago, Vietnam's greatest top-spinner vanished after a match with the Undefeated Spin God, leaving only a golden top.")],
       ['me', t('Con quay vàng đó giờ là của tôi. Tôi sẽ hạ chín cao thủ và tìm ra Thần Quay!', 'That golden top is mine now. I will beat the nine masters and find the Spin God!')]],
-    boss: [['thunder', t('Ta là Lôi Thần! Tuy còn tập sự... nhưng sấm sét vẫn là sấm sét!', 'I am the Thunder God! Still a rookie... but thunder is thunder!')],
-      ['me', t('Cái mâm nhôm này dẫn điện tốt đấy. Cẩn thận.', 'This tin tray conducts nicely. Careful.')]],
-    win: [['thunder', t('Ta... chỉ là tập sự thôi mà! Cầm lấy sấm sét của ta, nhưng đừng dùng trên sàn ướt.', 'I... was only a rookie! Take my thunder, but never on a wet floor.')]] },
+    boss: [['thunder', t('Hừ... Một con quay vàng? Ở cái sân sau này? Để Lôi Thần ta dạy ngươi thế nào là SẤM SÉT!', 'Hmph... A golden top? In this backyard? Let the Thunder God teach you what LIGHTNING means!')],
+      ['me', t('Nghe nói anh vẫn còn tập sự.', 'I heard you are still a rookie.')],
+      ['thunder', t('Tập sự thì sao?! Sét đánh không cần bằng cấp!', 'So what?! Lightning does not need a diploma!')]],
+    win: [['thunder', t('Không thể nào... sét của ta... bị một đứa nhóc nuốt trọn? ...Cầm lấy. Nhưng nhớ: sàn ướt thì sét đánh cả chủ.', 'Impossible... my lightning... swallowed by a kid? ...Take it. But remember: on a wet floor, lightning strikes its own master.')]] },
   { intro: [['narr', t('Chương 2. Quán phở Liên Hoa. Sàn trơn như nước lèo.', 'Chapter 2. The Lotus pho shop. The floor is slick with broth.')]],
-    boss: [['lotus', t('Muốn đi tiếp? Quay đẹp như hoa sen đã rồi tính.', 'You want to pass? Spin as beautifully as a lotus first.')],
-      ['me', t('Tôi đến đây để thắng, không phải để đẹp.', 'I came here to win, not to look pretty.')]],
-    win: [['lotus', t('Hoa sen sống được trong bùn... nhưng không sống nổi trong tô phở. Cầm lấy tấm khiên của ta.', 'A lotus survives the mud... just not the pho bowl. Take my ward.')]] },
+    boss: [['lotus', t('Dừng lại. Ngươi đang đứng trong khu vườn của Hồng Liên Nữ Vương.', 'Halt. You stand in the garden of the Crimson Lotus Queen.')],
+      ['lotus', t('Cánh sen của ta chưa từng rụng. Còn ngươi... sẽ héo trước khi kịp chạm vào ta.', 'My petals have never fallen. And you... will wither before you ever touch me.')],
+      ['me', t('Hoa đẹp mấy rồi cũng tàn. Hôm nay là mùa tàn của chị.', 'Every flower fades. Today is your season.')],
+      ['lotus', t('To gan! Nở rộ đi, Hồng Liên Hộ Thể!', 'Insolent! Bloom, Crimson Lotus Ward!')]],
+    win: [['lotus', t('Cánh sen... rụng rồi sao... Hừ, được lắm. Mang tấm khiên này đi, và đừng để nó vỡ dưới tay kẻ khác.', 'My petals... have fallen... Hmph. Very well. Carry this ward, and never let another hand shatter it.')]] },
   { intro: [['narr', t('Chương 3. Quán nhậu Hắc Phong. Bàn không có gờ: rơi là ra đường.', 'Chapter 3. The Black Wind beer joint. No rim: fall off and you are out.')]],
-    boss: [['wind', t('Ngươi chưa kịp thấy ta thì đã rơi khỏi bàn rồi.', 'You will fall off the table before you even see me.')]],
-    win: [['wind', t('Nhanh mà sai hướng thì cũng như ta thôi. Nhớ đấy.', 'Fast in the wrong direction ends like me. Remember that.')]] },
+    boss: [['wind', t('Ngươi nghe thấy tiếng gió không? ...Không? Vậy là ngươi chết rồi.', 'Do you hear the wind? ...No? Then you are already dead.')],
+      ['me', t('Chém gió thì giỏi đấy.', 'All wind and no blade.')],
+      ['wind', t('Hắc Phong không để lại dấu vết. Kể cả xác!', 'The Black Wind leaves no trace. Not even a corpse!')]],
+    win: [['wind', t('Nhanh hơn cả ta... Không. Ngươi chỉ không lao vào chỗ chết như ta. Tốc Biến là của ngươi. Đừng tự lao xuống vực.', 'Faster than me... No. You simply did not rush into your own death like I did. The Blink Dash is yours. Do not dash off a cliff.')]] },
   { intro: [['narr', t('Chương 4. Bếp Hoả Long. Tâm chảo đỏ rực: nạp năng lượng nhanh nhưng cháy hao.', 'Chapter 4. The Fire Dragon kitchen. The red-hot centre charges you fast and burns you down.')]],
-    boss: [['dragon', t('Cháy lên đi, hỡi vòng quay định mệnh!', 'Burn, O wheel of destiny!')],
-      ['me', t('Ông có biết vệt lửa của ông đốt cả chính ông không?', 'You know your own fire trail burns you too, right?')]],
-    win: [['dragon', t('Lửa của ta giờ là của ngươi. Đừng chạy vòng quanh rồi tự đốt mình như ta.', 'My fire is yours now. Do not run in circles and burn yourself like I did.')]] },
+    boss: [['dragon', t('Ngửi thấy không? Mùi của một con quay sắp cháy thành tro!', 'Smell that? A top about to burn to ash!')],
+      ['me', t('Ông nóng quá rồi đấy.', 'You are running a little hot.')],
+      ['dragon', t('HOẢ LONG THỨC TỈNH! Cháy lên đi, hỡi vòng quay định mệnh!', 'THE FIRE DRAGON AWAKENS! Burn, O wheel of destiny!')]],
+    win: [['dragon', t('Ngọn lửa của ta... chưa từng bị dập tắt... Cầm lấy nó. Nhưng lửa không phân biệt bạn thù: đừng chạy vòng quanh rồi tự đốt mình.', 'My flame... was never put out before... Take it. But fire knows no friend: do not run in circles and burn yourself.')]] },
   { intro: [['narr', t('Chương 5. Sân đình Thiết Giáp. Đá lát gồ ghề, nhẹ là bị hất tung.', 'Chapter 5. The Iron Legion yard. Bumpy paving: light tops get thrown about.')]],
-    boss: [['tyrant', t('Nặng ký mới là chân lý. Nhẹ thì về nhà.', 'Weight is the only truth. Lightweights go home.')]],
-    win: [['tyrant', t('Nặng thì chậm... ta quên mất điều đó. Cầm lấy giáp sắt.', 'Heavy means slow... I forgot that. Take my iron.')]] },
+    boss: [['tyrant', t('Quỳ xuống. Trước Thiết Giáp Quân, mọi con quay đều phải cúi đầu.', 'Kneel. Before the Iron Legion, every top bows.')],
+      ['tyrant', t('Nặng ký mới là chân lý. Kẻ nhẹ chỉ là bụi dưới gót giày ta!', 'Weight is the only truth. The light are dust beneath my boots!')],
+      ['me', t('Bụi cũng làm mù mắt người ta đấy.', 'Dust can still blind you.')]],
+    win: [['tyrant', t('Giáp của ta... nứt rồi... Nặng thì chậm, ta quên mất điều đó. Cầm lấy giáp sắt, và đừng bao giờ quên.', 'My armour... cracked... Heavy means slow, I forgot that. Take the iron, and never forget it.')]] },
   { intro: [['narr', t('Chương 6. Nhà hàng Ảo Ảnh. Cả cái mâm đang xoay.', 'Chapter 6. The Phantom restaurant. The whole lazy Susan is turning.')]],
-    boss: [['phantom', t('Ngươi chỉ đang đánh với cái bóng của ta thôi.', 'You are only fighting my shadow.')],
-      ['me', t('Thế thì cái bóng của ông sắp văng khỏi mâm.', 'Then your shadow is about to fly off the table.')]],
-    win: [['phantom', t('Xuyên tường thì dễ. Quay về được mới khó. Đừng lạc ra ngoài.', 'Walking through walls is easy. Getting back in is hard. Do not get lost outside.')]] },
+    boss: [['phantom', t('Ngươi thấy ta? ...Sai rồi. Thứ ngươi thấy chỉ là ảo ảnh.', 'You see me? ...Wrong. What you see is only an illusion.')],
+      ['me', t('Ảo ảnh thì không biết đau. Ông thì có.', 'Illusions feel no pain. You will.')],
+      ['phantom', t('Fufufu... Vậy thì thử bắt lấy hư không đi!', 'Fufufu... Then try to catch nothing at all!')]],
+    win: [['phantom', t('Ngươi... chạm được vào ta... Trăm năm nay chưa ai làm được. Ảo Ảnh là của ngươi. Xuyên tường thì dễ, quay về mới khó: đừng lạc mất mình.', 'You... touched me... No one has in a hundred years. The Phantom is yours. Walking through walls is easy, getting back is hard: do not lose yourself.')]] },
   { intro: [['narr', t('Chương 7. Chùa Kim Cang. Mâm ngũ quả cúng rằm: cầu, dừa, đủ, xoài, sung.', 'Chapter 7. The Vajra temple. The full-moon fruit offering: custard apple, coconut, papaya, mango, fig.')]],
-    boss: [['vajra', t('Núi thì không cần né.', 'A mountain does not dodge.')]],
-    win: [['vajra', t('Đứng yên là sức mạnh... trừ khi đất dưới chân đang sụp. Nhớ lấy.', 'Standing still is strength... unless the ground is collapsing. Remember that.')]] },
+    boss: [['vajra', t('A Di Đà Phật. Thí chủ, quay đầu là bờ.', 'Amitabha. Turn back, traveller, and find the shore.')],
+      ['me', t('Tôi chỉ biết quay tới.', 'The only way I spin is forward.')],
+      ['vajra', t('Vậy hãy nhìn đây: Kim Cang Bất Hoại! Núi thì không cần né!', 'Then behold: the Indestructible Vajra! A mountain does not dodge!')]],
+    win: [['vajra', t('Núi... đã lở... Đứng yên là sức mạnh, trừ khi đất dưới chân đang sụp. Thí chủ, bảo trọng.', 'The mountain... has fallen... Standing still is strength, unless the ground gives way. Take care, traveller.')]] },
   { intro: [['narr', t('Chương 8. Thuyền thúng Tuyết Sơn. Sóng đánh, sàn ướt, nghiêng liên tục.', 'Chapter 8. The Snow Mountain coracle. Waves, a wet floor, and it never stops rocking.')]],
-    boss: [['ice', t('Lạnh lắm không? Lát nữa còn lạnh hơn.', 'Cold yet? It gets colder.')]],
-    win: [['ice', t('Băng không chọn phe. Ngươi đứng trong đó thì ngươi cũng trượt.', 'Ice takes no sides. Stand in it and you slide too.')]] },
+    boss: [['ice', t('Biển lặng rồi. Ngươi biết vì sao không? Vì ta đã đóng băng nó.', 'The sea went quiet. Know why? Because I froze it.')],
+      ['me', t('Lạnh cỡ nào tôi cũng quay.', 'However cold it gets, I keep spinning.')],
+      ['ice', t('Lạnh lắm không? Lát nữa... đến tim ngươi cũng đóng băng!', 'Cold yet? Soon... even your heart will freeze!')]],
+    win: [['ice', t('Băng tan rồi... lần đầu tiên sau mười năm. Băng không chọn phe đâu: đứng trong đó, ngươi cũng trượt.', 'The ice is melting... for the first time in ten years. Ice takes no sides: stand in it and you slide too.')]] },
   { intro: [['narr', t('Chương 9. Đỉnh nón lá Huyết Nguyệt. Sàn lồi: rời tâm là trôi ra mép.', 'Chapter 9. The Blood Moon hat. A dome: leave the centre and you drift to the edge.')]],
-    boss: [['moon', t('Trăng máu đã lên. Kẻ mạnh sẽ chảy máu trước.', 'The blood moon has risen. The strong bleed first.')],
+    boss: [['moon', t('Trăng máu đã lên. Đêm nay, kẻ mạnh sẽ chảy máu trước.', 'The blood moon has risen. Tonight the strong bleed first.')],
       ['me', t('Sau ông còn ai?', 'Who is left after you?')],
-      ['moon', t('Chỉ còn Ngài. Và Ngài biết ngươi là ai.', 'Only Him. And He knows who you are.')]],
-    win: [['moon', t('Đi đi... Ngài đang đợi ở miệng núi lửa.', 'Go... He waits at the volcano.')]] },
+      ['moon', t('Chỉ còn Ngài. Và Ngài đã biết tên ngươi từ mười năm trước.', 'Only Him. And He has known your name for ten years.')],
+      ['moon', t('Nhưng ngươi sẽ không sống đủ lâu để gặp Ngài!', 'But you will not live long enough to meet Him!')]],
+    win: [['moon', t('Đi đi... Ngài đang đợi trên miệng núi lửa. Và Ngài... chưa từng thua.', 'Go... He waits at the crater. And He... has never lost.')]] },
   { intro: [['narr', t('Chương cuối. Chân núi lửa. Nền đá đen nứt nẻ, hơi nóng phả xuống từ miệng núi ngay trên đầu.', 'Final chapter. The foot of the volcano. Black cracked rock, and heat pouring down from the crater right above.')]],
-    boss: [['narr', t('Màn 31. Miệng núi lửa. Dung nham sôi dưới chân. Thần Quay Bất Bại đứng một mình giữa sân, và mọi thứ xung quanh bỗng im lặng đến đáng sợ.', 'Stage 31. The volcano crater. Lava boils below. The Undefeated Spin God stands alone in the middle, and everything around falls frighteningly quiet.')],
-      ['god', t('Mười tám cao thủ. Ngươi bước qua hết... và vẫn còn đứng. Cha ngươi cũng từng làm được như thế. Rồi hắn gục xuống ngay chỗ này.', 'Eighteen masters. You walked through them all... and you are still standing. Your father did that too. Then he fell, right on this spot.')],
+    boss: [['narr', t('Màn 41. Miệng núi lửa. Dung nham sôi dưới chân. Thần Quay Bất Bại đứng một mình giữa sân, và mọi thứ xung quanh bỗng im lặng đến đáng sợ.', 'Stage 41. The volcano crater. Lava boils below. The Undefeated Spin God stands alone in the middle, and everything around falls frighteningly quiet.')],
+      ['god', t('Mười tám cao thủ. Ngươi bước qua tất cả... và vẫn còn đứng. Cha ngươi cũng từng đứng đúng chỗ đó.', 'Eighteen masters. You walked through them all... and you are still standing. Your father once stood on that very spot.')],
+      ['god', t('Rồi hắn quỳ xuống. Ngay dưới chân ta.', 'Then he knelt. Right at my feet.')],
       ['me', t('Đừng nói về ông ấy như thể ông ấy đã chết!', 'Do not speak of him as if he were dead!')],
       ['god', t('Chết? Chết còn là kết cục nhẹ nhàng đấy.', 'Dead? Death would have been the gentle ending.')],
-      ['god', t('Ngươi. Ta. Và một con quay vàng đã đợi mười năm cho khoảnh khắc này.', 'You. Me. And a golden top that has waited ten years for this moment.')],
-      ['me', t('Tôi đã đi qua chín trùm, chín linh hồn, chín cái chết. Ông chỉ là cái tên cuối cùng.', 'I have come through nine masters, nine souls, nine deaths. You are just the last name.')],
-      ['god', t('Kaka... KAKAKAKA! Cái tên cuối cùng? Ta chính là kết thúc, con kiến nhỏ. Quay đi... cho tới khi gục ngã.', 'Heh... KAHAHAHA! The last name? I AM the ending, little ant. Spin... until you fall.')]],
+      ['god', t('Ngươi biết vì sao ta được gọi là Bất Bại không? Vì kẻ nào thắng được ta... đều không còn ở đây để kể lại.', 'Do you know why they call me Undefeated? Because anyone who could beat me... is not here to tell the tale.')],
+      ['me', t('Tôi đã đi qua chín cao thủ, chín linh hồn, chín cái chết. Ông chỉ là cái tên cuối cùng.', 'I have come through nine masters, nine souls, nine deaths. You are just the last name.')],
+      ['god', t('Cái tên cuối cùng? ...KAHAHAHAHA! Ta chính là KẾT THÚC! Quay đi, con kiến nhỏ... quay cho tới khi linh hồn ngươi vỡ vụn!', 'The last name? ...KAHAHAHAHA! I AM THE END! Spin, little ant... spin until your soul shatters!'), 'reveal']],
     win: [['god', t('Khụ... khụ... Con quay vàng đó... con đã giữ nó suốt mười năm...', 'Cough... cough... That golden top... you kept it for ten years...')],
       ['me', t('Sao ông biết? Ông là ai?!', 'How do you know that? Who are you?!')],
       ['god', t('Ta... chính là cha của con.', 'I... am your father.'), 'reveal'],
@@ -623,7 +638,7 @@ const STORY = [
 ];
 // the first meeting with the Spin God happens at the Rumble: nine fights before he will fight you himself
 const STORY_RUMBLE = {
-  intro: [['narr', t('Màn 30. Chân núi lửa. Chín bóng người đứng im như tượng. Trên tảng đá cao, một kẻ đang xoay con quay trên đầu ngón tay, như xoay một đồng xu.', 'Stage 30. The foot of the volcano. Nine figures stand still as statues. On a high rock someone twirls a top on a fingertip, like a coin.')],
+  intro: [['narr', t('Màn 40. Chân núi lửa. Chín bóng người đứng im như tượng. Trên tảng đá cao, một kẻ đang xoay con quay trên đầu ngón tay, như xoay một đồng xu.', 'Stage 40. The foot of the volcano. Nine figures stand still as statues. On a high rock someone twirls a top on a fingertip, like a coin.')],
     ['god', t('Con quay vàng... Mười năm rồi. Ta cứ ngỡ nó đã nát vụn cùng chủ nhân của nó.', 'The golden top... Ten years. I thought it had shattered along with its owner.')],
     ['me', t('Ông đã làm gì cha tôi?!', 'What did you do to my father?!')],
     ['god', t('Cha ngươi? Hắn cũng đứng đúng chỗ này. Cũng run như ngươi. Cũng nhìn ta bằng ánh mắt đó.', 'Your father? He stood on this very spot. Trembled like you. Glared at me with those same eyes.')],
@@ -1423,14 +1438,16 @@ const build = { m: 2, r: .8, grip: .5, dir: 1, skill: 'storm', euler: '', drop: 
   tdrop: { x: 0, z: .5 }, taim: { x: 0, z: -3 } };   // courses keep their own drop point
 const dropPt = () => level.track ? build.tdrop : build.drop, aimVec = () => level.track ? build.taim : build.aim;
 let unlocked = 0, unlockedT = 0;
-// Saves from the 51-stage campaign (5 bouts a chapter) carry no 'tops.bouts'; map them onto the kept bout at or before them.
-const fromFiveBouts = i => {
-  const c = Math.min(FINAL_CH, Math.floor(i / 5)), s = i - 5 * c, kept = c === FINAL_CH ? KEPT_FINAL : KEPT;
-  return chapterStart(c) + Math.max(0, kept.filter(k => k <= s).length - 1);
+// Saves from older layouts map onto the kept bout at or before them: the 51-stage campaign (5 bouts a chapter, no 'tops.bouts')
+// and the 31-stage one (3 bouts). Each layout lists which of the original five (six in the final chapter) bouts it kept.
+const LAYOUTS = { 5: [[0, 1, 2, 3, 4], [0, 1, 2, 3, 4, 5]], 3: [[0, 2, 4], [1, 3, 4, 5]] };
+const fromLayout = (i, n) => {
+  const c = Math.min(FINAL_CH, Math.floor(i / n)), old = LAYOUTS[n][c === FINAL_CH ? 1 : 0], s = old[Math.min(i - n * c, old.length - 1)];
+  return chapterStart(c) + Math.max(0, (c === FINAL_CH ? KEPT_FINAL : KEPT).filter(k => k <= s).length - 1);
 };
 try {
-  const raw = +localStorage.getItem('tops.campaign') || 0;
-  unlocked = clamp(localStorage.getItem('tops.bouts') ? raw : fromFiveBouts(raw), 0, ARENAS - 1);
+  const raw = +localStorage.getItem('tops.campaign') || 0, was = +localStorage.getItem('tops.bouts') || 5;
+  unlocked = clamp(LAYOUTS[was] ? fromLayout(raw, was) : raw, 0, ARENAS - 1);
   unlockedT = clamp(+localStorage.getItem('tops.unlockedT') || 0, 0, LEVELS.length - ARENAS - 1);
   Object.assign(build, JSON.parse(localStorage.getItem('tops.build') || '{}'));
 } catch (e) {}
@@ -1470,6 +1487,30 @@ function nearest(a) {
   return best;
 }
 
+// Three masters know their home arena; everyone else charges straight in. The Black Wind Assassin lines up on the inside to
+// blink you off the rimless table, the Snow Mountain Saint climbs above you on the rocking coracle so the tilt carries you away,
+// and the Blood Moon Demon King feeds in the blood ring when hurt and otherwise shoves you out towards it.
+const outward = o => { const d = Math.hypot(o.x, o.z) || 1; return [o.x / d, o.z / d]; };
+const downhill = () => { const ra = simT * level.rock.speed; return [Math.cos(ra), Math.sin(ra)]; };
+function homePush(a) {            // the direction this master wants to knock you, or null if it has no home-ground plan here
+  if (!a.crown || level.track) return null;
+  if (a.skill === 'dash' && !level.wall) return 'out';
+  if (a.skill === 'ice' && level.rock) return 'downhill';   // keeps charging; only the timing of its frost changes
+  if (a.bloodImmune && level.bloodRing) return 'out';
+  return null;
+}
+const linedUp = (a, foe, [px, pz]) => ((foe.x - a.x) * px + (foe.z - a.z) * pz) / (Math.hypot(foe.x - a.x, foe.z - a.z) || 1) > .6;
+function homeGround(a, foe) {
+  const plan = homePush(a);
+  if (!plan || plan === 'downhill') return [foe.x, foe.z];
+  if (a.bloodImmune) {            // below 55% spin it goes to drink from the ring, and comes back at 80%
+    if (Math.abs(a.w) < a.w0 * .55) a.feeding = true; else if (Math.abs(a.w) > a.w0 * .8) a.feeding = false;
+    if (a.feeding) { const [ox, oz] = outward(a), rr = (1 + level.bloodRing) / 2 * arenaR(); return [ox * rr, oz * rr]; }
+  }
+  const p = outward(foe);
+  if (linedUp(a, foe, p)) return [foe.x, foe.z];   // already on the inside: charge
+  return [foe.x - p[0] * 1.2, foe.z - p[1] * 1.2]; // still charging, but bending round to your inside so the hit sends you outward
+}
 function steer(a) {
   const foe = nearest(a), d = Math.hypot(a.x, a.z), lim = (6 + 18 * a.grip) * (level.traction ?? 1) * a.steerK;
   let sx = 0, sz = 0;
@@ -1486,13 +1527,13 @@ function steer(a) {
     }
   } else {
     if (a.ai === 'chase' && foe) {
-      const ed = Math.hypot(foe.x - a.x, foe.z - a.z) || 1;
-      sx = (foe.x - a.x) / ed * lim * .7; sz = (foe.z - a.z) / ed * lim * .7;
+      const [tx, tz] = homeGround(a, foe), ed = Math.hypot(tx - a.x, tz - a.z) || 1;
+      sx = (tx - a.x) / ed * lim * .7; sz = (tz - a.z) / ed * lim * .7;
     }
     if (a.ai === 'guard') {                      // pace across the road around the post
       sx = (a.homeX + Math.sin(simT * 1.3 + a.homeZ) * a.patrol - a.x) * 5 - a.vx * 2; sz = (a.homeZ - a.z) * 5 - a.vz * 2;
     }
-    if ((!level.wall || level.bloodRing) && !level.track && d > arenaR() * .55) {   // foes keep away from open edges and the blood ring
+    if ((!level.wall || level.bloodRing) && !level.track && d > arenaR() * .55 && !(a.bloodImmune && level.wall)) {   // foes keep away from open edges and the blood ring (its master feeds there)
       const k = (d / arenaR() - .55) / .45 * 40;
       sx -= a.x / d * k; sz -= a.z / d * k;
     }
@@ -1524,11 +1565,11 @@ function kill(a, why) {
 }
 
 const STORM_COLORS = [0xbfdcff, 0xc59bff, 0xffe082];
-// the player's tornado grows with the campaign: weak at first, stronger once the bosses of stages 6 and 12 have fallen.
+// the player's tornado grows with the campaign: weak at first, stronger once the bosses of stages 8 and 16 have fallen.
 // k scales its pull, drain and blast; cap is the highest level knock-outs can raise it to; reach is how far it pulls.
 const STORM_TIERS = [{ k: .5, cap: 1, reach: 3.5 }, { k: .65, cap: 2, reach: 4 }, { k: .75, cap: 3, reach: 4.5 }];
 // the player's own tornado also lasts longer than a rival's (2 s) and keeps more of the spin it drains (rivals 25%)
-const PLAYER_STORM = { time: 2.5, keep: .4 };
+const PLAYER_STORM = { time: 2.2, keep: .4 };
 let tierOverride = null;           // balance sims pin a tier
 const stormTier = () => tierOverride ?? (unlocked > bossIndex(3) ? 2 : unlocked > bossIndex(1) ? 1 : 0);
 function castStorm(a) {
@@ -1571,7 +1612,7 @@ function powerPress() {
 }
 
 // the Firestorm (fire + tornado fusion) runs on the tornado's original, un-nerfed V3 numbers
-const FUSE_DELAY = 1, FUSE_WINDOW = 8, FUSE_CD = { heal: 4, flare: 3, fort: 3, rime: 3, arc: 2 }, PHANTOM_TIME = 3.2;
+const FUSE_DELAY = 1, FUSE_WINDOW = 8, FUSE_CD = { heal: 5, flare: 3, fort: 3, rime: 3, arc: 2 }, PHANTOM_TIME = 3.2;
 const FUSE_LEN = { heal: PHANTOM_TIME, flare: 3.9, fort: 3.5, rime: 4.5, arc: 4 };   // how long each fusion's effect lasts: its cooldown starts when that ends   // a fusion opens 1 s after the first cast starts (no cooldown) and stays open 8 s after that cast ends
 const ARC_TIME = 4, ARC_BOLT = 5, ARC_GUARD = .9;   // Thunder Run: seconds, spin per bolt, damage taken ×0.9
 // the ninja run: the top traces a five-pointed star (left, right, up, down) twice in ARC_TIME seconds, ~25 m/s
@@ -1687,8 +1728,8 @@ function collide(a, b) {
   a.vx -= Jt / ma * tx; a.vz -= Jt / ma * tz;
   b.vx += Jt / mb * tx; b.vz += Jt / mb * tz;
   for (const [o, s] of [[a, a.w - Jt * a.r / a.I], [b, b.w - Jt * b.r / b.I]]) {
-    if ((!on(o, 'lotus') || weakWard(o)) && !on(o, 'vajra')) {      // warded tops keep their spin (the stage-6 queen and disciples only half)
-      const w = s - sgn(s) * HIT_LOSS * J / o.I;
+    if ((!on(o, 'lotus') || weakWard(o)) && !on(o, 'vajra')) {      // warded tops keep their spin (the stage-8 queen and disciples only half)
+      const w = s - sgn(s) * HIT_LOSS * J * (on(o, 'dash') ? .5 : 1) / o.I;   // the doubled dash impact hurts the target, not the dasher
       const next = sgn(w) === sgn(o.w) ? w : 0;
       o.w += (next - o.w) * (on(o, 'lotus') ? QUEEN_WARD.hit : 1) * (on(o, 'iron') ? .55 : 1) * (o.finalBoss && simT >= o.recoveryUntil ? .55 : 1) * (o.arcUntil > simT ? ARC_GUARD : 1) * (fortified(o) ? .3 : 1);
     }
@@ -1886,7 +1927,7 @@ function stepPhysics() {
   for (const a of tops)
     if (a.alive && !a.isPlayer && !a.ult && a.skill && a.energy >= 1 && a.skillT <= 0 && a.stormT <= 0 && aiWantsSkill(a)) castSkill(a);
 }
-// The Undefeated Spin God (stage 31, not the Void) answers every second two-cast cycle with a FUSION of his own: he stops dead for 1.1 s
+// The Undefeated Spin God (stage 41, not the Void) answers every second two-cast cycle with a FUSION of his own: he stops dead for 1.1 s
 // while his name and the fusion's name blaze (that stillness is your opening), then it lands; afterwards the usual 3 s exposed window follows.
 const GOD_ULTS = ['arc', 'flare', 'fort', 'rime'], ULT_TIME = { arc: ARC_TIME, flare: 3.9, fort: 3.5, rime: 4.5 };
 function godUltimate(a) {
@@ -1934,8 +1975,8 @@ function godFuse(a, kind) {
 const SKILL_ORDER = ['storm', 'thunder', 'lotus', 'dash', 'fire', 'iron', 'ghost', 'vajra', 'ice', 'moon'];
 const SKILLS = {
   storm: { name: t('Lốc Xoáy', 'Tornado'), color: 0xbfdcff,
-    desc: t('Gom địch 2,5 giây rồi hất văng; rút quay 7/giây × hệ số, giữ lại 40% cho mình. Tốt nhất để gom đệ tử hoặc khắc Bạo Viêm. Hạ trùm màn 6/12 để mở cấp lốc, hạ địch trong trận để lên V2/V3.',
-      'Gathers rivals for 2.5 s then blasts them away; drains 7 spin/s × power and keeps 40% of it. Best for groups or countering Fire. Stage 6/12 bosses unlock tiers; knock-outs raise V2/V3 in battle.'),
+    desc: t('Gom địch 2,2 giây rồi hất văng; rút quay 7/giây × hệ số, giữ lại 40% cho mình. Tốt nhất để gom đệ tử hoặc khắc Bạo Viêm. Hạ trùm màn 8/16 để mở cấp lốc, hạ địch trong trận để lên V2/V3.',
+      'Gathers rivals for 2.2 s then blasts them away; drains 7 spin/s × power and keeps 40% of it. Best for groups or countering Fire. Stage 8/16 bosses unlock tiers; knock-outs raise V2/V3 in battle.'),
     warn: t('Trong lúc hút, bạn gần như đứng yên.', 'While it pulls, you are almost rooted to the spot.') },
   thunder: { name: t('Sấm Sét', 'Thunderbolt'), color: 0xfff176, dur: .35,
     desc: t('Ngắt chiêu trong 8 m: rút 26% quay, tối đa 24 trước khắc chế; hất văng và khoá chiêu 0,8 giây. Tốt nhất để phá Ảo Ảnh/Thiết Giáp.', 'Interrupts within 8 m: drains 26% spin, capped at 24 before counters; knocks back and locks casts for 0.8 s. Best against Phantom/Iron.'),
@@ -1986,7 +2027,7 @@ const GHOST_PASS = { every: .4, dmg: 6 }, LOTUS_PASS = { every: .3, dmg: 14, ste
 function phantomPass(g, o) {
   if (!g.isPlayer || phased(o) || !o.alive) return;
   const P = g.phantomUntil > simT ? LOTUS_PASS : GHOST_PASS, m = g.phaseHits ??= new Map();
-  if (simT - (m.get(o) ?? -99) < P.every) return;
+  if (simT - (m.get(o) ?? -99) < P.every * (o.finalBoss ? 2.5 : 1)) return;   // the Spin God is not melted by one phase: passes land 2.5x less often
   m.set(o, simT);
   const dealt = hurtSkill(g, o, 'ghost', P.dmg);
   if (P.steal) g.w += sgn(g.w) * Math.min(dealt * P.steal, Math.max(0, g.w0 - Math.abs(g.w)));
@@ -2040,7 +2081,7 @@ function castStarted(a, id, duration) {
     const combo = comboOffer(a)?.fusion;
     if (combo && combo.ids.includes(id) && id !== a.lastCast) {
       a.combo = combo.kind; a.comboAt = simT; a.comboCd[combo.kind] = simT + FUSE_LEN[combo.kind];
-      if (combo.kind === 'heal') {                    // Phantom Lotus: 3.2 s of ghost form that hits back on every pass and heals, then a heal and half a bar; 4 s cooldown
+      if (combo.kind === 'heal') {                    // Phantom Lotus: 3.2 s of ghost form that hits back on every pass and heals, then a heal and half a bar; 5 s cooldown
         a.phantomUntil = simT + PHANTOM_TIME;
         a.w += sgn(a.w) * Math.min(20, Math.max(0, a.w0 - Math.abs(a.w)));
         a.energy = Math.min(a.stormMax, a.energy + .5);
@@ -2089,12 +2130,15 @@ function castFusion() {
   const offer = comboOffer(player);
   if (state !== 'battle' || level.track || tstop || !offer || !canCast(player, true, offer.next)) return false;
   player.skillT = 0; player.stormT = 0;          // the first skill hands over to the fusion
+  const chosen = build.skill;                    // the partner casts, but the slot you picked stays selected
   build.skill = player.skill = offer.next;
-  return castSkill(player);
+  const ok = castSkill(player);
+  build.skill = player.skill = chosen;
+  return ok;
 }
 function fusionGuide() {
   const f = equippedFusion();
-  if (!f && unlocked <= bossIndex(2)) return t('Hai ô dùng riêng. Cặp hợp chiêu đầu mở sau trùm màn 9: SPACE → 1 giây sau → SPACE lần nữa (hoặc C / chạm lời nhắc).', 'These slots cast separately. First fusion pair unlocks after the stage 9 boss: SPACE → 1 s later → SPACE again (or C / tap the prompt).');
+  if (!f && !FUSIONS.some(fusionReady)) return t(`Hai ô dùng riêng. Cặp hợp chiêu đầu mở sau trùm màn ${firstFusionStage()}: SPACE → 1 giây sau → SPACE lần nữa (hoặc C / chạm lời nhắc).`, `These slots cast separately. First fusion pair unlocks after the stage ${firstFusionStage()} boss: SPACE → 1 s later → SPACE again (or C / tap the prompt).`);
   return f ? `${equippedFusions().map(g => `${g.name}: ${SKILLS[g.ids[0]].name} → ${SKILLS[g.ids[1]].name}`).join(' · ')}. ${t('Dùng một chiêu, 1 giây sau, khi đủ 1 thanh, nhấn SPACE lần nữa (hoặc C / chạm lời nhắc) để hợp, nghỉ 2–4 giây sau mỗi lần.', 'Cast either skill; 1 s later, with 1 bar, press SPACE again (or C / tap the prompt) to fuse. 2-4 s rest after each.')}`
     : t('Hợp chiêu: trang bị đúng một cặp trong bảng ✦. Dùng chiêu đầu → 1 giây sau → SPACE lần nữa (hoặc C / chạm lời nhắc). Hai chiêu khác cặp vẫn dùng riêng.', 'Fusion: equip a pair from ✦. Cast one → 1 s later → SPACE again (or C / tap the prompt). Other pairs work as separate skills.');
 }
@@ -2116,7 +2160,10 @@ function selectSkill(i) {
 const spareSpin = o => o.voidGod ? Math.max(0, Math.abs(o.w) - o.floorW) : Math.abs(o.w);
 // which skill a top will use next: the final boss cycles through them all, the void god picks any at random
 const skillOf = a => a.skill === 'god' || a.skill === 'void' ? GOD_ROTATION[a.godI % GOD_ROTATION.length] : a.skill;
-const skillUnlocked = k => k === 0 || unlocked >= chapterStart(k);                     // skill k is the reward of chapter k's boss
+const skillUnlocked = k => k === 0 || unlocked >= chapterStart(k);
+const fusionReady = f => f.ids.every(id => skillUnlocked(SKILL_ORDER.indexOf(id)));
+const fusionStage = f => Math.max(...f.ids.map(id => chapterStart(SKILL_ORDER.indexOf(id))));   // the boss stage that completes the pair
+const firstFusionStage = () => Math.min(...FUSIONS.map(fusionStage));                     // skill k is the reward of chapter k's boss
 let fires = [], fields = [], bolts = [];
 
 function castSkill(a) {
@@ -2222,8 +2269,9 @@ function aiWantsSkill(a) {
   switch (skillOf(a)) {
     case 'storm': return d < 4.5;
     case 'thunder': return d < 7;
-    case 'dash': return d < 6 && d > 2;
-    case 'fire': case 'ice': return d < 4;
+    case 'dash': return d < 6 && d > 2 && (!homePush(a) || (([px, pz]) => ((foe.x - a.x) * px + (foe.z - a.z) * pz) / d)(outward(foe)) > .2);   // on the table it only blinks outward
+    case 'ice': return homePush(a) ? d < 3.5 && (([dx, dz], [ox, oz]) => dx * ox + dz * oz)(downhill(), outward(foe)) > 0 : d < 4;   // freeze you while the coracle tips you towards the rim
+    case 'fire': return d < 4;
     case 'ghost': return d < 2 && weaker;
     case 'moon': return d < 5 && weaker;
     default: return d < 2.6;                  // lotus, iron, vajra: brace for the hit
@@ -3272,7 +3320,7 @@ function showMapIntro(done = null) {
   $('mapChapter').textContent = ch ? `${t('Chương', 'Chapter')} ${level.chapter + 1} · ${ch.sect}` : t('Vượt địa hình', 'Obstacle course');
   $('mapName').textContent = level.name;
   $('mapTrait').textContent = level.traits.join(' · ');
-  $('mapBoss').textContent = level.rumble ? t('Vòng 1: chín đệ tử của Thần Quay · Vòng 2: chín cao thủ được hồi sinh · Thần Quay đợi ở màn 31', 'Round 1: the Spin God’s nine disciples · Round 2: the nine masters, raised again · the Spin God waits at stage 31')
+  $('mapBoss').textContent = level.rumble ? t('Vòng 1: chín đệ tử của Thần Quay · Vòng 2: chín cao thủ được hồi sinh · Thần Quay đợi ở màn 41', 'Round 1: the Spin God’s nine disciples · Round 2: the nine masters, raised again · the Spin God waits at stage 41')
     : level.boss && level.chapter === FINAL_CH ? t('Thần Quay Bất Bại, một chọi một · Mười tuyệt kỹ và hợp chiêu · nghỉ sau 2 chiêu', 'The Undefeated Spin God, one on one · Ten skills and fusions · recovers after 2 casts')
     : boss ? `${t('Trấn giữ', 'Master')}: ${boss.name} · ${ch.skill === 'god' ? t('Mười tuyệt kỹ · nghỉ sau 2 chiêu', 'Ten skills · recovers after 2 casts') : SKILLS[ch.skill].name}` : level.blurb;
   const counters = ch && SKILL_ORDER.filter(id => COUNTERS[id]?.includes(ch.skill));
@@ -3490,9 +3538,12 @@ function setLevel(i) {
   enterShop();
 }
 
+// the final stage starts in the Void once you have reached it there and kept 'Start from: The Void' picked
+const voidFirst = () => !level.track && level.boss && level.chapter === FINAL_CH && seen.vr && voidStart && !headless;
 function enterShop() {
   cgSession = false; cgGameplay();
   if (level.void || level.round2) { level = LEVELS[levelIndex]; buildArena(); }   // a retry starts the final fight, or the Rumble, from the beginning
+  if (voidFirst()) { level = voidLevel(); buildArena(); }                       // ...unless you start it in the Void: show that arena
   clearFinale();
   state = 'shop'; simT = 0;
   if (headless) { normalizeLoadout(); resetSkillFx(); return; }
@@ -3534,7 +3585,7 @@ function launch() {
   sfx.drop(); excite = Math.max(excite, .7);   // the stands jump up as the top drops in
   commentStart();
   // been to the void before? then the final stage can skip the crater and start right there
-  if (level.boss && level.chapter === FINAL_CH && !level.void && seen.vr && voidStart && !headless) {
+  if (voidFirst()) {
     enterVoid(); beginPhase2();
     soulCard(t('Hư Vô Thần Quay', 'The Void Spin God'), 'boss');
   }
@@ -3654,8 +3705,8 @@ function showResult() {
   else won ? sfx.win() : sfx.lose();
   $('rTitle').textContent = won ? (course ? t('VỀ ĐÍCH!', 'FINISHED!') : last ? t('VÔ ĐỊCH!', 'CHAMPION!') : t('THẮNG!', 'YOU WIN!')) : t('THUA RỒI', 'YOU LOSE');
   const crushed = shardCount() < 5
-    ? t('Thời gian ngừng lại và bạn bị cán bẹp. Lời đồn kể rằng năm mảnh vỡ từ các trùm màn 6, 12, 18, 24 và 27 có thể phá được trói buộc của thời gian.',
-      'Time stopped and you were crushed. Legend says five shards from the bosses of stages 6, 12, 18, 24 and 27 can break the chains of time.')
+    ? t('Thời gian ngừng lại và bạn bị cán bẹp. Lời đồn kể rằng năm mảnh vỡ từ các trùm màn 8, 16, 24, 32 và 36 có thể phá được trói buộc của thời gian.',
+      'Time stopped and you were crushed. Legend says five shards from the bosses of stages 8, 16, 24, 32 and 36 can break the chains of time.')
     : !eulerOK() ? t('Thời gian ngừng lại và bạn bị cán bẹp. Bạn đã có đủ năm mảnh vỡ: hãy ghép phương trình sự sống trong thẻ Nâng cao.',
       'Time stopped and you were crushed. You hold all five shards: put the equation of life together in the Advanced tab.')
     : t('Thời gian ngừng lại và bạn bị cán bẹp. Phương trình đã sẵn sàng: khi thanh sáng lướt qua ô vàng, bấm SPACE đúng lúc.',
@@ -3679,6 +3730,8 @@ function showResult() {
     if (won && level.boss && !seen['w' + level.chapter]) {   // the beaten master hands over their skill, and maybe a shard
       const c = level.chapter, lines = [...STORY[c].win], S = SKILLS[CHAPTERS[c].skill], k = SHARD_CHAPTERS.indexOf(c);
       if (S) lines.push(['narr', `${t('Bạn nhận được kỹ năng', 'You gained the skill')} ${S.name}. ${S.desc} ${t('Cảnh báo:', 'Warning:')} ${S.warn}`]);
+      for (const f of FUSIONS.filter(f => f.ids.includes(CHAPTERS[c].skill) && fusionReady(f)))
+        lines.push(['narr', `✦ ${t('Mở khoá hợp chiêu', 'Fusion unlocked')} ${f.name}: ${f.ids.map(id => SKILLS[id].name).join(' + ')}. ${t('Trang bị cả cặp trong xưởng để dùng.', 'Equip both skills in the workshop to use it.')}`]);
       if (c === 1) lines.push(['narr', t('Lốc xoáy của bạn mạnh lên! Giờ nó có thể lên tới V2.', 'Your tornado grows stronger! It can now reach V2.')]);
       if (c === 3) lines.push(['narr', t('Lốc xoáy của bạn đạt sức mạnh tối đa! Giờ nó có thể lên tới V3.', 'Your tornado reaches full power! It can now reach V3.')]);
       if (k >= 0) {
@@ -3697,7 +3750,7 @@ function showResult() {
 
 // ---------- the final boss: a second life in the void ----------
 // Beat the Undefeated Spin God once and he rises again over a black hole as the Void Spin God, who can stop time.
-// The only way through: five shards dropped by the bosses of stages 6, 12, 18, 24 and 27, put together into the
+// The only way through: five shards dropped by the bosses of stages 8, 16, 24, 32 and 36, put together into the
 // equation of life in the Advanced tab. With it you step out of frozen time along e^{iθ}, swing half a turn round
 // the charging god (e^{iπ} = −1), then take one more step and strike (+1 = 0).
 const SHARD_CHAPTERS = [1, 3, 5, 7, 8];
@@ -3810,8 +3863,9 @@ function momLand() {
 }
 const VOID_TALK = () => [
   ['god', t('Ngươi nghĩ... một miệng núi lửa là đủ để chôn ta sao?', 'You thought... a volcano could bury me?')],
-  ['god', t('Ta là khoảng trống giữa các vì sao. Ta là khoảnh khắc trước khi thời gian bắt đầu.', 'I am the gap between the stars. I am the moment before time began.')],
-  ['god', t('Quỳ xuống. Từng giây của ngươi giờ thuộc về ta. KAKAKAKA!', 'Kneel. Every second you have is mine now. KAHAHAHA!')],
+  ['god', t('Ta là khoảng trống giữa các vì sao. Là khoảnh khắc trước khi thời gian bắt đầu. Là thứ duy nhất còn lại khi mọi thứ đã tan biến.', 'I am the gap between the stars. The moment before time began. The only thing left when everything else is gone.')],
+  ['me', t('Ông là gì cũng được. Tôi vẫn sẽ hạ ông.', 'Whatever you are, I will still bring you down.')],
+  ['god', t('Quỳ xuống. Từng giây của ngươi giờ thuộc về ta. KAHAHAHAHA!', 'Kneel. Every second you have is mine now. KAHAHAHAHA!')],
   eulerOK() ? ['me', t('Năm mảnh vỡ trong túi tôi... đang nóng ran lên.', 'The five shards in my pocket... are burning hot.')]
     : shardCount() === 5 ? ['narr', t('Năm mảnh vỡ rung lên dữ dội... nhưng chúng vẫn chưa được ghép thành phương trình.', 'The five shards shake violently... but they have not been put together into the equation.')]
     : ['narr', t('Một cơn lạnh buốt chạy dọc sống lưng. Như thể chính thời gian đang bị bóp nghẹt...', 'A chill runs down your spine. As if time itself is being strangled...')],
@@ -4817,7 +4871,7 @@ $('shop').innerHTML = `
     <div class="rowb"><span>${t('Chiều quay', 'Spin direction')}</span><button id="dirBtn"></button></div>
     <div class="rowb"><span>${t('Kỹ năng', 'Skill')}</span></div>
     <div id="skills"></div><p class="hint" id="skInfo"></p>
-    <div id="comboTutorial" hidden><b>${t('✦ Hai ô, một hợp chiêu!', '✦ Two slots, one fusion!')}</b><p id="comboTipAvailability"></p><p>${t('Khi có cặp: dùng một chiêu bằng SPACE/nút lớn; 1 giây sau đó, khi đủ 1 thanh, nhấn SPACE lần nữa (hoặc C / chạm lời nhắc) để hợp. Mỗi hợp chiêu nghỉ 2–4 giây sau khi hết hiệu lực. Không bấm hai nút cùng lúc!', 'With a pair: cast one with SPACE/the big button; 1 s later, once you have 1 bar, press SPACE again (or C / tap the prompt) to fuse. Each fusion rests 2-4 s after its effect ends. No simultaneous presses!')}</p><button id="comboTipClose">${t('Đã hiểu', 'Got it')}</button></div>
+    <div id="comboTutorial" hidden><b>${t('✦ Hai ô, một hợp chiêu!', '✦ Two slots, one fusion!')}</b><p id="comboTipNew"></p><p id="comboTipAvailability"></p><p>${t('Khi có cặp: dùng một chiêu bằng SPACE/nút lớn; 1 giây sau đó, khi đủ 1 thanh, nhấn SPACE lần nữa (hoặc C / chạm lời nhắc) để hợp. Mỗi hợp chiêu nghỉ 2–4 giây sau khi hết hiệu lực. Không bấm hai nút cùng lúc!', 'With a pair: cast one with SPACE/the big button; 1 s later, once you have 1 bar, press SPACE again (or C / tap the prompt) to fuse. Each fusion rests 2-4 s after its effect ends. No simultaneous presses!')}</p><button id="comboTipClose">${t('Đã hiểu', 'Got it')}</button></div>
     <details id="comboBook" open><summary>${t('✦ Công thức hợp chiêu · chạm để trang bị cặp', '✦ Fusion recipes · tap to equip a pair')}</summary><p>${t('Hai thứ tự đều được · mở 1 giây sau chiêu đầu · cần đủ 1 thanh · nghỉ 2–4 giây sau khi hết hiệu lực. Hai chiêu khác cặp dùng riêng.', 'Either order · opens 1 s after the first cast · needs 1 bar · rests 2-4 s after its effect ends. Other pairs cast separately.')}</p><div id="comboRecipes"></div></details>
     <div id="stats"></div>
     <p class="hint">${t('Bấm vào chỗ trống trên sàn để đặt con quay. Kéo từ con quay (hoặc từ chấm tròn đầu mũi tên) để chỉnh hướng và lực phóng.', 'Click an empty spot to place the top. Drag from the top (or from the knob on the arrow) to set launch direction and power.')}</p>
@@ -4855,8 +4909,8 @@ $('lvName').after($('comboTutorial'));
 $('skills').after($('comboBook'));
 $('hud').insertAdjacentHTML('beforeend', '<div id="skillSlots" class="hidden"></div><button id="btnFusion" class="hidden"></button><div id="bossCycle" class="hidden"></div>');
 $('btnFusion').addEventListener('click', castFusion);
-let comboTipOpen = false;
-$('comboTipClose').addEventListener('click', () => { comboTipOpen = false; $('comboTutorial').hidden = true; });
+let comboTipOpen = false, comboNew = [];
+$('comboTipClose').addEventListener('click', () => { comboTipOpen = false; comboNew = []; $('comboTutorial').hidden = true; });
 $('comboRecipes').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (!b || b.disabled) return;
@@ -4870,7 +4924,7 @@ $('skillSlots').addEventListener('click', e => {
 });
 let shownChapter = 0;
 const stageLabel = () => level.track ? `${t('Chặng', 'Course')} ${levelIndex - ARENAS + 1} · ${level.name}`
-  : `${t('Màn', 'Stage')} ${levelIndex + 1}/${ARENAS} · ${level.name} · ${CHAPTERS[level.chapter].sect}${level.boss ? ' · ' + FOES[CHAPTERS[level.chapter].boss].name : ''}`;
+  : `${t('Màn', 'Stage')} ${levelIndex + 1}/${ARENAS} · ${level.name} · ${CHAPTERS[level.chapter].sect}${level.boss ? ' · ' + (level.void ? VOID_GOD.name : FOES[CHAPTERS[level.chapter].boss].name) : ''}`;
 $('presets').innerHTML = PRESETS.map((p, i) => `<button data-p="${i}">${p[0]}</button>`).join('');
 
 function showTab(name) {
@@ -4912,17 +4966,19 @@ function refreshShop() {
     + loadout().map(id => { const s = SKILLS[id]; return `<b>${s.name}:</b> ${s.desc}<br><span class="warn">⚠ ${s.warn}</span><br>↗ ${t('Khắc', 'Counters')}: ${COUNTERS[id].map(k => SKILLS[k].name).join(', ')} (+35%; ${t('chiều ngược −35%', 'reverse −35%')})`; }).join('<hr>')
     + `<br>✦ ${fusionGuide()}`
     + (build.skill === 'storm' ? `<br>🌪 ${t('Sức mạnh', 'Power')}: ${'★'.repeat(tier + 1)}${'☆'.repeat(2 - tier)} · ${t('tối đa', 'up to')} V${STORM_TIERS[tier].cap}`
-      + (tier < 2 ? ` · ${t(`hạ trùm màn ${tier ? 20 : 10} để mạnh lên`, `beat the stage ${tier ? 20 : 10} boss to power it up`)}` : '') : '');
+      + (tier < 2 ? ` · ${t(`hạ trùm màn ${bossIndex(tier ? 3 : 1) + 1} để mạnh lên`, `beat the stage ${bossIndex(tier ? 3 : 1) + 1} boss to power it up`)}` : '') : '');
   if (skillUnlocked(1) && !seen.comboTip) { markSeen('comboTip'); comboTipOpen = true; }
-  $('comboTipAvailability').textContent = unlocked <= bossIndex(2) ? t('Cặp đầu mở sau trùm màn 9. Hiện tại hai chiêu dùng riêng.', 'First pair unlocks after the stage 9 boss. Your current skills cast separately.') : t('Chạm một công thức ✦ để trang bị cả cặp.', 'Tap a ✦ recipe to equip both skills.');
+  const fresh = FUSIONS.filter(f => fusionReady(f) && !seen['f' + f.kind]);
+  if (fresh.length) { fresh.forEach(f => markSeen('f' + f.kind)); comboNew = fresh; comboTipOpen = true; }
+  $('comboTipNew').innerHTML = comboNew.length ? `✦ ${t('Vừa mở hợp chiêu', 'New fusion unlocked')}: ${comboNew.map(f => `<b>${f.name}</b> (${f.ids.map(id => SKILLS[id].name).join(' + ')})`).join(', ')}` : '';
+  $('comboTipAvailability').textContent = !FUSIONS.some(fusionReady) ? t(`Cặp đầu mở sau trùm màn ${firstFusionStage()}. Hiện tại hai chiêu dùng riêng.`, `First pair unlocks after the stage ${firstFusionStage()} boss. Your current skills cast separately.`) : t('Chạm một công thức ✦ để trang bị cả cặp.', 'Tap a ✦ recipe to equip both skills.');
   $('comboTutorial').hidden = !comboTipOpen || !!level.track;
   $('comboBook').hidden = !!level.track;
   $('comboRecipes').innerHTML = FUSIONS.map((f, i) => {
-    const unlock = Math.max(...f.ids.map(id => chapterStart(SKILL_ORDER.indexOf(id))));
-    const ready = unlocked >= unlock;
-    const effect = f.kind === 'arc' ? t('Lôi Bộ: 4 giây lướt rất nhanh (~25 m/s) hai vòng ngôi sao như ninja (trái, phải, lên, xuống), liên tục gọi sét (5 quay mỗi 0,4s) vào địch gần, giảm 10% sát thương nhận; mở màn sét 16 quay + xích 10', 'Thunder Run: 4 s of very fast (~25 m/s) ninja dashes, two laps of a five-pointed star, calling bolts (5 spin every 0.4 s) on the nearest rival, 10% less damage taken; opens with a 16-spin bolt + 10 chain') : f.kind === 'heal' ? t('Liên Ảnh: hồi 20 quay + hoàn nửa thanh, rồi 3,2 giây hoá bóng xuyên địch: mỗi lần lướt qua phản 14 quay (hút 40%), hồi 3 quay/giây. Nghỉ 4 giây sau khi hết hiệu lực. Sấm Sét xuyên qua và phá được; Hư Vô không bị xuyên', 'Phantom Lotus: heal 20 spin + refund half a bar, then 3.2 s of ghost form: every pass through a rival hits back for 14 spin (40% drained), heals 3 spin/s. 4 s rest after it ends. Thunder pierces and snaps it; the Void cannot be phased through') : f.kind === 'fort' ? t('Kim Thân: 3,5 giây bất động như núi, nhận 60% sát thương, hao quay va chạm ×0,3; ai chạm vào bị hất 11 và mất 16 quay (mỗi 0,4s); mở màn đẩy lùi + 8 quay trong 4,5m', 'Fortress: 3.5 s immovable, take 60% damage, collision spin loss ×0.3; anyone touching you is thrown 11 and loses 16 spin (every 0.4 s); opens with a shove + 8 spin within 4.5 m') : f.kind === 'rime' ? t('Huyết Băng: vùng băng đỏ bán kính 5m trong 4,5 giây: địch trượt, bị hút 8 quay/giây về cho bạn (tới 120% quay ban đầu)', 'Blood Frost: a red frost field of 5 m for 4.5 s: rivals slide and are drained 8 spin/s into you (up to 120% of launch spin)') : t('Lốc Lửa: sức mạnh ngang Lốc V3 gốc (chưa nerf), đốt sàn 16/giây, chỉ tốn 1 thanh', 'Fire Tornado: original un-nerfed V3 tornado power, burns the floor for 16/s, costs just 1 bar');
-    return `<button data-fusion="${i}" ${ready ? '' : 'disabled'}>${f.ids.map(id => SKILLS[id].name).join(' + ')} → <b>${f.name}</b><br>${effect} · ${ready ? t('Chạm để trang bị 2 ô', 'Tap to equip both slots') : t(`Mở sau trùm màn ${unlock}`, `Unlock after stage ${unlock} boss`)}</button>`;
-  }).join('');
+    if (!fusionReady(f)) return '';             // locked recipes stay hidden until their pair is earned
+    const effect = f.kind === 'arc' ? t('Lôi Bộ: 4 giây lướt rất nhanh (~25 m/s) hai vòng ngôi sao như ninja (trái, phải, lên, xuống), liên tục gọi sét (5 quay mỗi 0,4s) vào địch gần, giảm 10% sát thương nhận; mở màn sét 16 quay + xích 10', 'Thunder Run: 4 s of very fast (~25 m/s) ninja dashes, two laps of a five-pointed star, calling bolts (5 spin every 0.4 s) on the nearest rival, 10% less damage taken; opens with a 16-spin bolt + 10 chain') : f.kind === 'heal' ? t('Liên Ảnh: hồi 20 quay + hoàn nửa thanh, rồi 3,2 giây hoá bóng xuyên địch: mỗi lần lướt qua phản 14 quay (hút 40%), hồi 3 quay/giây. Nghỉ 5 giây sau khi hết hiệu lực. Sấm Sét xuyên qua và phá được; Hư Vô không bị xuyên', 'Phantom Lotus: heal 20 spin + refund half a bar, then 3.2 s of ghost form: every pass through a rival hits back for 14 spin (40% drained), heals 3 spin/s. 5 s rest after it ends. Thunder pierces and snaps it; the Void cannot be phased through') : f.kind === 'fort' ? t('Kim Thân: 3,5 giây bất động như núi, nhận 60% sát thương, hao quay va chạm ×0,3; ai chạm vào bị hất 11 và mất 16 quay (mỗi 0,4s); mở màn đẩy lùi + 8 quay trong 4,5m', 'Fortress: 3.5 s immovable, take 60% damage, collision spin loss ×0.3; anyone touching you is thrown 11 and loses 16 spin (every 0.4 s); opens with a shove + 8 spin within 4.5 m') : f.kind === 'rime' ? t('Huyết Băng: vùng băng đỏ bán kính 5m trong 4,5 giây: địch trượt, bị hút 8 quay/giây về cho bạn (tới 120% quay ban đầu)', 'Blood Frost: a red frost field of 5 m for 4.5 s: rivals slide and are drained 8 spin/s into you (up to 120% of launch spin)') : t('Lốc Lửa: sức mạnh ngang Lốc V3 gốc (chưa nerf), đốt sàn 16/giây, chỉ tốn 1 thanh', 'Fire Tornado: original un-nerfed V3 tornado power, burns the floor for 16/s, costs just 1 bar');
+    return `<button data-fusion="${i}">${f.ids.map(id => SKILLS[id].name).join(' + ')} → <b>${f.name}</b><br>${effect} · ${t('Chạm để trang bị 2 ô', 'Tap to equip both slots')}</button>`;
+  }).join('') || `<p class="hint">${t(`Chưa mở hợp chiêu nào. Cặp đầu tiên mở sau trùm màn ${firstFusionStage()}.`, `No fusion unlocked yet. The first pair unlocks after the stage ${firstFusionStage()} boss.`)}</p>`;
   const own = shardsOwned(), got = own.filter(Boolean).length;
   $('shardBox').hidden = !got; $('eqBox').hidden = got < 5;
   $('shardList').hidden = got === 5;            // once all five are in hand the tray below shows them; no need to list them twice
@@ -5049,7 +5105,12 @@ addEventListener('pointerup', e => {
   else if (eqPick) placeTok(d.from, eqPick, upperHalf(e.target.closest('.slot') || e.target, e.clientY));
   else { eqOf().s[d.from] = null; syncEq(); }                            // a tap on a filled box empties it
 });
-$('voidSw').addEventListener('click', e => { if (e.target.dataset.s) { voidStart = e.target.dataset.s === '1'; refreshShop(); } });
+$('voidSw').addEventListener('click', e => {
+  if (!e.target.dataset.s) return;
+  voidStart = e.target.dataset.s === '1';
+  level = LEVELS[levelIndex]; if (voidFirst()) level = voidLevel();
+  buildArena(); placeTops(); refreshShop();
+});
 $('presets').addEventListener('click', e => {
   const p = PRESETS[e.target.dataset.p]; if (!p) return;
   build.fx = p[1]; build.fz = p[2]; $('fx').value = p[1]; $('fz').value = p[2]; $('fErr').textContent = '';

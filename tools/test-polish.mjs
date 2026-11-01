@@ -107,12 +107,13 @@ try {
   await navigate('/?debug&story&lang=vi');
   check('Old single-skill save migrates', await evaluate(`game.build.skills.join() === 'ghost'`));
   check('First two-skill milestone explains fusion controls', await evaluate(`!document.querySelector('#comboTutorial').hidden&&document.querySelector('#comboTutorial').textContent.includes('C')&&document.querySelector('#comboTutorial').textContent.includes('chạm')`));
+  check('Newly unlocked fusions are announced by name', await evaluate(`(()=>{const x=document.querySelector('#comboTipNew').textContent;return x.includes('Lôi Bộ')&&x.includes('Liên Ảnh')&&document.querySelectorAll('#comboRecipes button').length===5;})()`));
   await evaluate(`document.querySelector('#comboTipClose').click();game.unlockAll();`);
   check('Dismissed first-time fusion tip stays dismissed', await evaluate(`document.querySelector('#comboTutorial').hidden`));
   // Story title on a real boss, followed by a different chapter's narrator.
-  await evaluate(`game.setLevel(5); game.closeMapIntro(); game.launch();`);
+  await evaluate(`game.setLevel(7); game.closeMapIntro(); game.launch();`);
   check('Lotus boss title', await evaluate(`document.querySelector('#storyTitle').textContent.includes('Hồng Liên')`));
-  await evaluate(`game.setLevel(6)`);
+  await evaluate(`game.setLevel(8)`);
   check('No stale title on Black Wind entry', await evaluate(`document.querySelector('#storyTitle').textContent === '' && !document.querySelector('#storyText').textContent.includes('Hồng Liên')`));
   await key('Escape');
   check('New map intro shows current boss and trait', await evaluate(`!document.querySelector('#mapIntro').classList.contains('hidden') && document.querySelector('#mapBoss').textContent.includes('Hắc Phong') && document.querySelector('#mapTrait').textContent.includes('bia')`));
@@ -122,20 +123,20 @@ try {
   await evaluate(`game.intro()`); // Screenshot capture can take longer than the intro's real-time timeout.
   await key('Space');
   check('Intro skips without launching', await evaluate(`document.querySelector('#mapIntro').classList.contains('hidden') && game.info().state === 'shop'`));
-  await evaluate(`game.setLevel(7)`);
+  await evaluate(`game.setLevel(9)`);
   check('Same map does not repeat intro', await evaluate(`document.querySelector('#mapIntro').classList.contains('hidden')`));
   check('Void-only controls stay hidden on ordinary maps', await evaluate(`getComputedStyle(document.querySelector('#voidRow')).display==='none'`));
-  await evaluate(`game.setLevel(9); game.endStory();`);
+  await evaluate(`game.setLevel(12); game.endStory();`);
   check('Next map has correct Fire Dragon boss', await evaluate(`document.querySelector('#mapBoss').textContent.includes('Hoả Long') && document.querySelector('#storyTitle').textContent === ''`));
   await pause(6500);
   check('Intro auto dismisses', await evaluate(`document.querySelector('#mapIntro').classList.contains('hidden')`));
   // Every chapter transition, not just the reported Lotus -> Wind case.
-  check('All 10 chapter intros use current chapter boss', await evaluate(`(() => { const names=['Lôi Thần','Hồng Liên','Hắc Phong','Hoả Long','Thiết Giáp','Ảo Ảnh','Kim Cang','Băng Tuyết','Huyết Nguyệt','Thần Quay']; return names.every((name,c)=>{game.setLevel(c*3);game.endStory();game.intro();const ok=document.querySelector('#mapBoss').textContent.includes(name)&&document.querySelector('#storyTitle').textContent==='';game.closeMapIntro();return ok;}); })()`));
-  check('Navigation clears every transient boss banner', await evaluate(`document.querySelector('#soul').textContent='Old boss';document.querySelector('#soul').className='go boss';document.querySelector('#announce').textContent='Old boss';game.setLevel(6);game.endStory();game.closeMapIntro();!document.querySelector('#soul').textContent&&!document.querySelector('#announce').textContent&&!document.querySelector('#storyTitle').textContent`));
-  await evaluate(`game.setLevel(30);game.closeMapIntro();game.launch();game.endStory();game.ko();for(let i=0;i<1000;i++)game.tick(1);`);
+  check('All 10 chapter intros use current chapter boss', await evaluate(`(() => { const names=['Lôi Thần','Hồng Liên','Hắc Phong','Hoả Long','Thiết Giáp','Ảo Ảnh','Kim Cang','Băng Tuyết','Huyết Nguyệt','Thần Quay']; return names.every((name,c)=>{game.setLevel(c*4);game.endStory();game.intro();const ok=document.querySelector('#mapBoss').textContent.includes(name)&&document.querySelector('#storyTitle').textContent==='';game.closeMapIntro();return ok;}); })()`));
+  check('Navigation clears every transient boss banner', await evaluate(`document.querySelector('#soul').textContent='Old boss';document.querySelector('#soul').className='go boss';document.querySelector('#announce').textContent='Old boss';game.setLevel(8);game.endStory();game.closeMapIntro();!document.querySelector('#soul').textContent&&!document.querySelector('#announce').textContent&&!document.querySelector('#storyTitle').textContent`));
+  await evaluate(`game.setLevel(40);game.closeMapIntro();game.launch();game.endStory();game.ko();for(let i=0;i<1000;i++)game.tick(1);`);
   check('Rebirth dialogue uses current Void boss name', await evaluate(`!document.querySelector('#story').classList.contains('hidden')&&document.querySelector('#storyTitle').textContent.includes('Hư Vô Thần Quay')&&document.querySelector('#storyWho').textContent.includes('Hư Vô Thần Quay')`));
   await navigate('/?debug&lang=en');
-  await evaluate(`game.unlockAll(); game.setLevel(12);`);
+  await evaluate(`game.unlockAll(); game.setLevel(16);`);
   // Actual workshop clicks: a third skill must replace the selected one.
   await evaluate(`document.querySelector('[data-sk="storm"]').click(); document.querySelector('[data-sk="thunder"]').click(); document.querySelector('[data-sk="lotus"]').click();`);
   check('Two slots / third replaces selected slot', await evaluate(`game.build.skills.length === 2 && game.build.skills.join() === 'ghost,lotus' && document.querySelectorAll('#skillSlots button').length===2`));
@@ -152,8 +153,8 @@ try {
   check('Switching slots preserves active ward and prevents stacking', await evaluate(`game.inspect(0).active === 'lotus' && game.inspect(0).skillT > 0 && game.skill() === false`));
   // Stop RAF during deterministic physics assertions, while preserving actual input/visual handlers.
   await evaluate(`window.requestAnimationFrame = () => 0`); await pause(150);
-  const setup = async (skills, level = 12) => evaluate(`game.build.skills=${JSON.stringify(skills)};game.build.skill=${JSON.stringify(skills[0])};game.setLevel(${level});game.launch();game.boost(3);game.info().tops.forEach((_,i)=>{const a=game.inspect(i);Object.assign(a,{x:i*3,z:0,vx:0,vz:0,yOff:0,vy:0,w:100,skill:i?(a.finalBoss?'god':a.voidGod?'void':null):game.build.skill},i?{crown:true}:{});});`);
-  await evaluate(`window.holdTicks=n=>{for(let i=0;i<n;i++){game.info().tops.forEach((_,j)=>{const a=game.inspect(j);if(j>1)a.alive=false;Object.assign(a,{x:j?3:-3,z:0,vx:0,vz:0,w:500});});game.tick(1);}};game.build.skills=['storm','thunder','dash'];game.build.skill='dash';game.setLevel(12);`);
+  const setup = async (skills, level = 16) => evaluate(`game.build.skills=${JSON.stringify(skills)};game.build.skill=${JSON.stringify(skills[0])};game.setLevel(${level});game.launch();game.boost(3);game.info().tops.forEach((_,i)=>{const a=game.inspect(i);Object.assign(a,{x:i*3,z:0,vx:0,vz:0,yOff:0,vy:0,w:100,skill:i?(a.finalBoss?'god':a.voidGod?'void':null):game.build.skill},i?{crown:true}:{});});`);
+  await evaluate(`window.holdTicks=n=>{for(let i=0;i<n;i++){game.info().tops.forEach((_,j)=>{const a=game.inspect(j);if(j>1)a.alive=false;Object.assign(a,{x:j?3:-3,z:0,vx:0,vz:0,w:500});});game.tick(1);}};game.build.skills=['storm','thunder','dash'];game.build.skill='dash';game.setLevel(16);`);
   check('Three-slot save migrates to two and retains selected skill', await evaluate(`game.build.skills.slice(0,2).join()==='storm,dash'&&game.build.skill==='dash'`));
   check('All three recipes equip exactly their two skills', await evaluate(`(()=>{return game.rules.FUSIONS.every((f,i)=>{document.querySelector('[data-fusion="'+i+'"]').click();return game.build.skills.length===2&&f.ids.every(id=>game.build.skills.includes(id));});})()`));
   await setup(['thunder','dash']);
@@ -162,7 +163,7 @@ try {
   await evaluate(`holdTicks(560)`);
   check('Combo prompt names C, touch, result and remaining time', await evaluate(`(()=>{const b=document.querySelector('#btnFusion');return !b.disabled&&b.textContent.includes('C / TAP')&&b.textContent.includes('Lightning Step')&&b.textContent.includes('Blink Dash')&&b.textContent.endsWith('s');})()`));
   await key('KeyC');
-  check('Keyboard C selects and casts second skill using naturally recharged energy', await evaluate(`game.inspect(0).combo==='arc'&&game.inspect(0).skill==='dash'&&game.inspect(0).energy<1&&document.querySelectorAll('#skillSlots button').length===2`));
+  check('Keyboard C casts the second skill and keeps your selected slot', await evaluate(`game.inspect(0).combo==='arc'&&game.inspect(0).active==='dash'&&game.inspect(0).skill==='thunder'&&game.inspect(0).energy<1&&document.querySelectorAll('#skillSlots button').length===2`));
   await setup(['thunder', 'dash']);
   check('Thunder damage capped at 24 and interrupt', await evaluate(`(()=>{const f=game.inspect(1);Object.assign(f,{skill:'fire',active:'fire',skillT:3,stormT:1});game.skill();return Math.abs(f.w-76)<.01&&f.skillT===0&&f.stormT===0&&f.readyAt>=.8;})()`));
   await setup(['thunder']);
@@ -170,19 +171,19 @@ try {
   await setup(['thunder']);
   check('Thunder cannot erase a high-spin boss with percentage scaling', await evaluate(`game.inspect(1).w=1000;game.skill();Math.abs(game.inspect(1).w-976)<.01`));
   await setup(['thunder']);
-  check('Wet-floor backlash reduced to 8%', await evaluate(`game.setLevel(3);game.launch();game.boost(1);game.inspect(0).w=100;game.skill();Math.abs(game.inspect(0).w-92)<.01`));
+  check('Wet-floor backlash reduced to 8%', await evaluate(`game.setLevel(4);game.launch();game.boost(1);game.inspect(0).w=100;game.skill();Math.abs(game.inspect(0).w-92)<.01`));
   await setup(['storm', 'lotus']);
   check('Counter table applies both directions', await evaluate(`(()=>{const p=game.inspect(0),f=game.inspect(1);f.skill='fire';const a=game.rules.skillImpact(p,f,'storm');f.skill='lotus';return Math.abs(a-1.35)<.001&&Math.abs(game.rules.skillImpact(p,f,'storm')-.65)<.001;})()`));
   check('All counter relationships match table', await evaluate(`(()=>{const p=game.inspect(0),f=game.inspect(1);return Object.entries(game.rules.COUNTERS).every(([id,targets])=>targets.every(target=>{f.skill=target;return Math.abs(game.rules.skillImpact(p,f,id)-1.35)<.001;}));})()`));
-  check('Player V3 tornado lasts 3.75 s at full tier power and reach', await evaluate(`game.skill();game.inspect(0).stormDur===3.75 && game.inspect(0).stormK===.75 && game.inspect(0).stormReach===4.5`));
+  check('Player V3 tornado lasts 3.3 s at full tier power and reach', await evaluate(`game.skill();Math.abs(game.inspect(0).stormDur-3.3)<1e-9 && game.inspect(0).stormK===.75 && game.inspect(0).stormReach===4.5`));
   check('HUD keeps active Tornado name after slot swap', await evaluate(`game.selectSkill(1);game.tick(0);document.querySelector('#stormLabel').textContent.includes('Tornado')`));
   await setup(['storm']);
-  check('Player tornado tiers (.5 / .65 / .75, reach 3.5 / 4 / 4.5, 2.5 s)', await evaluate(`(()=>{for(const [tier,k,reach] of [[0,.5,3.5],[1,.65,4],[2,.75,4.5]]){game.tier(tier);game.setLevel(9);game.launch();game.boost(1);game.skill();const p=game.inspect(0);if(p.stormK!==k||p.stormReach!==reach||p.stormDur!==2.5)return false;}game.tier(null);return true;})()`));
-  await setup(['storm'],5);
+  check('Player tornado tiers (.5 / .65 / .75, reach 3.5 / 4 / 4.5, 2.2 s)', await evaluate(`(()=>{for(const [tier,k,reach] of [[0,.5,3.5],[1,.65,4],[2,.75,4.5]]){game.tier(tier);game.setLevel(12);game.launch();game.boost(1);game.skill();const p=game.inspect(0);if(p.stormK!==k||p.stormReach!==reach||p.stormDur!==2.2)return false;}game.tier(null);return true;})()`));
+  await setup(['storm'],7);
   check('Lotus Queen keeps a 3 s opening even with full collision-fed energy', await evaluate(`(()=>{const p=game.inspect(0),f=game.inspect(1);f.skill='lotus';let first=null,second=null,exposed=false;for(let i=0;i<1100;i++){Object.assign(p,{x:-.5,z:0,vx:0,vz:0,w:500});Object.assign(f,{x:.5,z:0,vx:0,vz:0,w:500,energy:1});game.tick(1);if(f.lastCastAt>=0&&first===null)first={at:f.lastCastAt,end:f.lastCastEnd};if(first&&f.skillT<=0&&game.info().t>3.2&&game.info().t<5.8)exposed=document.querySelector('#tags').textContent.includes('Exposed');if(first&&f.lastCastAt>first.at){second=f.lastCastAt;break;}}return first&&second&&second-first.end>=3-1e-6&&exposed;})()`));
-  await setup(['lotus'],5);
+  await setup(['lotus'],7);
   check('Player Lotus keeps its original rest and full ward defense', await evaluate(`game.inspect(0).energy=1;game.skill();game.inspect(0).skillDur===3&&Math.abs(game.inspect(0).restAt-game.inspect(0).lastCastEnd-.9)<1e-6&&game.rules.skillImpact(game.inspect(1),game.inspect(0),'thunder')===.4`));
-  await setup(['storm'],14);
+  await setup(['storm'],19);
   check('Later Lotus users keep their original cast rest', await evaluate(`(()=>{const f=game.inspect(1);Object.assign(f,{skill:'lotus',energy:1,x:1,z:0});Object.assign(game.inspect(0),{x:0,z:0});game.tick(1);return f.lastCast==='lotus'&&Math.abs(f.readyAt-f.lastCastEnd-.9)<1e-6;})()`));
   await setup(['ice']);
   check('Frost counter changes physical steering for Iron', await evaluate(`game.inspect(1).skill='iron';game.skill();game.tick(1);Math.abs(game.inspect(1).steerK-.2/1.35)<.001`));
@@ -193,7 +194,7 @@ try {
   await setup(['lotus']);
   check('Disciples hit with 60% of a master and ward with the weaker Lotus Ward', await evaluate(`(()=>{const p=game.inspect(0),f=game.inspect(1);p.skillT=0;f.skillT=0;f.crown=false;const hit=game.rules.skillImpact(f,p,'thunder');f.crown=true;const full=game.rules.skillImpact(f,p,'thunder');f.skill='lotus';f.active='lotus';f.skillT=1;const masterWard=game.rules.skillImpact(p,f,'thunder');f.crown=false;const discipleWard=game.rules.skillImpact(p,f,'thunder');f.skillT=0;f.crown=true;return Math.abs(hit-full*.6)<1e-9&&Math.abs(discipleWard/masterWard-.7/.4)<1e-9;})()`));
   check('Lotus reduces skill damage and reflects it', await evaluate(`(()=>{game.skill();const p=game.inspect(0),f=game.inspect(1);f.crown=true;const before=f.w;const damage=game.rules.hurtSkill(f,p,'thunder',20);return Math.abs(damage-8)<.01&&Math.abs(f.w-(before-2))<.01;})()`));
-  await setup(['dash'], 6);
+  await setup(['dash'], 8);
   check('Dash auto aims and brakes at open edge', await evaluate(`(()=>{game.info().tops.forEach((_,i)=>{if(i>1)game.inspect(i).alive=false;});game.inspect(1).x=3;game.skill();const p=game.inspect(0);if(p.vx!==14||p.skillDur!==.6)return false;Object.assign(p,{x:7.5,z:0});game.tick(1);return p.alive&&p.x<6.3;})()`));
   await setup(['dash']);
   check('Dash adds one bonus spin hit', await evaluate(`game.inspect(1).x=1.2;game.skill();game.tick(1);game.inspect(0).dashHit&&game.inspect(1).w<=90`));
@@ -233,11 +234,11 @@ try {
   }
   await setup(['thunder','dash']);
   check('Switching to the other skill is allowed immediately, repeating one is not', await evaluate(`(()=>{const p=game.inspect(0);game.skill();p.skillT=0;p.energy=1;game.selectSkill(1);game.skill();const swapped=p.active==='dash'&&p.skillT>0;p.skillT=0;p.energy=1;game.skill();return swapped&&p.skillT===0;})()`));
-  check('Stage 12 starts with a full bar, stage 11 does not', await evaluate(`(()=>{game.unlockAll();game.testLevel(11);const early=game.inspect(0).energy;game.testLevel(12);const p=game.inspect(0);return early===0&&p.energy===p.stormMax&&p.stormMax>=1;})()`));
-  check('Energy bar refills faster later in the campaign', await evaluate(`(()=>{game.unlockAll();game.testLevel(2);const a=game.inspect(0);a.energy=0;a.stormMax=3;game.tick(2);const early=a.energy;game.testLevel(29);const b=game.inspect(0);b.energy=0;b.stormMax=3;game.tick(2);return b.energy>early*1.5;})()`));
+  check('Stage 16 starts with a full bar, stage 15 does not', await evaluate(`(()=>{game.unlockAll();game.testLevel(15);const early=game.inspect(0).energy;game.testLevel(16);const p=game.inspect(0);return early===0&&p.energy===p.stormMax&&p.stormMax>=1;})()`));
+  check('Energy bar refills faster later in the campaign', await evaluate(`(()=>{game.unlockAll();game.testLevel(2);const a=game.inspect(0);a.energy=0;a.stormMax=3;game.tick(2);const early=a.energy;game.testLevel(39);const b=game.inspect(0);b.energy=0;b.stormMax=3;game.tick(2);return b.energy>early*1.5;})()`));
   await evaluate(`game.unlockAll();`);
-  check('Campaign has 31 stages: stage 30 is the Rumble, stage 31 the crater', await evaluate(`(()=>{game.setLevel(29);const r=game.last?.();return document.querySelector('#lvName').textContent.includes('30/31')&&document.querySelector('#lvName').textContent.includes('Rumble');})()`));
-  await evaluate(`game.setLevel(29);game.closeMapIntro();game.launch();game.endStory();`);
+  check('Campaign has 41 stages: stage 40 is the Rumble, stage 41 the crater', await evaluate(`(()=>{game.setLevel(39);const r=game.last?.();return document.querySelector('#lvName').textContent.includes('40/41')&&document.querySelector('#lvName').textContent.includes('Rumble');})()`));
+  await evaluate(`game.setLevel(39);game.closeMapIntro();game.launch();game.endStory();`);
   check('Rumble round 1 is the nine masters by their own names, in a full ring', await evaluate(`(()=>{const t=game.info().tops;return t.length===10&&t.slice(1).every(x=>!/Disciple/.test(x.n))&&new Set(t.slice(1).map(x=>x.n)).size===9&&game.info().state==='battle';})()`));
   // This checks the round transition, independently of the tuned foe spin.
   await evaluate(`game.inspect(0).w=5000;game.tick(150);game.render();game.render();`);
@@ -251,9 +252,9 @@ try {
   { const shot = await send('Page.captureScreenshot', { format: 'png' }); await writeFile(join(root, 'reports/polish-rumble2.png'), Buffer.from(shot.data, 'base64')); }
   check('Round 2 is the nine masters, alive and fighting, with their skills', await evaluate(`(()=>{const t=game.info().tops;return t.length===10&&t.slice(1).filter(x=>x.skill).length>=7&&t.slice(1).every(x=>!/Disciple/.test(x.n));})()`));
   await evaluate(`game.ko();for(let i=0;i<1500;i++){{const p=game.inspect(0);p.phantomUntil=1e9;p.w=p.w0;}game.tick(1);}`);
-  check('Beating round 2 wins stage 30 and unlocks the crater', await evaluate(`game.info().won===true&&game.info().state!=='battle'`));
-  await evaluate(`game.setLevel(30);game.closeMapIntro();game.launch();game.endStory();`);
-  check('Stage 31: the Spin God alone with his skills, one on one, no clones and no Blood Moon', await evaluate(`(()=>{const t=game.info().tops;return t.length===2&&t[1].skill==='god'&&!t.some(x=>/Clone|Blood Moon|Huyết/.test(x.n));})()`));
+  check('Beating round 2 wins stage 40 and unlocks the crater', await evaluate(`game.info().won===true&&game.info().state!=='battle'`));
+  await evaluate(`game.setLevel(40);game.closeMapIntro();game.launch();game.endStory();`);
+  check('Stage 41: the Spin God alone with his skills, one on one, no clones and no Blood Moon', await evaluate(`(()=>{const t=game.info().tops;return t.length===2&&t[1].skill==='god'&&!t.some(x=>/Clone|Blood Moon|Huyết/.test(x.n));})()`));
   check('The god falling starts the rebirth into the Void', await evaluate(`(()=>{game.inspect(1).w=1;for(let i=0;i<60;i++)game.tick(1);return game.info().state==='rebirth';})()`));
   await setup(['iron','vajra']);
   await evaluate(`game.skill();holdTicks(140);document.querySelector('#btnFusion').click();`);
@@ -303,7 +304,7 @@ try {
   check('Thunder Run: sprint window opens and damage taken is cut by 10%', await evaluate(`(()=>{const p=game.inspect(0),f=game.inspect(1);p.skillT=0;p.active=null;return p.combo==='arc'&&p.arcUntil>game.info().t&&Math.abs(game.rules.skillImpact(f,p,'fire')-.9)<.001;})()`));
   check('Thunder Run keeps calling bolts on a nearby rival while running', await evaluate(`(()=>{const p=game.inspect(0),f=game.inspect(1);Object.assign(f,{w:500,x:p.x+3,z:p.z,vx:0,vz:0});const w=f.w;for(let i=0;i<300&&p.arcUntil>game.info().t;i++){f.x=p.x+3;f.z=p.z;f.vx=f.vz=0;game.tick(1);}return w-f.w>8;})()`));
   await evaluate(`game.unlockAll()`);
-  await setup(['thunder','dash','fire','storm'], 30);
+  await setup(['thunder','dash','fire','storm'], 40);
   check('Final stage opens four slots for two fusion pairs', await evaluate(`game.build.skills.length===4&&document.querySelectorAll('#skillSlots button').length===4`));
   await evaluate(`game.skill();holdTicks(760);document.querySelector('#btnFusion').click();`);
   check('Final stage: first fusion pair works', await evaluate(`game.inspect(0).combo==='arc'`));
@@ -312,7 +313,7 @@ try {
   check('Final stage: second pair is offered independently', await evaluate(`(()=>{const o=game.rules.comboOffer(game.inspect(0));return !!o&&o.fusion.kind==='flare';})()`));
   await evaluate(`document.querySelector('#btnFusion').click();`);
   check('Final stage: second fusion casts the Firestorm', await evaluate(`game.inspect(0).combo==='flare'&&game.inspect(0).stormFuse===true`));
-  await setup(['thunder','dash','fire','storm'], 12);
+  await setup(['thunder','dash','fire','storm'], 16);
   check('Other stages still use the first two slots and keep the saved four', await evaluate(`game.build.skills.length===4&&document.querySelectorAll('#skillSlots button').length===2`));
   await setup(['thunder','dash']);
   await evaluate(`game.skill();holdTicks(1200)`);
@@ -322,7 +323,7 @@ try {
   check('Unmatched equipped skills cannot fuse', await evaluate(`game.rules.comboOffer(game.inspect(0))===null&&document.querySelector('#btnFusion').classList.contains('hidden')`));
   // Boss patterns: use physics ticks, keep participants separated so random collisions
   // cannot decide the fight while assertions inspect the state machine.
-  await setup(['thunder', 'lotus'], 30);
+  await setup(['thunder', 'lotus'], 40);
   await evaluate(`game.info().tops.forEach((_,i)=>{const a=game.inspect(i);if(i)a.skill=i===1?'god':null;if(i>1)a.alive=false;a.w=1000;a.x=i?3:-3;});`);
   check('Phase one does not expose after one cast', await evaluate(`game.inspect(1).energy=1;game.tick(1);game.inspect(1).cycleSkills===1&&game.inspect(1).recoveryUntil===0`));
   await evaluate(`for(let i=0;i<800&&game.inspect(1).recoveryUntil===0;i++){const p=game.inspect(0),g=game.inspect(1);Object.assign(p,{x:-3,z:0,vx:0,vz:0,w:1000});Object.assign(g,{x:3,z:0,vx:0,vz:0,w:1000});game.tick(1);}`);
@@ -342,26 +343,26 @@ try {
   check('Void: four time stops, each gated by two completed skills', bossLog.combo && bossLog.log.length === 4 && bossLog.log.every(x => x.casts === 2), JSON.stringify(bossLog));
   check('Void uses varied skills and longer pacing', new Set(bossLog.skills).size >= 8 && bossLog.time > 45, JSON.stringify(bossLog));
   check('Final dragon sequence completes with victory', await evaluate(`(()=>{for(let i=0;i<2400&&game.info().state!=='result';i++)game.tick(1);return game.info().state==='result'&&game.info().won;})()`));
-  const balanceSamples = await evaluate(`(()=>{const out=[];for(const [skill,level] of [['storm',11],['thunder',17],['lotus',26],['dash',23],['fire',5],['iron',8],['ghost',20],['vajra',8],['ice',14],['moon',20]])out.push({level:level+1,skill,result:game.sim({m:1.6,r:.6,grip:.45,skill,fx:'(ex-x)*4-vx*.5',fz:'(ez-z)*4-vz*.5'},level,3,true)});return out;})()`);
+  const balanceSamples = await evaluate(`(()=>{const out=[];for(const [skill,level] of [['storm',15],['thunder',23],['lotus',35],['dash',31],['fire',7],['iron',11],['ghost',27],['vajra',11],['ice',19],['moon',27]])out.push({level:level+1,skill,result:game.sim({m:1.6,r:.6,grip:.45,skill,fx:'(ex-x)*4-vx*.5',fz:'(ez-z)*4-vz*.5'},level,3,true)});return out;})()`);
   console.log('Balance samples: ' + JSON.stringify(balanceSamples));
   // First-visit regression: every stage needs at least one way to win (see tools/check-winnable.mjs).
   const campaignBalance = await evaluate(`(()=>{
     const measure=(stage,build)=>{let wins=0;for(let i=0;i<24;i++)wins+=game.campaignSim(build,stage,900001+i*104729).won;return wins/24;};
     const base={m:2,r:.8,grip:.5,fx:'',fz:'',skills:['storm']}, chase={fx:'(ex-x)*4-vx*2',fz:'(ez-z)*4-vz*2'};
-    const early=[1,2,4,5].map(stage=>measure(stage,base));
+    const early=[1,2,3,5].map(stage=>measure(stage,base));
     const paths=[
-      [6,{m:1,r:.8,grip:0,fx:'',fz:'',skills:['storm']}],
-      [8,{m:1,r:.8,grip:0,fx:'',fz:'',skills:['thunder']}],
-      [20,{m:1,r:.8,grip:0,fx:'',fz:'',skills:['thunder']}],
-      [27,{m:2,r:.8,grip:.5,...chase,skills:['ghost','lotus']}]
+      [8,{m:4,r:.8,grip:0,fx:'',fz:'',skills:['thunder']}],
+      [10,{m:1,r:.8,grip:0,fx:'',fz:'',skills:['thunder']}],
+      [26,{m:1,r:.8,grip:0,fx:'',fz:'',skills:['thunder']}],
+      [36,{m:2,r:.8,grip:.5,...chase,skills:['ghost','lotus']}]
     ].map(([stage,b])=>({stage,rate:measure(stage,b)}));
-    const milestones=[3,6,12,13].map(stage=>game.campaignSim({...base,skills:['storm','moon']},stage,731));
+    const milestones=[4,8,16,17].map(stage=>game.campaignSim({...base,skills:['storm','moon']},stage,731));
     return {early,paths,milestones};
   })()`);
-  check('First-visit default bot wins at least 75% on the early non-boss stages 1, 2, 4, 5', campaignBalance.early.every(v=>v>=.75),JSON.stringify(campaignBalance.early));
-  check('Hard stages still have a known way to win (stages 6, 8, 20, 27)',campaignBalance.paths.every(v=>v.rate>=.2),JSON.stringify(campaignBalance.paths));
+  check('First-visit default bot wins at least 75% on the early non-boss stages 1, 2, 3, 5', campaignBalance.early.every(v=>v>=.75),JSON.stringify(campaignBalance.early));
+  check('Hard stages still have a known way to win (stages 8, 10, 26, 36)',campaignBalance.paths.every(v=>v.rate>=.2),JSON.stringify(campaignBalance.paths));
   check('Campaign bot respects first-visit tiers and cannot equip a future skill',campaignBalance.milestones.every(v=>v.skills.length===1&&v.skills[0]==='storm')&&JSON.stringify(campaignBalance.milestones.map(v=>v.tier))==='[0,0,1,2]');
-  const phase1Only=await evaluate(`game.campaignSim({m:2,r:.8,grip:.5,fx:'',fz:'',skills:['ghost','lotus','iron','vajra']},31,731)`);
+  const phase1Only=await evaluate(`game.campaignSim({m:3,r:.6,grip:.2,fx:'(ex-x)*4-vx*2',fz:'(ez-z)*4-vz*2',skills:['ghost','lotus','iron','vajra']},41,731)`);
   check('Final-stage balance stops at rebirth before the equation-only Void',phase1Only.scope==='phase1'&&phase1Only.rebirthReached&&phase1Only.won,JSON.stringify(phase1Only));
   // Capture the same game UI at phone size; also check no horizontal overflow.
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
@@ -370,7 +371,7 @@ try {
   const mobileShot = await send('Page.captureScreenshot', { format: 'png' });
   await writeFile(join(root, 'reports/polish-mobile.png'), Buffer.from(mobileShot.data, 'base64'));
   check('Mobile slots fit viewport', await evaluate(`document.querySelector('#skillSlots').getBoundingClientRect().left>=0&&document.querySelector('#skillSlots').getBoundingClientRect().right<=innerWidth`));
-  check('Mobile four-slot final-stage bar fits viewport', await evaluate(`(()=>{game.unlockAll();game.build.skills=['thunder','dash','fire','storm'];game.setLevel(30);const s=document.querySelector('#skillSlots');s.classList.remove('hidden');const r=s.getBoundingClientRect(),n=s.children.length;return n===4&&r.left>=0&&r.right<=innerWidth;})()`));
+  check('Mobile four-slot final-stage bar fits viewport', await evaluate(`(()=>{game.unlockAll();game.build.skills=['thunder','dash','fire','storm'];game.setLevel(40);const s=document.querySelector('#skillSlots');s.classList.remove('hidden');const r=s.getBoundingClientRect(),n=s.children.length;return n===4&&r.left>=0&&r.right<=innerWidth;})()`));
   check('Mobile map title fits viewport', await evaluate(`document.querySelector('#title').scrollWidth<=document.querySelector('#title').clientWidth`));
   check('Mobile cast and view buttons do not overlap', await evaluate(`document.querySelector('#btnStorm').getBoundingClientRect().right<=document.querySelector('#btnView').getBoundingClientRect().left`));
   await setup(['thunder','dash']);
@@ -382,34 +383,34 @@ try {
   await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...touchTarget, id: 1 }] });
   await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await pause(100);
-  check('Mobile touch prompt directly casts the second combo skill', await evaluate(`game.inspect(0).combo==='arc'&&game.inspect(0).skill==='dash'`));
+  check('Mobile touch prompt directly casts the second combo skill', await evaluate(`game.inspect(0).combo==='arc'&&game.inspect(0).active==='dash'&&game.inspect(0).skill==='thunder'`));
   await send('Emulation.setTouchEmulationEnabled', { enabled: false });
-  check('Courses retain jump controls and no skills', await evaluate(`game.setLevel(31);game.launch();game.boost(1);game.inspect(0).yOff=0;const noSkill=game.inspect(0).skill===null;game.press();game.tick(1);noSkill&&game.inspect(0).yOff>0&&game.inspect(0).energy<.6&&document.querySelector('#skillSlots').classList.contains('hidden')`));
-  await evaluate(`game.setLevel(6);document.activeElement?.blur();`);
+  check('Courses retain jump controls and no skills', await evaluate(`game.setLevel(41);game.launch();game.boost(1);game.inspect(0).yOff=0;const noSkill=game.inspect(0).skill===null;game.press();game.tick(1);noSkill&&game.inspect(0).yOff>0&&game.inspect(0).energy<.6&&document.querySelector('#skillSlots').classList.contains('hidden')`));
+  await evaluate(`game.setLevel(8);document.activeElement?.blur();`);
   await key('F8');
-  check('Local F8 jumps straight to current chapter boss', await evaluate(`game.info().level===8&&game.info().state==='battle'`));
+  check('Local F8 jumps straight to current chapter boss', await evaluate(`game.info().level===11&&game.info().state==='battle'`));
   await key('F8', 8);
-  check('Local Shift+F8 jumps straight to final boss', await evaluate(`game.info().level===30&&game.info().state==='battle'`));
-  check('Debug navigation rejects invalid stages', await evaluate(`game.testLevel(0)===false&&game.testLevel(55)===false&&game.testLevel(NaN)===false&&game.info().level===30`));
-  await evaluate(`game.setLevel(6);document.activeElement?.blur();`);
+  check('Local Shift+F8 jumps straight to final boss', await evaluate(`game.info().level===40&&game.info().state==='battle'`));
+  check('Debug navigation rejects invalid stages', await evaluate(`game.testLevel(0)===false&&game.testLevel(55)===false&&game.testLevel(NaN)===false&&game.info().level===40`));
+  await evaluate(`game.setLevel(8);document.activeElement?.blur();`);
   await key('KeyK');
-  check('Local K jumps straight to current chapter boss outside battle', await evaluate(`game.info().level===8&&game.info().state==='battle'`));
-  await evaluate(`game.setLevel(6);document.activeElement?.blur();`);
+  check('Local K jumps straight to current chapter boss outside battle', await evaluate(`game.info().level===11&&game.info().state==='battle'`));
+  await evaluate(`game.setLevel(8);document.activeElement?.blur();`);
   await key('KeyK', 8);
-  check('Local Shift+K jumps straight to final boss', await evaluate(`game.info().level===30&&game.info().state==='battle'`));
+  check('Local Shift+K jumps straight to final boss', await evaluate(`game.info().level===40&&game.info().state==='battle'`));
   await evaluate(`localStorage.setItem('tops.seen',JSON.stringify({w9:1}))`);
   await navigate('/?debug&final&lang=vi');
   check('Final boss is never labelled as the father, even after the reveal was seen', await evaluate(`(()=>{const n=[];for(let i=0;game.inspect(i);i++)n.push(game.inspect(i).name);return n.length>1&&n.every(s=>!/Cha\\b|Dad/.test(s));})()`));
   await evaluate(`localStorage.setItem('tops.seen','{}')`);
-  for(const [query,level] of [['level=25',24],['boss=6',17],['final',30],['level=34',33]]) {
+  for(const [query,level] of [['level=25',24],['boss=6',23],['final',40],['level=44',43]]) {
     await navigate('/?debug&'+query+'&lang=en');
     check('Local debug URL '+query, await evaluate(`game.info().level===${level}&&game.info().state==='battle'&&!!document.querySelector('#debugNav')`));
   }
   await navigate('/?debug&void&eq&lang=en');
   check('Local Void shortcut opens phase two with equation', await evaluate(`game.last().void&&game.info().state==='battle'&&game.checkEuler(game.build.euler)`));
   await navigate('/?debug&lang=en&withstory');
-  await evaluate(`game.unlockAll();game.setLevel(29);game.closeMapIntro();game.launch();`);
-  check('Stage 30 opens with the god meeting scene before round 1', await evaluate(`!document.querySelector('#story').classList.contains('hidden')&&document.querySelector('#storyWho').textContent.length>0`));
+  await evaluate(`game.unlockAll();game.setLevel(39);game.closeMapIntro();game.launch();`);
+  check('Stage 40 opens with the god meeting scene before round 1', await evaluate(`!document.querySelector('#story').classList.contains('hidden')&&document.querySelector('#storyWho').textContent.length>0`));
   await evaluate(`game.endStory();`);
   await evaluate(`game.ko();for(let i=0;i<200;i++){{const p=game.inspect(0);p.phantomUntil=1e9;p.w=p.w0;}game.tick(1);}`);
   check('Round 1 ends with the god scene, then the revive cut-scene', await evaluate(`!document.querySelector('#story').classList.contains('hidden')&&game.info().state==='interlude'`));
@@ -423,14 +424,14 @@ try {
   { const shot = await send('Page.captureScreenshot', { format: 'png' }); await writeFile(join(root, 'reports/polish-void-charge.png'), Buffer.from(shot.data, 'base64')); }
   check('Each time the Void god charges through frozen time it drinks back 20% of its spin', await evaluate(`(()=>{const g=window.__g,w0=g.w0;let max=window.__max;for(let i=0;i<900;i++){if(g.cycleSkills<2)g.cycleSkills=2;g.skillT=0;g.stormT=0;game.tick(1);max=Math.max(max,Math.abs(g.w));}game.voidTune({first:7});return max>w0*.66;})()`));
   await navigate('/?debug&lang=en');
-  await evaluate(`game.unlockAll();game.setLevel(30);game.closeMapIntro();game.launch();game.endStory();window.__g=game.inspect(1);window.__g.cycleDone=1;window.__g.cycleSkills=0;window.__g.recoveryUntil=0;window.__g.skillT=0;window.__prot=()=>{const p=game.inspect(0);window.__g.w=window.__g.w0;p.w=p.w0;p.phantomUntil=1e9;p.x=0;p.z=0;p.vx=p.vz=0;};for(let i=0;i<30;i++){window.__prot();game.tick(1);}`);
+  await evaluate(`game.unlockAll();game.setLevel(40);game.closeMapIntro();game.launch();game.endStory();window.__g=game.inspect(1);window.__g.cycleDone=1;window.__g.cycleSkills=0;window.__g.recoveryUntil=0;window.__g.skillT=0;window.__prot=()=>{const p=game.inspect(0);window.__g.w=window.__g.w0;p.w=p.w0;p.phantomUntil=1e9;p.x=0;p.z=0;p.vx=p.vz=0;};for(let i=0;i<30;i++){window.__prot();game.tick(1);}`);
   check('The Spin God telegraphs a fusion (frozen and open) after the first two-cast cycle', await evaluate(`(()=>{const g=window.__g;return !!g.ult&&!g.ult.fired&&g.recoveryUntil>game.info().t;})()`));
   await evaluate(`for(let i=0;i<200;i++){window.__prot();game.tick(1);}`);
   check('Then the fusion lands (Thunder Run star path, Firestorm, Fortress or Blood Frost)', await evaluate(`(()=>{const g=window.__g,t=game.info().t;return !!g.ult&&g.ult.fired&&(g.arcUntil>t||g.stormFuse||g.fortUntil>t||game.rules.fields().some(f=>f.rime))&&!!g.combo;})()`));
   await evaluate(`for(let i=0;i<900;i++){window.__prot();game.tick(1);}`);
   check('After the fusion the usual exposed window follows and the cycle counter moves on', await evaluate(`(()=>{const g=window.__g;return g.cycleDone>=2&&!g.ult;})()`));
   await navigate('/?debug&lang=en');
-  await evaluate(`game.unlockAll();game.setLevel(30);game.closeMapIntro();game.launch();game.endStory();window.__g=game.inspect(1);0;`);
+  await evaluate(`game.unlockAll();game.setLevel(40);game.closeMapIntro();game.launch();game.endStory();window.__g=game.inspect(1);0;`);
   check('The Spin God cannot be thrown off the early crater even while exposed', await evaluate(`(()=>{const g=window.__g,p=game.inspect(0);g.recoveryUntil=999;p.phantomUntil=1e9;for(let i=0;i<30;i++){Object.assign(g,{x:12,z:0,vx:6,vz:0,w:g.w0});p.x=0;p.z=0;p.vx=p.vz=0;game.tick(1);}return g.alive&&Math.hypot(g.x,g.z)<12;})()`));
   check('...but once his spin is below 30% he can be thrown off', await evaluate(`(()=>{const g=window.__g,p=game.inspect(0);for(let i=0;i<30;i++){Object.assign(g,{x:12,z:0,vx:6,vz:0,w:g.w0*.25});p.x=0;p.z=0;p.vx=p.vz=0;p.w=p.w0;p.phantomUntil=1e9;game.tick(1);if(!g.alive)break;}return !g.alive&&g.why==='ring';})()`));
   await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: preload.identifier });
@@ -458,7 +459,7 @@ try {
   await navigate('/?debug&lang=en');
   await evaluate(`localStorage.setItem('tops.campaign','5');localStorage.setItem('tops.build',JSON.stringify({skill:'storm',skills:['storm','thunder']}));`);
   await navigate('/?debug&lang=en');
-  check('Unlearned fusion pairs stay locked with boss-unlock labels', await evaluate(`document.querySelectorAll('#comboRecipes button:disabled').length===5&&document.querySelector('#comboRecipes').textContent.includes('Unlock after stage')`));
+  check('Locked fusion recipes stay hidden until their pair is earned', await evaluate(`document.querySelectorAll('#comboRecipes button').length===0&&document.querySelector('#comboRecipes').textContent.includes('No fusion unlocked yet')`));
   // Startup without an SDK remains playable in the standard web build.
   await navigate('/?lang=en');
   check('Normal local URL does not expose debug navigation', await evaluate(`!window.game&&!document.querySelector('#debugNav')`));
