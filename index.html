@@ -149,6 +149,8 @@
   #storyText { margin: 6px 0 4px; padding: 12px 18px; min-height: 2.9em; background: rgba(8,6,16,.85); border-left: 4px solid var(--c);
     border-radius: 0 10px 10px 0; font-size: clamp(17px, 2.4vw, 23px); font-weight: 700; line-height: 1.45; text-shadow: 0 2px 0 rgba(0,0,0,.6); }
   #storyBox small { opacity: .55; font-size: 12px; }
+  #storySkip { position: absolute; top: 14px; right: 16px; padding: 8px 16px; border: 1px solid rgba(255,255,255,.35); border-radius: 999px;
+    background: rgba(8,6,16,.7); color: #fff; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
   #presets { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0; }
   #presets button { border: 0; border-radius: 999px; padding: 5px 10px; background: #3a3555; color: #fff; font-size: 12.5px; }
   #fErr { color: #ff8a80; font-size: 12.5px; min-height: 1.2em; }
@@ -274,7 +276,7 @@
 <div id="euler"></div>
 <aside id="shop"></aside>
 <div id="bars"><i></i><i></i></div>
-<div id="story" class="hidden"><div id="storyTitle"></div><div id="storyBox"><b id="storyWho"></b><p id="storyText"></p><small id="storyHint"></small></div></div>
+<div id="story" class="hidden"><div id="storyTitle"></div><div id="storyBox"><b id="storyWho"></b><p id="storyText"></p><small id="storyHint"></small></div><button id="storySkip"></button></div>
 <div id="mapIntro" class="hidden" role="dialog" aria-modal="true" aria-labelledby="mapName"><article><b id="mapChapter"></b><h2 id="mapName"></h2><p id="mapTrait"></p><p id="mapBoss"></p><p id="mapCounter"></p><button id="mapSkip"></button><small id="mapHint"></small></article></div>
 <div id="result" class="hidden"><h1 id="rTitle"></h1><p id="rText"></p><div><button id="rNext"></button><button id="rRetry" class="alt"></button></div></div>
 
@@ -555,10 +557,9 @@ function buildCampaign() {
 
 // story beats: a chapter intro, the boss's words before the fight, and what they say once beaten
 const STORY = [
-  { intro: [['narr', t('Mười năm trước, cao thủ con quay số một Việt Nam biến mất sau trận đấu với Thần Quay Bất Bại. Ông chỉ để lại một con quay vàng.', "Ten years ago, Vietnam's greatest top-spinner vanished after a match with the Undefeated Spin God. All he left behind was a golden top.")],
-      ['me', t('Con quay vàng đó giờ là của tôi. Tôi sẽ tìm ra Thần Quay Bất Bại.', 'That golden top is mine now. I will find the Undefeated Spin God.')],
-      ['narr', t('Muốn gặp Thần Quay phải hạ chín cao thủ trấn giữ chín đấu trường. Không ai cho bạn gì cả: chỉ có cái đầu và con quay.', 'To reach the Spin God you must beat nine masters guarding nine arenas. Nobody hands you anything: just your head and your top.')],
-      ['narr', t('Mỗi cao thủ bị hạ sẽ để lại kỹ năng của mình. Dùng đúng lúc thì mạnh, dùng sai thì tự hại.', 'Each master you beat leaves you their skill. Used at the right moment it is power; used wrong, it hurts you.')]],
+  // kept to two lines: a first-time player goes straight from these into their first fight
+  { intro: [['narr', t('Mười năm trước, cao thủ con quay số một Việt Nam biến mất sau trận đấu với Thần Quay Bất Bại, chỉ để lại một con quay vàng.', "Ten years ago, Vietnam's greatest top-spinner vanished after a match with the Undefeated Spin God, leaving only a golden top.")],
+      ['me', t('Con quay vàng đó giờ là của tôi. Tôi sẽ hạ chín cao thủ và tìm ra Thần Quay!', 'That golden top is mine now. I will beat the nine masters and find the Spin God!')]],
     boss: [['thunder', t('Ta là Lôi Thần! Tuy còn tập sự... nhưng sấm sét vẫn là sấm sét!', 'I am the Thunder God! Still a rookie... but thunder is thunder!')],
       ['me', t('Cái mâm nhôm này dẫn điện tốt đấy. Cẩn thận.', 'This tin tray conducts nicely. Careful.')]],
     win: [['thunder', t('Ta... chỉ là tập sự thôi mà! Cầm lấy sấm sét của ta, nhưng đừng dùng trên sàn ướt.', 'I... was only a rookie! Take my thunder, but never on a wet floor.')]] },
@@ -3488,7 +3489,9 @@ function enterShop() {
   refreshShop();
   const c = level.chapter;
   const intro = () => showMapIntro();
-  if (c !== undefined && level.stage === 0 && !seen['i' + c] && storyOn && !headless) { markSeen('i' + c); playStory(STORY[c].intro, intro); }
+  // a first-time player fights at once with the default top; the map card and the workshop wait until after that fight
+  const firstFight = levelIndex === 0 && !seen.i0;
+  if (c !== undefined && level.stage === 0 && !seen['i' + c] && storyOn && !headless) { markSeen('i' + c); playStory(STORY[c].intro, firstFight ? launch : intro); }
   else intro();
 }
 
@@ -5061,6 +5064,8 @@ $('viewSw').addEventListener('click', e => { if (e.target.dataset.v) setView(e.t
 setView(view);
 $('story').addEventListener('click', () => { initAudio(); nextLine(); });
 $('storyHint').textContent = t('Bấm chuột hoặc Space để tiếp · Esc để bỏ qua', 'Click or press Space to continue · Esc to skip');
+$('storySkip').textContent = t('Bỏ qua ›', 'Skip ›');
+$('storySkip').addEventListener('click', e => { e.stopPropagation(); initAudio(); endStory(); });
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
   if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
