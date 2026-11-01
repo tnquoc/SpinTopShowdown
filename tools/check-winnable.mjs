@@ -1,4 +1,4 @@
-// One way to win each stage: node tools/check-winnable.mjs (env START, END, STAGES, RUNS, CONFIRM, PASS)
+// One way to win each of the 31 stages: node tools/check-winnable.mjs (env START, END, STAGES, RUNS, CONFIRM, PASS)
 // Node 22+ and Chromium. See POLISH-NOTES.vi.md for chunked PowerShell commands.
 import { spawn } from 'node:child_process';
 import { readFile, writeFile, mkdtemp, rm, mkdir } from 'node:fs/promises';
@@ -103,7 +103,7 @@ try {
   await evaluate('localStorage.clear()');
   // Is there at least ONE way to win each stage? Try a small set of sensible builds with the
   // skills a first-time player really has; if none wins, ease that stage's foe spin a step and retry.
-  const start = +(process.env.START || 1), end = +(process.env.END || 51);
+  const start = +(process.env.START || 1), end = +(process.env.END || 31);
   const only = process.env.STAGES ? process.env.STAGES.split(',').map(Number) : null;
   const N = +(process.env.RUNS || 8), CONFIRM = +(process.env.CONFIRM || 20), PASS = +(process.env.PASS || 30);
   const path = join(root, `reports/winnable-${start}-${end}.json`);
@@ -117,11 +117,11 @@ try {
   };
   for (let stage = start; stage <= end; stage++) {
     if (only && !only.includes(stage)) continue;
-    const available = order.filter((id, k) => k === 0 || stage - 1 >= k * 5);
+    const available = order.filter((id, k) => k === 0 || stage - 1 >= k * 3);
     const foes = await evaluate(`game.levels[${stage-1}].foes.map(f=>f.skill).filter(Boolean)`);
     const counters = await evaluate('game.rules.COUNTERS');
     const ranked = available.slice().sort((x, y) => foes.filter(f => counters[y].includes(f)).length - foes.filter(f => counters[x].includes(f)).length);
-    const sets = stage >= 50
+    const sets = stage >= 30
       ? [['ghost','lotus','iron','vajra'], ['thunder','dash','fire','storm'], ['ice','moon','ghost','lotus'], ['thunder','dash','ghost','lotus']]
       : (() => {                                   // the best-ranked single skills and every pair among the top five
           const top = ranked.slice(0, 5), out = top.slice(0, 3).map(id => [id]);

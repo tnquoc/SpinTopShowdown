@@ -368,10 +368,10 @@ const SPIN_DECAY = 1.5;       // base spin loss, scaled by tip and 1/r
 const W_MIN = 8;              // below this spin (rad/s) a top falls over
 const RESTITUTION = 0.85, BURST = 0.045, MU = 0.09, HIT_LOSS = 0.035;
 const CHARGE_SECONDS = 6, STORM_TIME = 2, STORM_RANGE = 4.5;
-// your energy bar fills faster the further into the campaign you are (6 s at stage 1 down to 3.2 s at stage 50), like a levelled-up fighter
-const chargeSeconds = a => a.finalBoss || a.voidGod ? 3 : a.isPlayer ? CHARGE_SECONDS - 2.8 * Math.min(1, levelIndex / 49) : CHARGE_SECONDS;
+// your energy bar fills faster the further into the campaign you are (6 s at stage 1 down to 3.2 s at the Rumble), like a levelled-up fighter
+const chargeSeconds = a => a.finalBoss || a.voidGod ? 3 : a.isPlayer ? CHARGE_SECONDS - 2.8 * Math.min(1, levelIndex / RUMBLE_AT) : CHARGE_SECONDS;
 const GOD_DECAY = .15;        // the Undefeated Spin God keeps 15% of the usual passive spin loss: you have to beat him, he does not tire himself out
-const FULL_MANA_FROM = 20;   // from stage 20 on you start every fight with a full bar
+const FULL_MANA_FROM = 12;   // from stage 12 (the Fire Dragon's bout) on you start every fight with a full bar
 // No more 75 s cut-off: players lost a won boss fight to the clock. After SUDDEN_DEATH the floor keeps steepening so a fight always
 // ends by itself; TIME_LIMIT is only a stalemate backstop far beyond any real fight.
 const TIME_LIMIT = 300, SUDDEN_DEATH = 15, VOID_LIMIT = 300;
@@ -481,7 +481,7 @@ const COURSES = [
       holes: [{ s0: 42.5, s1: 44.3 }, { s0: 75, s1: 76.4 }],
       guards: [{ s: 64.5, off: 0, patrol: 1.6, foe: 'dragon' }, { s: 82, off: 1, patrol: 1.2, foe: 'wind' }] } },
 ];
-// ---------- campaign: 10 chapters × 5 bouts, a boss guards the fifth bout of every chapter ----------
+// ---------- campaign: 10 chapters × 3 bouts, a boss guards the third bout of every chapter ----------
 const CHAPTERS = [
   { boss: 'thunder', skill: 'thunder', sect: t('Lôi Môn', 'Thunder Sect'),
     blurb: t('Sân sau nhà: cái mâm nhôm của bà ngoại, nơi mọi huyền thoại bắt đầu.', "Grandma's tin tray in the backyard, where every legend starts.") },
@@ -504,10 +504,16 @@ const CHAPTERS = [
   { boss: 'god', skill: 'god', sect: t('Thần Quay Điện', 'Spin God Palace'),
     blurb: t('Miệng núi lửa: Thần Quay Bất Bại đang đợi. Sàn sụp dần vào trong.', 'The volcano crater: the Undefeated Spin God waits. The floor keeps collapsing.') },
 ];
-const FINAL_CH = CHAPTERS.length - 1;   // the Spin God's chapter: stages 46-49, then the Rumble (50), then the crater (51)
+const FINAL_CH = CHAPTERS.length - 1;   // the Spin God's chapter: stages 28-29, then the Rumble (30), then the crater (31)
+// Each chapter keeps three of the five bouts it was designed with (warm-up, step up, boss); the final chapter keeps two bouts at
+// the foot of the volcano, the Rumble and the crater. Foes are still built on the original five-bout difficulty scale.
+const BOUTS = 3, KEPT = [0, 2, 4], KEPT_FINAL = [1, 3, 4, 5];
+const chapterStart = c => c * BOUTS;                         // index of a chapter's first bout
+const bossIndex = c => chapterStart(c) + (c === FINAL_CH ? KEPT_FINAL.length : BOUTS) - 1;
+const RUMBLE_AT = chapterStart(FINAL_CH) + 2;               // index of the Rumble
 const NUMERALS = VI ? ['Nhất', 'Nhị', 'Tam'] : ['I', 'II', 'III'];
-// Stage 50, the Rumble: nine at once, the nine masters you beat on the way. Round 1 they fight as the Spin God's generals, round 2 they are raised again, stronger.
-const STAGE_SPIN = [1, 1, 1, 1, 1, 1, 1, 1, 1, 0.4, 1, 1, 0.61, 0.52, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.7]; // per-stage foe spin: 1 = as designed; only stages with no winning setup are eased (10, 13, 14) plus the crater god (51)
+// Stage 30, the Rumble: nine at once, the nine masters you beat on the way. Round 1 they fight as the Spin God's generals, round 2 they are raised again, stronger.
+const STAGE_SPIN = [1, 1, 1, 1, 1, 0.4, 1, 0.61, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.7]; // per-stage foe spin: 1 = as designed; only stages with no winning setup are eased (6, 8) plus the crater god (31)
 function rumbleFoes(round) {
   const out = [];
   for (let c = 0; c < FINAL_CH; c++) {
@@ -516,9 +522,9 @@ function rumbleFoes(round) {
     else out.push({ ...f, crown: false, stormMax: 1, m: +(f.m * (.85 + .035 * c)).toFixed(2), r: Math.max(.5, f.r * .85),
       w: Math.round(f.w * (.9 + .055 * c) * .9), skill: c >= 2 ? ch.skill : null, bloodImmune: false });
   }
-  return out.map(f => ({...f, w: f.w * STAGE_SPIN[49]}));
+  return out.map(f => ({...f, w: f.w * STAGE_SPIN[RUMBLE_AT]}));
 }
-// Stages 46-50 are the foot of the volcano: black basalt split by lava, with a rim, so nobody can be thrown off. The crater is stage 51.
+// Stages 28-30 are the foot of the volcano: black basalt split by lava, with a rim, so nobody can be thrown off. The crater is stage 31.
 const FOOT_DEF = { name: t('Chân núi lửa', 'Foot of the Volcano'), R: 8, K: 1.6, wall: true, theme: 'basalt', base: '#17100e', accent: '#ff5a1a', env: 'lava',
   blurb: t('Chân núi lửa: nền đá bazan đen nứt nẻ, có vành đai chắn. Không ai rơi khỏi sàn: chỉ gục khi hết quay.', 'The foot of the volcano: black basalt split by lava cracks, with a rim. Nobody falls off: you only go down when your spin runs out.'),
   traits: [t('Có vành đai: không bị văng khỏi sàn, chỉ thua khi hết quay', 'A rim: you cannot be thrown off, you only lose when your spin runs out'),
@@ -527,10 +533,12 @@ function buildCampaign() {
   const out = [];
   CHAPTERS.forEach((ch, c) => {
     for (let s = 0; s < (c === FINAL_CH ? 6 : 5); s++) {
+      const stage = (c === FINAL_CH ? KEPT_FINAL : KEPT).indexOf(s);   // s is the bout on the original five-bout scale
+      if (stage < 0) continue;
       const base = c === FINAL_CH && s < 5 ? FOOT_DEF : ARENA_DEFS[c];
       if (c === FINAL_CH && s === 4) {         // the Rumble: the foot of the volcano again, only bigger; a rim, so you fight until somebody drops
-        out.push({ ...FOOT_DEF, name: t('Đại hội Thần Quay', "The Spin God's Rumble"), env: 'necro', R: 11, K: 1.4, rumble: true, limit: 300, chapter: c, stage: s, boss: false, wet: false,
-          blurb: t('Màn 50: chín đệ tử của Thần Quay, rồi chín cao thủ được hồi sinh. Tất cả đánh tất cả.', "Stage 50: the Spin God's nine disciples, then the nine masters you beat, raised again. Everyone hits everyone."),
+        out.push({ ...FOOT_DEF, name: t('Đại hội Thần Quay', "The Spin God's Rumble"), env: 'necro', R: 11, K: 1.4, rumble: true, limit: 300, chapter: c, stage, boss: false, wet: false,
+          blurb: t('Màn 30: chín đệ tử của Thần Quay, rồi chín cao thủ được hồi sinh. Tất cả đánh tất cả.', "Stage 30: the Spin God's nine disciples, then the nine masters you beat, raised again. Everyone hits everyone."),
           traits: [t('Royal Rumble: chín đối thủ cùng lúc, ai cũng đánh ai', 'Royal rumble: nine rivals at once, everybody hits everybody'),
             t('Hai vòng: vòng 1 là chín đệ tử, vòng 2 là chín cao thủ đã bại được hồi sinh', 'Two rounds: nine disciples, then the nine masters you beat, raised again'),
             t('Có vành đai, không ai rơi khỏi sàn: đấm nhau tới khi gục. Sau 15 giây sàn dốc dần để không ai trốn được', 'A rim, nobody falls off: fight until you drop. After 15 s the floor steepens so nobody can hide')],
@@ -540,8 +548,8 @@ function buildCampaign() {
       // difficulty climbs inside a chapter and from chapter to chapter; there are no free power-ups for the player
       const boss = s === (c === FINAL_CH ? 5 : 4), scale = (.9 + .055 * c) * (1 + .03 * s), foes = [];
       if (boss) { const f = FOES[ch.boss]; foes.push({ ...f, m: c === FINAL_CH ? 7 : +(f.m * (1 + .06 * c)).toFixed(2), w: Math.round(f.w * (1 + .08 * c)), skill: ch.skill, crown: true, finalBoss: c === 9 }); }
-      // stage 51, the crater: the Spin God alone, one on one
-      // the Crimson Lotus Queen (stage 10) and the Spin God fight alone
+      // stage 31, the crater: the Spin God alone, one on one
+      // the Crimson Lotus Queen (stage 6) and the Spin God fight alone
       const count = boss ? (c === FINAL_CH || c === 1 ? 0 : c < 3 ? 1 : 2) : [c < 2 ? 1 : 2, 2, c < 3 ? 2 : 3, 3][Math.min(s, 3)];
       for (let k = 0; k < count; k++) {
         const src = CHAPTERS[Math.max(0, c - k)], f = FOES[src.boss];      // own sect first, then the sects already beaten
@@ -549,7 +557,7 @@ function buildCampaign() {
           m: +(f.m * (.85 + .035 * c)).toFixed(2), r: Math.max(.5, f.r * .85), w: Math.round(f.w * scale * (boss ? .9 : 1)),
           skill: c >= 2 && s >= 1 && src.skill !== 'god' ? src.skill : null, bloodImmune: false });
       }
-      out.push({ ...base, ...(boss && c === FINAL_CH ? {drag:1.35} : {}), K: (boss && c === FINAL_CH ? 3 : base.K) * [1, 1.08, .94, 1.12, 1][Math.min(s, 4)], chapter: c, stage: s, boss, wet: c === 1 || c === 7, blurb: base === FOOT_DEF ? FOOT_DEF.blurb : ch.blurb, foes });
+      out.push({ ...base, ...(boss && c === FINAL_CH ? {drag:1.35} : {}), K: (boss && c === FINAL_CH ? 3 : base.K) * [1, 1.08, .94, 1.12, 1][Math.min(s, 4)], chapter: c, stage, boss, wet: c === 1 || c === 7, blurb: base === FOOT_DEF ? FOOT_DEF.blurb : ch.blurb, foes });
     }
   });
   return out.map((L,i) => L.rumble ? L : ({...L,foes:L.foes.map(f=>({...f,w:f.w*STAGE_SPIN[i]}))}));
@@ -593,7 +601,7 @@ const STORY = [
       ['moon', t('Chỉ còn Ngài. Và Ngài biết ngươi là ai.', 'Only Him. And He knows who you are.')]],
     win: [['moon', t('Đi đi... Ngài đang đợi ở miệng núi lửa.', 'Go... He waits at the volcano.')]] },
   { intro: [['narr', t('Chương cuối. Chân núi lửa. Nền đá đen nứt nẻ, hơi nóng phả xuống từ miệng núi ngay trên đầu.', 'Final chapter. The foot of the volcano. Black cracked rock, and heat pouring down from the crater right above.')]],
-    boss: [['narr', t('Màn 51. Miệng núi lửa. Dung nham sôi dưới chân. Thần Quay Bất Bại đứng một mình giữa sân, và mọi thứ xung quanh bỗng im lặng đến đáng sợ.', 'Stage 51. The volcano crater. Lava boils below. The Undefeated Spin God stands alone in the middle, and everything around falls frighteningly quiet.')],
+    boss: [['narr', t('Màn 31. Miệng núi lửa. Dung nham sôi dưới chân. Thần Quay Bất Bại đứng một mình giữa sân, và mọi thứ xung quanh bỗng im lặng đến đáng sợ.', 'Stage 31. The volcano crater. Lava boils below. The Undefeated Spin God stands alone in the middle, and everything around falls frighteningly quiet.')],
       ['god', t('Mười tám cao thủ. Ngươi bước qua hết... và vẫn còn đứng. Cha ngươi cũng từng làm được như thế. Rồi hắn gục xuống ngay chỗ này.', 'Eighteen masters. You walked through them all... and you are still standing. Your father did that too. Then he fell, right on this spot.')],
       ['me', t('Đừng nói về ông ấy như thể ông ấy đã chết!', 'Do not speak of him as if he were dead!')],
       ['god', t('Chết? Chết còn là kết cục nhẹ nhàng đấy.', 'Dead? Death would have been the gentle ending.')],
@@ -615,7 +623,7 @@ const STORY = [
 ];
 // the first meeting with the Spin God happens at the Rumble: nine fights before he will fight you himself
 const STORY_RUMBLE = {
-  intro: [['narr', t('Màn 50. Chân núi lửa. Chín bóng người đứng im như tượng. Trên tảng đá cao, một kẻ đang xoay con quay trên đầu ngón tay, như xoay một đồng xu.', 'Stage 50. The foot of the volcano. Nine figures stand still as statues. On a high rock someone twirls a top on a fingertip, like a coin.')],
+  intro: [['narr', t('Màn 30. Chân núi lửa. Chín bóng người đứng im như tượng. Trên tảng đá cao, một kẻ đang xoay con quay trên đầu ngón tay, như xoay một đồng xu.', 'Stage 30. The foot of the volcano. Nine figures stand still as statues. On a high rock someone twirls a top on a fingertip, like a coin.')],
     ['god', t('Con quay vàng... Mười năm rồi. Ta cứ ngỡ nó đã nát vụn cùng chủ nhân của nó.', 'The golden top... Ten years. I thought it had shattered along with its owner.')],
     ['me', t('Ông đã làm gì cha tôi?!', 'What did you do to my father?!')],
     ['god', t('Cha ngươi? Hắn cũng đứng đúng chỗ này. Cũng run như ngươi. Cũng nhìn ta bằng ánh mắt đó.', 'Your father? He stood on this very spot. Trembled like you. Glared at me with those same eyes.')],
@@ -1386,7 +1394,7 @@ const sfx = {
     noise(.08, 'highpass', 3000, .35 * v); tone('sine', 140, 60, .12, .4 * v);
   },
   wall() { if (limit('wall', 90)) { tone('triangle', 520, 480, .08, .1); noise(.05, 'bandpass', 1800, .15, 3); } },
-  wind(lv = 1) { noise(STORM_TIME * (1 + .25 * (lv - 1)), 'bandpass', 300, .7, 1.5, 1400 + 500 * lv); },
+  wind(lv = 1, dur = STORM_TIME * (1 + .25 * (lv - 1))) { noise(dur, 'bandpass', 300, .7, 1.5, 1400 + 500 * lv); },
   boom() { noise(.8, 'lowpass', 200, 1); tone('sine', 80, 28, .6, .8); },
   out() { tone('sine', 900, 110, .5, .25); },
   whistle() { tone('sine', 2300, 2900, .25, .07); },
@@ -1415,15 +1423,21 @@ const build = { m: 2, r: .8, grip: .5, dir: 1, skill: 'storm', euler: '', drop: 
   tdrop: { x: 0, z: .5 }, taim: { x: 0, z: -3 } };   // courses keep their own drop point
 const dropPt = () => level.track ? build.tdrop : build.drop, aimVec = () => level.track ? build.taim : build.aim;
 let unlocked = 0, unlockedT = 0;
+// Saves from the 51-stage campaign (5 bouts a chapter) carry no 'tops.bouts'; map them onto the kept bout at or before them.
+const fromFiveBouts = i => {
+  const c = Math.min(FINAL_CH, Math.floor(i / 5)), s = i - 5 * c, kept = c === FINAL_CH ? KEPT_FINAL : KEPT;
+  return chapterStart(c) + Math.max(0, kept.filter(k => k <= s).length - 1);
+};
 try {
-  unlocked = clamp(+localStorage.getItem('tops.campaign') || 0, 0, ARENAS - 1);
+  const raw = +localStorage.getItem('tops.campaign') || 0;
+  unlocked = clamp(localStorage.getItem('tops.bouts') ? raw : fromFiveBouts(raw), 0, ARENAS - 1);
   unlockedT = clamp(+localStorage.getItem('tops.unlockedT') || 0, 0, LEVELS.length - ARENAS - 1);
   Object.assign(build, JSON.parse(localStorage.getItem('tops.build') || '{}'));
 } catch (e) {}
 // Old saves with one skill migrate when the workshop validates unlocks.
 if (!Array.isArray(build.skills)) build.skills = [build.skill];
 const save = () => { if (DEBUG) return;   // test sessions never overwrite real progress
-  try { localStorage.setItem('tops.campaign', unlocked); localStorage.setItem('tops.unlockedT', unlockedT); localStorage.setItem('tops.build', JSON.stringify(build)); } catch (e) {} };
+  try { localStorage.setItem('tops.campaign', unlocked); localStorage.setItem('tops.bouts', BOUTS); localStorage.setItem('tops.unlockedT', unlockedT); localStorage.setItem('tops.build', JSON.stringify(build)); } catch (e) {} };
 
 // ---------- formulas (advanced mode) ----------
 const VARS = ['x', 'z', 'vx', 'vz', 'w', 'ex', 'ez', 'ed', 'ew', 'd', 't', 'R', 'cx', 'ca'];
@@ -1510,11 +1524,13 @@ function kill(a, why) {
 }
 
 const STORM_COLORS = [0xbfdcff, 0xc59bff, 0xffe082];
-// the player's tornado grows with the campaign: weak at first, stronger once the bosses of stages 10 and 20 have fallen.
+// the player's tornado grows with the campaign: weak at first, stronger once the bosses of stages 6 and 12 have fallen.
 // k scales its pull, drain and blast; cap is the highest level knock-outs can raise it to; reach is how far it pulls.
-const STORM_TIERS = [{ k: .4, cap: 1, reach: 3.5 }, { k: .55, cap: 2, reach: 4 }, { k: .65, cap: 3, reach: 4.5 }];
+const STORM_TIERS = [{ k: .5, cap: 1, reach: 3.5 }, { k: .65, cap: 2, reach: 4 }, { k: .75, cap: 3, reach: 4.5 }];
+// the player's own tornado also lasts longer than a rival's (2 s) and keeps more of the spin it drains (rivals 25%)
+const PLAYER_STORM = { time: 2.5, keep: .4 };
 let tierOverride = null;           // balance sims pin a tier
-const stormTier = () => tierOverride ?? (unlocked >= 20 ? 2 : unlocked >= 10 ? 1 : 0);
+const stormTier = () => tierOverride ?? (unlocked > bossIndex(3) ? 2 : unlocked > bossIndex(1) ? 1 : 0);
 function castStorm(a) {
   if (!canCast(a)) return false;
   // the player spends every full bar at once; rivals always cast at their own level.
@@ -1523,9 +1539,9 @@ function castStorm(a) {
   const lv = fuse ? 3 : a.isPlayer ? Math.min(a.stormMax, Math.floor(a.energy)) : a.stormMax;
   a.energy = a.isPlayer ? a.energy - (fuse ? 1 : lv) : 0;
   a.stormFuse = fuse;
-  a.stormLv = lv; a.stormT = a.stormDur = (fuse ? FIRESTORM.time : STORM_TIME) * (1 + .25 * (lv - 1)); excite = 1;
+  a.stormLv = lv; a.stormT = a.stormDur = (fuse ? FIRESTORM.time : a.isPlayer ? PLAYER_STORM.time : STORM_TIME) * (1 + .25 * (lv - 1)) * (disciple(a) ? DISCIPLE_POWER : 1); excite = 1;
   castStarted(a, 'storm', a.stormDur);
-  sfx.wind(lv); sfx.whistle();
+  sfx.wind(lv, a.stormDur); sfx.whistle();
   const label = [t('LỐC XOÁY!', 'TORNADO!'), t('LỐC XOÁY V2!', 'TORNADO V2!'), t('SIÊU BÃO V3!', 'SUPER STORM V3!')][lv - 1];
   announce(a.isPlayer ? a.combo ? `✦ ${FUSIONS.find(f => f.kind === a.combo).name}!` : label : `${a.name}: ${label}`);
   commentSkill(a, 'storm', lv);
@@ -1671,7 +1687,7 @@ function collide(a, b) {
   a.vx -= Jt / ma * tx; a.vz -= Jt / ma * tz;
   b.vx += Jt / mb * tx; b.vz += Jt / mb * tz;
   for (const [o, s] of [[a, a.w - Jt * a.r / a.I], [b, b.w - Jt * b.r / b.I]]) {
-    if ((!on(o, 'lotus') || lotusQueen(o)) && !on(o, 'vajra')) {      // warded tops keep their spin (the stage-10 queen only half)
+    if ((!on(o, 'lotus') || weakWard(o)) && !on(o, 'vajra')) {      // warded tops keep their spin (the stage-6 queen and disciples only half)
       const w = s - sgn(s) * HIT_LOSS * J / o.I;
       const next = sgn(w) === sgn(o.w) ? w : 0;
       o.w += (next - o.w) * (on(o, 'lotus') ? QUEEN_WARD.hit : 1) * (on(o, 'iron') ? .55 : 1) * (o.finalBoss && simT >= o.recoveryUntil ? .55 : 1) * (o.arcUntil > simT ? ARC_GUARD : 1) * (fortified(o) ? .3 : 1);
@@ -1804,7 +1820,7 @@ function stepPhysics() {
       o.ax += (dx / d * 40 - dz / d * 16 * s) * f; o.az += (dz / d * 40 + dx / d * 16 * s) * f;
       const drain = Math.min(spareSpin(o), (fz ? FIRESTORM.drain : 7) * f * H * (o.voidGod ? VOID_TUNE.drainK : 1));
       if (d < STORM_RANGE) { o.lastHitBy = c; o.lastHitT = simT; }
-      o.w -= sgn(o.w) * drain; c.w += sgn(c.w) * drain * .25;
+      o.w -= sgn(o.w) * drain; c.w += sgn(c.w) * drain * (c.isPlayer ? PLAYER_STORM.keep : .25);
       if (on(o, 'lotus')) c.w -= sgn(c.w) * Math.min(spareSpin(c), drain * .35);
       if (fz) { hurtSkill(c, o, 'fire', 6 * H); o.burnT = simT; }
     }
@@ -1870,7 +1886,7 @@ function stepPhysics() {
   for (const a of tops)
     if (a.alive && !a.isPlayer && !a.ult && a.skill && a.energy >= 1 && a.skillT <= 0 && a.stormT <= 0 && aiWantsSkill(a)) castSkill(a);
 }
-// The Undefeated Spin God (stage 51, not the Void) answers every second two-cast cycle with a FUSION of his own: he stops dead for 1.1 s
+// The Undefeated Spin God (stage 31, not the Void) answers every second two-cast cycle with a FUSION of his own: he stops dead for 1.1 s
 // while his name and the fusion's name blaze (that stillness is your opening), then it lands; afterwards the usual 3 s exposed window follows.
 const GOD_ULTS = ['arc', 'flare', 'fort', 'rime'], ULT_TIME = { arc: ARC_TIME, flare: 3.9, fort: 3.5, rime: 4.5 };
 function godUltimate(a) {
@@ -1918,8 +1934,8 @@ function godFuse(a, kind) {
 const SKILL_ORDER = ['storm', 'thunder', 'lotus', 'dash', 'fire', 'iron', 'ghost', 'vajra', 'ice', 'moon'];
 const SKILLS = {
   storm: { name: t('Lốc Xoáy', 'Tornado'), color: 0xbfdcff,
-    desc: t('Gom địch 2 giây rồi hất văng; rút quay 7/giây × hệ số. Tốt nhất để gom đệ tử hoặc khắc Bạo Viêm. Hạ trùm màn 10/20 để mở cấp lốc, hạ địch trong trận để lên V2/V3.',
-      'Gathers rivals for 2 s then blasts them away; drains 7 spin/s × power. Best for groups or countering Fire. Stage 10/20 bosses unlock tiers; knock-outs raise V2/V3 in battle.'),
+    desc: t('Gom địch 2,5 giây rồi hất văng; rút quay 7/giây × hệ số, giữ lại 40% cho mình. Tốt nhất để gom đệ tử hoặc khắc Bạo Viêm. Hạ trùm màn 6/12 để mở cấp lốc, hạ địch trong trận để lên V2/V3.',
+      'Gathers rivals for 2.5 s then blasts them away; drains 7 spin/s × power and keeps 40% of it. Best for groups or countering Fire. Stage 6/12 bosses unlock tiers; knock-outs raise V2/V3 in battle.'),
     warn: t('Trong lúc hút, bạn gần như đứng yên.', 'While it pulls, you are almost rooted to the spot.') },
   thunder: { name: t('Sấm Sét', 'Thunderbolt'), color: 0xfff176, dur: .35,
     desc: t('Ngắt chiêu trong 8 m: rút 26% quay, tối đa 24 trước khắc chế; hất văng và khoá chiêu 0,8 giây. Tốt nhất để phá Ảo Ảnh/Thiết Giáp.', 'Interrupts within 8 m: drains 26% spin, capped at 24 before counters; knocks back and locks casts for 0.8 s. Best against Phantom/Iron.'),
@@ -1984,18 +2000,23 @@ const lotusQueen = a => !a.isPlayer && a.skill === 'lotus' && level.boss && leve
 const LOTUS_WARD_GAP = 3;  // collisions can fill her energy, but cannot shorten this opening after the ward
 // her ward is weaker than the one you earn from her (3 spin/s heal, no hit loss, ×0.4 skill damage, 25% reflect)
 const QUEEN_WARD = { heal: 1, hit: .5, skill: .7, reflect: .1 };
+// disciples (crownless rivals) fight with 60% of a master's skill: 60% of the damage and 60% of the duration,
+// and their Lotus Ward is the queen's weaker one with her 3 s opening
+const DISCIPLE_POWER = .6;
+const disciple = a => !a.isPlayer && !a.crown;
+const weakWard = a => lotusQueen(a) || (disciple(a) && a.skill === 'lotus');
 const canCast = (a, midCast = false, id = a && a.skill) => state === 'battle' && a && a.alive && a.skill && a.energy >= 1 && (midCast || (a.skillT <= 0 && a.stormT <= 0)) && simT >= a.readyAt && (simT >= a.restAt || id !== a.lastCast) && simT >= a.recoveryUntil && (!a.voidGod || a.cycleSkills < 2);
 function defenseSkill(a) {
   return a.stormT > 0 ? 'storm' : a.skillT > 0 ? a.active : a.isPlayer || a.skill === 'god' || a.skill === 'void' ? null : a.skill;
 }
 function skillImpact(a, o, id) {
-  let k0 = 1;
+  let k0 = disciple(a) ? DISCIPLE_POWER : 1;
   if (phased(o) && id !== 'thunder' && !a.voidGod) return 0;
   const target = defenseSkill(o);
   let k = (COUNTERS[id]?.includes(target) ? 1.35 : COUNTERS[target]?.includes(id) ? .65 : 1) * k0;
   if (o.arcUntil > simT) k *= ARC_GUARD;
   if (fortified(o)) k *= .6;
-  if (on(o, 'lotus')) k *= lotusQueen(o) ? QUEEN_WARD.skill : .4;
+  if (on(o, 'lotus')) k *= weakWard(o) ? QUEEN_WARD.skill : .4;
   if (on(o, 'iron') && id !== 'thunder') k *= .7;
   if (id === 'storm' && (on(o, 'iron') || on(o, 'vajra'))) k *= .3;
   if (o.finalBoss && simT >= o.recoveryUntil) k *= .55;
@@ -2010,7 +2031,7 @@ function hurtSkill(a, o, id, amount) {
     popup(o.x, floorY(o.x, o.z) + o.height, o.z, t('KHẮC CHẾ!', 'COUNTER!'));
     shockRing(o.x, floorY(o.x, o.z), o.z, SKILLS[id].color);
   }
-  if (a !== o && on(o, 'lotus') && damage > 0) a.w -= sgn(a.w) * Math.min(spareSpin(a), damage * (lotusQueen(o) ? QUEEN_WARD.reflect : .25));
+  if (a !== o && on(o, 'lotus') && damage > 0) a.w -= sgn(a.w) * Math.min(spareSpin(a), damage * (weakWard(o) ? QUEEN_WARD.reflect : .25));
   return damage;
 }
 function castStarted(a, id, duration) {
@@ -2049,7 +2070,7 @@ function castStarted(a, id, duration) {
   recordCast();
   function recordCast() {
     a.lastCast = id; a.lastCastAt = simT; a.lastCastEnd = simT + duration;
-    if (a.isPlayer) a.restAt = a.lastCastEnd + .9; else a.readyAt = a.lastCastEnd + (lotusQueen(a) ? LOTUS_WARD_GAP : .9);
+    if (a.isPlayer) a.restAt = a.lastCastEnd + .9; else a.readyAt = a.lastCastEnd + (weakWard(a) ? LOTUS_WARD_GAP : .9);
     if (id === 'vajra') a.vajraHits = new Map();
     if (a.finalBoss || a.voidGod) a.cycleSkills++;
   }
@@ -2073,7 +2094,7 @@ function castFusion() {
 }
 function fusionGuide() {
   const f = equippedFusion();
-  if (!f && unlocked < 15) return t('Hai ô dùng riêng. Cặp hợp chiêu đầu mở sau trùm 15: SPACE → 1 giây sau → SPACE lần nữa (hoặc C / chạm lời nhắc).', 'These slots cast separately. First fusion pair unlocks after boss 15: SPACE → 1 s later → SPACE again (or C / tap the prompt).');
+  if (!f && unlocked <= bossIndex(2)) return t('Hai ô dùng riêng. Cặp hợp chiêu đầu mở sau trùm màn 9: SPACE → 1 giây sau → SPACE lần nữa (hoặc C / chạm lời nhắc).', 'These slots cast separately. First fusion pair unlocks after the stage 9 boss: SPACE → 1 s later → SPACE again (or C / tap the prompt).');
   return f ? `${equippedFusions().map(g => `${g.name}: ${SKILLS[g.ids[0]].name} → ${SKILLS[g.ids[1]].name}`).join(' · ')}. ${t('Dùng một chiêu, 1 giây sau, khi đủ 1 thanh, nhấn SPACE lần nữa (hoặc C / chạm lời nhắc) để hợp, nghỉ 2–4 giây sau mỗi lần.', 'Cast either skill; 1 s later, with 1 bar, press SPACE again (or C / tap the prompt) to fuse. 2-4 s rest after each.')}`
     : t('Hợp chiêu: trang bị đúng một cặp trong bảng ✦. Dùng chiêu đầu → 1 giây sau → SPACE lần nữa (hoặc C / chạm lời nhắc). Hai chiêu khác cặp vẫn dùng riêng.', 'Fusion: equip a pair from ✦. Cast one → 1 s later → SPACE again (or C / tap the prompt). Other pairs work as separate skills.');
 }
@@ -2095,7 +2116,7 @@ function selectSkill(i) {
 const spareSpin = o => o.voidGod ? Math.max(0, Math.abs(o.w) - o.floorW) : Math.abs(o.w);
 // which skill a top will use next: the final boss cycles through them all, the void god picks any at random
 const skillOf = a => a.skill === 'god' || a.skill === 'void' ? GOD_ROTATION[a.godI % GOD_ROTATION.length] : a.skill;
-const skillUnlocked = k => k === 0 || unlocked >= 5 * k;                      // skill k is the reward of chapter k's boss
+const skillUnlocked = k => k === 0 || unlocked >= chapterStart(k);                     // skill k is the reward of chapter k's boss
 let fires = [], fields = [], bolts = [];
 
 function castSkill(a) {
@@ -2104,8 +2125,8 @@ function castSkill(a) {
   if (id === 'storm') { const ok = castStorm(a); if (ok && (a.skill === 'god' || a.skill === 'void')) a.godI++; return ok; }
   if (a.skill === 'god' || a.skill === 'void') a.godI++;
   const S = SKILLS[id];
-  a.energy -= 1; a.active = id; a.skillT = a.skillDur = S.dur; excite = 1;
-  castStarted(a, id, S.dur);
+  a.energy -= 1; a.active = id; a.skillT = a.skillDur = S.dur * (disciple(a) ? DISCIPLE_POWER : 1); excite = 1;
+  castStarted(a, id, a.skillDur);
   if (id === 'thunder') thunderStrike(a);
   else if (id === 'dash') {
     a.dashHit = false;
@@ -2116,7 +2137,7 @@ function castSkill(a) {
     const n = Math.hypot(dx, dz) || 1;
     const speed = a.combo === 'arc' ? 18 : 14;
     a.vx = dx / n * speed; a.vz = dz / n * speed;
-  } else if (id === 'ice') fields.push({ x: a.x, z: a.z, r: a.combo === 'rime' ? 5 : 3.8, until: simT + S.dur, owner: a, mesh: null, rime: a.combo === 'rime' });
+  } else if (id === 'ice') fields.push({ x: a.x, z: a.z, r: a.combo === 'rime' ? 5 : 3.8, until: simT + a.skillDur, owner: a, mesh: null, rime: a.combo === 'rime' });
   else if (id === 'ghost') a.energy = Math.min(a.stormMax, a.energy + .15);
   else if (id === 'fire') {
     if (a.combo === 'flare') fuseFirestorm(a);
@@ -2219,7 +2240,7 @@ function skillStep() {
       if (foe && Math.hypot(foe.x - a.x, foe.z - a.z) < 8) { hurtSkill(a, foe, 'thunder', ARC_BOLT); foe.lastHitBy = a; foe.lastHitT = simT; bolt(foe, true); }
     }
     if (!a.alive || a.skillT <= 0) continue;
-    if (on(a, 'lotus')) a.w += sgn(a.w) * Math.min(Math.max(0, a.w0 - Math.abs(a.w)), (lotusQueen(a) ? QUEEN_WARD.heal : 3) * H);
+    if (on(a, 'lotus')) a.w += sgn(a.w) * Math.min(Math.max(0, a.w0 - Math.abs(a.w)), (weakWard(a) ? QUEEN_WARD.heal : 3) * H);
     if (on(a, 'fire') && simT - a.lastFire > .08) { a.lastFire = simT; fires.push({ x: a.x, z: a.z, born: simT, owner: a }); }
     if (on(a, 'moon')) {
       if (!a.finalBoss) a.w -= sgn(a.w) * Math.min(Math.abs(a.w), 3 * H);
@@ -3251,7 +3272,7 @@ function showMapIntro(done = null) {
   $('mapChapter').textContent = ch ? `${t('Chương', 'Chapter')} ${level.chapter + 1} · ${ch.sect}` : t('Vượt địa hình', 'Obstacle course');
   $('mapName').textContent = level.name;
   $('mapTrait').textContent = level.traits.join(' · ');
-  $('mapBoss').textContent = level.rumble ? t('Vòng 1: chín đệ tử của Thần Quay · Vòng 2: chín cao thủ được hồi sinh · Thần Quay đợi ở màn 51', 'Round 1: the Spin God’s nine disciples · Round 2: the nine masters, raised again · the Spin God waits at stage 51')
+  $('mapBoss').textContent = level.rumble ? t('Vòng 1: chín đệ tử của Thần Quay · Vòng 2: chín cao thủ được hồi sinh · Thần Quay đợi ở màn 31', 'Round 1: the Spin God’s nine disciples · Round 2: the nine masters, raised again · the Spin God waits at stage 31')
     : level.boss && level.chapter === FINAL_CH ? t('Thần Quay Bất Bại, một chọi một · Mười tuyệt kỹ và hợp chiêu · nghỉ sau 2 chiêu', 'The Undefeated Spin God, one on one · Ten skills and fusions · recovers after 2 casts')
     : boss ? `${t('Trấn giữ', 'Master')}: ${boss.name} · ${ch.skill === 'god' ? t('Mười tuyệt kỹ · nghỉ sau 2 chiêu', 'Ten skills · recovers after 2 casts') : SKILLS[ch.skill].name}` : level.blurb;
   const counters = ch && SKILL_ORDER.filter(id => COUNTERS[id]?.includes(ch.skill));
@@ -3633,8 +3654,8 @@ function showResult() {
   else won ? sfx.win() : sfx.lose();
   $('rTitle').textContent = won ? (course ? t('VỀ ĐÍCH!', 'FINISHED!') : last ? t('VÔ ĐỊCH!', 'CHAMPION!') : t('THẮNG!', 'YOU WIN!')) : t('THUA RỒI', 'YOU LOSE');
   const crushed = shardCount() < 5
-    ? t('Thời gian ngừng lại và bạn bị cán bẹp. Lời đồn kể rằng năm mảnh vỡ từ các trùm màn 10, 20, 30, 40 và 45 có thể phá được trói buộc của thời gian.',
-      'Time stopped and you were crushed. Legend says five shards from the bosses of stages 10, 20, 30, 40 and 45 can break the chains of time.')
+    ? t('Thời gian ngừng lại và bạn bị cán bẹp. Lời đồn kể rằng năm mảnh vỡ từ các trùm màn 6, 12, 18, 24 và 27 có thể phá được trói buộc của thời gian.',
+      'Time stopped and you were crushed. Legend says five shards from the bosses of stages 6, 12, 18, 24 and 27 can break the chains of time.')
     : !eulerOK() ? t('Thời gian ngừng lại và bạn bị cán bẹp. Bạn đã có đủ năm mảnh vỡ: hãy ghép phương trình sự sống trong thẻ Nâng cao.',
       'Time stopped and you were crushed. You hold all five shards: put the equation of life together in the Advanced tab.')
     : t('Thời gian ngừng lại và bạn bị cán bẹp. Phương trình đã sẵn sàng: khi thanh sáng lướt qua ô vàng, bấm SPACE đúng lúc.',
@@ -3676,7 +3697,7 @@ function showResult() {
 
 // ---------- the final boss: a second life in the void ----------
 // Beat the Undefeated Spin God once and he rises again over a black hole as the Void Spin God, who can stop time.
-// The only way through: five shards dropped by the bosses of stages 10, 20, 30, 40 and 45, put together into the
+// The only way through: five shards dropped by the bosses of stages 6, 12, 18, 24 and 27, put together into the
 // equation of life in the Advanced tab. With it you step out of frozen time along e^{iθ}, swing half a turn round
 // the charging god (e^{iπ} = −1), then take one more step and strike (+1 = 0).
 const SHARD_CHAPTERS = [1, 3, 5, 7, 8];
@@ -3687,7 +3708,7 @@ if (!Array.isArray(shardSyms) || [...shardSyms].sort().join() !== '0,1,e,i,π') 
   for (let k = 4; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [shardSyms[k], shardSyms[j]] = [shardSyms[j], shardSyms[k]]; }
   try { localStorage.setItem('tops.shards', JSON.stringify(shardSyms)); } catch (e) {}
 }
-const shardsOwned = () => SHARD_CHAPTERS.map((c, k) => unlocked >= 5 * c + 5 ? shardSyms[k] : null);
+const shardsOwned = () => SHARD_CHAPTERS.map((c, k) => unlocked > bossIndex(c) ? shardSyms[k] : null);
 const shardCount = () => shardsOwned().filter(Boolean).length;
 let eulerOverride = null;          // balance sims decide this directly
 const eulerOK = () => eulerOverride ?? (shardCount() === 5 && checkEuler(build.euler || ''));
@@ -4866,20 +4887,20 @@ function refreshShop() {
   $('lvFoes').innerHTML = (level.track ? (level.track.guards || []).map(g => FOES[g.foe]) : level.foes).map(f => `<span>${f.name}</span>`).join('');
   if (!level.track) shownChapter = level.chapter;
   $('pipLabel').textContent = `${t('Chương', 'Chapter')} ${shownChapter + 1} · ${t('các trận', 'bouts')}`;
-  const stagesHere = shownChapter === FINAL_CH ? 6 : 5;
+  const stagesHere = bossIndex(shownChapter) - chapterStart(shownChapter) + 1;
   $('pips').innerHTML = Array.from({ length: stagesHere }, (_, k) => {
-    const i = shownChapter * 5 + k;
+    const i = chapterStart(shownChapter) + k;
     return `<button data-lv="${i}" class="${i === levelIndex ? 'on' : ''}" ${i > unlocked ? 'disabled' : ''}>${k === stagesHere - 1 ? '👑' : k + 1}</button>`;
   }).join('');
   document.querySelectorAll('#lvls > button').forEach(b => {
-    if (b.dataset.ch) { b.disabled = +b.dataset.ch * 5 > unlocked; b.classList.toggle('on', !level.track && +b.dataset.ch === shownChapter); }
+    if (b.dataset.ch) { b.disabled = chapterStart(+b.dataset.ch) > unlocked; b.classList.toggle('on', !level.track && +b.dataset.ch === shownChapter); }
     else { const i = +b.dataset.lv; b.disabled = i - ARENAS > unlockedT; b.classList.toggle('on', i === levelIndex); }
   });
   normalizeLoadout();
   document.querySelectorAll('#skills button').forEach((b, k) => {
     const slot = loadout().indexOf(b.dataset.sk);
     b.disabled = !skillUnlocked(k); b.classList.toggle('on', slot >= 0);
-    b.textContent = b.disabled ? `🔒 ${t('Trùm', 'Boss')} ${5 * k}` : `${slot >= 0 ? slot + 1 + ' · ' : ''}${SKILLS[b.dataset.sk].name}`;
+    b.textContent = b.disabled ? `🔒 ${t('Trùm', 'Boss')} ${chapterStart(k)}` : `${slot >= 0 ? slot + 1 + ' · ' : ''}${SKILLS[b.dataset.sk].name}`;
   });
   const S = SKILLS[build.skill], tier = stormTier();
   $('skillSlots').classList.toggle('four', loadout().length > 2);
@@ -4893,11 +4914,11 @@ function refreshShop() {
     + (build.skill === 'storm' ? `<br>🌪 ${t('Sức mạnh', 'Power')}: ${'★'.repeat(tier + 1)}${'☆'.repeat(2 - tier)} · ${t('tối đa', 'up to')} V${STORM_TIERS[tier].cap}`
       + (tier < 2 ? ` · ${t(`hạ trùm màn ${tier ? 20 : 10} để mạnh lên`, `beat the stage ${tier ? 20 : 10} boss to power it up`)}` : '') : '');
   if (skillUnlocked(1) && !seen.comboTip) { markSeen('comboTip'); comboTipOpen = true; }
-  $('comboTipAvailability').textContent = unlocked < 15 ? t('Cặp đầu mở sau trùm màn 15. Hiện tại hai chiêu dùng riêng.', 'First pair unlocks after stage 15 boss. Your current skills cast separately.') : t('Chạm một công thức ✦ để trang bị cả cặp.', 'Tap a ✦ recipe to equip both skills.');
+  $('comboTipAvailability').textContent = unlocked <= bossIndex(2) ? t('Cặp đầu mở sau trùm màn 9. Hiện tại hai chiêu dùng riêng.', 'First pair unlocks after the stage 9 boss. Your current skills cast separately.') : t('Chạm một công thức ✦ để trang bị cả cặp.', 'Tap a ✦ recipe to equip both skills.');
   $('comboTutorial').hidden = !comboTipOpen || !!level.track;
   $('comboBook').hidden = !!level.track;
   $('comboRecipes').innerHTML = FUSIONS.map((f, i) => {
-    const unlock = Math.max(...f.ids.map(id => SKILL_ORDER.indexOf(id) * 5));
+    const unlock = Math.max(...f.ids.map(id => chapterStart(SKILL_ORDER.indexOf(id))));
     const ready = unlocked >= unlock;
     const effect = f.kind === 'arc' ? t('Lôi Bộ: 4 giây lướt rất nhanh (~25 m/s) hai vòng ngôi sao như ninja (trái, phải, lên, xuống), liên tục gọi sét (5 quay mỗi 0,4s) vào địch gần, giảm 10% sát thương nhận; mở màn sét 16 quay + xích 10', 'Thunder Run: 4 s of very fast (~25 m/s) ninja dashes, two laps of a five-pointed star, calling bolts (5 spin every 0.4 s) on the nearest rival, 10% less damage taken; opens with a 16-spin bolt + 10 chain') : f.kind === 'heal' ? t('Liên Ảnh: hồi 20 quay + hoàn nửa thanh, rồi 3,2 giây hoá bóng xuyên địch: mỗi lần lướt qua phản 14 quay (hút 40%), hồi 3 quay/giây. Nghỉ 4 giây sau khi hết hiệu lực. Sấm Sét xuyên qua và phá được; Hư Vô không bị xuyên', 'Phantom Lotus: heal 20 spin + refund half a bar, then 3.2 s of ghost form: every pass through a rival hits back for 14 spin (40% drained), heals 3 spin/s. 4 s rest after it ends. Thunder pierces and snaps it; the Void cannot be phased through') : f.kind === 'fort' ? t('Kim Thân: 3,5 giây bất động như núi, nhận 60% sát thương, hao quay va chạm ×0,3; ai chạm vào bị hất 11 và mất 16 quay (mỗi 0,4s); mở màn đẩy lùi + 8 quay trong 4,5m', 'Fortress: 3.5 s immovable, take 60% damage, collision spin loss ×0.3; anyone touching you is thrown 11 and loses 16 spin (every 0.4 s); opens with a shove + 8 spin within 4.5 m') : f.kind === 'rime' ? t('Huyết Băng: vùng băng đỏ bán kính 5m trong 4,5 giây: địch trượt, bị hút 8 quay/giây về cho bạn (tới 120% quay ban đầu)', 'Blood Frost: a red frost field of 5 m for 4.5 s: rivals slide and are drained 8 spin/s into you (up to 120% of launch spin)') : t('Lốc Lửa: sức mạnh ngang Lốc V3 gốc (chưa nerf), đốt sàn 16/giây, chỉ tốn 1 thanh', 'Fire Tornado: original un-nerfed V3 tornado power, burns the floor for 16/s, costs just 1 bar');
     return `<button data-fusion="${i}" ${ready ? '' : 'disabled'}>${f.ids.map(id => SKILLS[id].name).join(' + ')} → <b>${f.name}</b><br>${effect} · ${ready ? t('Chạm để trang bị 2 ô', 'Tap to equip both slots') : t(`Mở sau trùm màn ${unlock}`, `Unlock after stage ${unlock} boss`)}</button>`;
@@ -4972,7 +4993,7 @@ document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click
 $('lvls').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (!b || b.disabled) return;
-  if (b.dataset.ch) setLevel(Math.min(unlocked, +b.dataset.ch * 5 + (+b.dataset.ch === FINAL_CH ? 5 : 4)));   // jump to the furthest bout reached in that chapter
+  if (b.dataset.ch) setLevel(Math.min(unlocked, bossIndex(+b.dataset.ch)));   // jump to the furthest bout reached in that chapter
   else setLevel(+b.dataset.lv);
 });
 $('skills').addEventListener('click', e => {
@@ -5236,7 +5257,7 @@ function visuals(dt) {
     if (tag) {
       const id = a.stormT > 0 ? 'storm' : a.skillT > 0 ? a.active : null;
       const base = a.isPlayer ? t('BẠN', 'YOU') : a.name;
-      const opening = lotusQueen(a) && a.lastCast === 'lotus' && a.skillT <= 0 && simT < a.readyAt;
+      const opening = weakWard(a) && a.lastCast === 'lotus' && a.skillT <= 0 && simT < a.readyAt;
       tag.textContent = id ? `${base} · ${SKILLS[id].name} ${(id === 'storm' ? a.stormT : a.skillT).toFixed(1)}s`
         : opening ? `${base} · ${t('Hở sườn', 'Exposed')} ${(a.readyAt - simT).toFixed(1)}s` : base;
       tag.style.borderColor = hex(id ? SKILLS[id].color : a.color);
@@ -5434,7 +5455,7 @@ if (DEBUG) window.game = {
       while ((state === 'battle' || state === 'ending') && elapsed < 360) {
         stepPhysics(); elapsed += H;
         // Stop at the same boundary checkEnd uses to start rebirth. No Void simulation.
-        if (stage === 51 && pendingRebirth && player.alive && !tops.some(a => !a.isPlayer && a.alive)) {
+        if (stage === ARENAS && pendingRebirth && player.alive && !tops.some(a => !a.isPlayer && a.alive)) {
           rebirthReached = true; break;
         }
         checkEnd(H);
@@ -5459,7 +5480,7 @@ if (DEBUG) window.game = {
           build.skill = player.skill = id; castSkill(player); break;
         }
       }
-      return {won:stage === 51 ? rebirthReached : !!won && elapsed < 360 && (stage !== 50 || round2),scope:stage === 51 ? 'phase1' : 'arena',seconds:+elapsed.toFixed(2),round2,rebirthReached,why:player.why,skills:[...loadout()],tier:stormTier()};
+      return {won:stage === ARENAS ? rebirthReached : !!won && elapsed < 360 && (stage !== RUMBLE_AT + 1 || round2),scope:stage === ARENAS ? 'phase1' : 'arena',seconds:+elapsed.toFixed(2),round2,rebirthReached,why:player.why,skills:[...loadout()],tier:stormTier()};
     } finally {
       headless = false; unlocked = saved.unlocked; tierOverride = saved.tierOverride; eulerOverride = saved.eulerOverride;
       Object.assign(build,saved.build); Math.random = saved.random;
@@ -5676,7 +5697,7 @@ if (DEBUG) {
   addEventListener('keydown', e => {
     if ((e.code !== 'F8' && !(e.code === 'KeyK' && state !== 'battle')) || e.repeat || e.target.tagName === 'INPUT' || cgPaused()) return;
     e.preventDefault();
-    game.testLevel(e.shiftKey ? ARENAS : levelIndex >= 49 ? ARENAS : levelIndex >= 45 ? ARENAS - 1 : (Math.floor(levelIndex / 5) + 1) * 5);
+    game.testLevel(e.shiftKey ? ARENAS : levelIndex >= RUMBLE_AT ? ARENAS : levelIndex >= chapterStart(FINAL_CH) ? ARENAS - 1 : bossIndex(Math.floor(levelIndex / BOUTS)) + 1);
   });
 }
 // DEBUG NAV END
@@ -5688,7 +5709,7 @@ else {
   if (DEBUG) {
     if (params.has('void')) seen.vr = 1;
     if (params.has('eq')) game.eqSet(['e', '^i', '^π', '+', '1', '=', '0']);
-    const entry = params.has('level') ? Number(params.get('level')) : params.has('boss') ? Number(params.get('boss')) * 5 : params.has('final') || params.has('void') ? ARENAS : null;
+    const entry = params.has('level') ? Number(params.get('level')) : params.has('boss') ? bossIndex(Number(params.get('boss')) - 1) + 1 : params.has('final') || params.has('void') ? ARENAS : null;
     if (entry !== null) game.testLevel(entry);
   }
   // DEBUG NAV END
