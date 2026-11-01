@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const source = await readFile(join(root, process.env.SOURCE || 'index.html'), 'utf8');
-await mkdir(join(root,'dist'),{recursive:true});
+await mkdir(join(root,'reports'),{recursive:true});
 const work = await mkdtemp(join(tmpdir(), 'spin-polish-'));
 const pause = ms => new Promise(r => setTimeout(r, ms));
 const server = createServer(async (req, res) => {
@@ -105,7 +105,7 @@ try {
   const start = +(process.env.START || 1), end = +(process.env.END || 51);
   assert.ok(Number.isInteger(runs) && runs >= 20 && Number.isInteger(confirm) && confirm >= 60, 'Use >=20 runs/cell and >=60 confirmation runs');
   assert.ok(Number.isInteger(start) && Number.isInteger(end) && start>=1 && end<=51 && start<=end, 'Arena stages 1..51 only');
-  const path = join(root, `dist/balance-${phase}-${start}-${end}.json`);
+  const path = join(root, `reports/balance-${phase}-${start}-${end}.json`);
   const order = ['storm','thunder','lotus','dash','fire','iron','ghost','vajra','ice','moon'];
   const strategies = {default:['',''],chase:['(ex-x)*4-vx*.5','(ez-z)*4-vz*.5'],brake:['(ex-x)*4-vx*2','(ez-z)*4-vz*2']};
   const physiques = [[2,.8,.5],[1,.8,0],[2,.8,.2],[3,.6,.2],[1.6,.6,.46],[4,1,.1]];
@@ -127,7 +127,7 @@ try {
     assert.ok(stage!==51 || values.every(v=>v.scope==='phase1'),'Stage 51 measures only the god phase until rebirth');
     assert.ok(values.every(v=>v.skills.length<= (stage>=50?4:2) && v.skills.every(id=>order.indexOf(id)*5<=stage-1)), 'Only first-visit skills');
     completedCells++;
-    if(completedCells%8===0)await writeFile(join(root,`dist/balance-progress-${phase}-${start}-${end}.json`),JSON.stringify({sourceSha256,stage,completedCells,lastBuild:b,runs:n,wins:values.filter(v=>v.won).length,updatedAt:new Date().toISOString()},null,2));
+    if(completedCells%8===0)await writeFile(join(root,`reports/balance-progress-${phase}-${start}-${end}.json`),JSON.stringify({sourceSha256,stage,completedCells,lastBuild:b,runs:n,wins:values.filter(v=>v.won).length,updatedAt:new Date().toISOString()},null,2));
     return {build:b,runs:n,wins:values.filter(v=>v.won).length,winPercent:100*values.filter(v=>v.won).length/n,averageSeconds:values.reduce((s,v)=>s+v.seconds,0)/n,round2:values.filter(v=>v.round2).length,scope:stage===51?'phase1':'arena',rebirthReached:values.filter(v=>v.rebirthReached).length,reasons:Object.fromEntries([...new Set(values.map(v=>v.why))].map(why=>[why,values.filter(v=>v.why===why).length]))};
   };
   for(let stage=start;stage<=end;stage++) {

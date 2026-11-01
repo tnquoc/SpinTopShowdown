@@ -1,7 +1,7 @@
 // Node 22+ / Chromium. Seeded, headless first-time balance samples.
 // node tools/test-early-balance.mjs after (30 runs/setting; CHROME overrides Chromium path)
 // RUNS=100 CONFIRM=1 selects recommended builds; DEFAULTS_ONLY=1 skips the build sweep.
-// BASELINE=1 serves dist/early-balance-before.html; SEARCH=1 scans low-grip builds.
+// BASELINE=1 serves reports/early-balance-before.html; SEARCH=1 scans low-grip builds.
 // WAIT_ONLY=1 waits for the ward to fade; PROBE=1 measures actual enemy ward gaps.
 // Environment examples above use shell-neutral KEY=value notation; use $env:KEY in PowerShell.
 import { spawn } from 'node:child_process';
@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-let source = await readFile(join(root, process.env.BASELINE ? 'dist/early-balance-before.html' : 'index.html'), 'utf8');
+let source = await readFile(join(root, process.env.BASELINE ? 'reports/early-balance-before.html' : 'index.html'), 'utf8');
 source=source.replace("if (f && Math.hypot(f.x - player.x, f.z - player.z) < 4) castSkill(player);", "if (f && Math.hypot(f.x - player.x, f.z - player.z) < 4 && (!b.avoidWard || !(f.active === 'lotus' && f.skillT > 0))) castSkill(player);");
 const work = await mkdtemp(join(tmpdir(), 'spin-polish-'));
 const pause = ms => new Promise(r => setTimeout(r, ms));
@@ -140,7 +140,7 @@ try {
   const wardSamples=[];
   if(process.env.PROBE) for(let run=0;run<3;run++) wardSamples.push(await evaluate(`(()=>{let seed=731+${run}*104729;Math.random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};Object.assign(game.build,{m:2,r:.8,grip:.2,skill:'storm',skills:['storm'],fx:'',fz:''});game.setLevel(9);game.closeMapIntro();game.launch();const casts=[];let last=-99;for(let i=0;i<760&&game.info().state==='battle';i++){game.tick(12);const f=game.inspect(1);if(f.lastCastAt!==last&&f.lastCast==='lotus'){casts.push({at:f.lastCastAt,end:f.lastCastEnd,readyAt:f.readyAt});last=f.lastCastAt;}}return {casts,gaps:casts.slice(1).map((c,i)=>c.at-casts[i].end)};})()`));
   if(wardSamples.length)console.log(JSON.stringify({wardSamples}));
-  await writeFile(join(root,'dist/early-balance-'+phase+'.json'),JSON.stringify({phase,runs,seed:'731 + run * 104729; LCG',auto:'cast at distance < 4; avoidWard rows wait for ward to fade; single skill; no mash, fusion, equations or later rewards; each run uses fresh progression' ,rows,wardSamples,errors},null,2));
+  await writeFile(join(root,'reports/early-balance-'+phase+'.json'),JSON.stringify({phase,runs,seed:'731 + run * 104729; LCG',auto:'cast at distance < 4; avoidWard rows wait for ward to fade; single skill; no mash, fusion, equations or later rewards; each run uses fresh progression' ,rows,wardSamples,errors},null,2));
   assert.equal(errors.length,0,JSON.stringify(errors));
   await send('Browser.close');
 } finally {

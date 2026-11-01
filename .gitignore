@@ -3,3 +3,6 @@
 .venv/
 __pycache__/
 dist/
+reports/
+# store assets (covers, screenshots, trailers, portal copy) stay local
+store/

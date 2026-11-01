@@ -84,11 +84,11 @@ Ngoài hệ số: Ảo miễn các kỹ năng trừ Sấm; Hồng Liên giảm t
 
 Thêm vòng sáng nhiều lớp, màu riêng từng chiêu, tên chiêu tại vị trí thi triển, tia/đuôi Ảo đậm hơn, vòng và chữ báo khắc chế/hợp chiêu. Tái dùng đối tượng hiệu ứng; giải phóng khi đổi map. Điều chỉnh vị trí tiêu đề, bình luận và chu kỳ boss trên điện thoại.
 
-Chạy `node tools/build-crazygames.mjs`, rồi `node tools/test-polish.mjs`. Script tự phục vụ HTTP và mở Chrome headless, thu lỗi JavaScript/console/network, kiểm tra save cũ, tên và intro đủ 10 chương, thao tác trang bị/đổi ô thật, số sát thương/miễn nhiễm/hợp chiêu, chu kỳ boss và kết thúc chiến thắng, màn hình điện thoại, nhảy địa hình, build CrazyGames/SDK mock. Nó xác nhận build khớp chính xác nguồn hiện tại trước khi chạy. Ảnh và báo cáo nằm ở `dist/polish-*.png`, `dist/polish-test-results.json`.
+Chạy `node tools/build.mjs crazygames`, rồi `node tools/test-polish.mjs`. Script tự phục vụ HTTP và mở Chrome headless, thu lỗi JavaScript/console/network, kiểm tra save cũ, tên và intro đủ 10 chương, thao tác trang bị/đổi ô thật, số sát thương/miễn nhiễm/hợp chiêu, chu kỳ boss và kết thúc chiến thắng, màn hình điện thoại, nhảy địa hình, build CrazyGames/SDK mock. Nó xác nhận build khớp chính xác nguồn hiện tại trước khi chạy. Ảnh và báo cáo nằm ở `reports/polish-*.png`, `reports/polish-test-results.json`.
 
-Kết quả chạy thật và danh sách kiểm tra nằm trong `dist/polish-test-results.json`. Kiểm tra đủ mười kỹ năng, cả sáu thứ tự hợp chiêu, nạp năng lượng thật, phím C, chạm cảm ứng thật, hết cửa sổ/hồi hợp chiêu, save ba ô, công thức chưa học, và phím 3 vô hiệu. Kiểm tra boss giữ các con quay sống/tách vị trí để kiểm tra state machine, rồi chạy đến màn thắng; thời lượng đó không đại diện mọi trận thật.
+Kết quả chạy thật và danh sách kiểm tra nằm trong `reports/polish-test-results.json`. Kiểm tra đủ mười kỹ năng, cả sáu thứ tự hợp chiêu, nạp năng lượng thật, phím C, chạm cảm ứng thật, hết cửa sổ/hồi hợp chiêu, save ba ô, công thức chưa học, và phím 3 vô hiệu. Kiểm tra boss giữ các con quay sống/tách vị trí để kiểm tra state machine, rồi chạy đến màn thắng; thời lượng đó không đại diện mọi trận thật.
 
-Vòng xác nhận cuối của follow-up: **96 kiểm tra đạt; 0 lỗi JavaScript/console/network**. Đã tạo lại ZIP từ nguồn hiện tại, kiểm tra mã điều hướng debug vắng mặt trong build, thử từ chối debug trên tên miền công khai và chạy thật server bằng đúng lệnh trong README. Ảnh HUD hợp chiêu trên điện thoại: `dist/polish-combo-mobile.png`.
+Vòng xác nhận cuối của follow-up: **96 kiểm tra đạt; 0 lỗi JavaScript/console/network**. Đã tạo lại ZIP từ nguồn hiện tại, kiểm tra mã điều hướng debug vắng mặt trong build, thử từ chối debug trên tên miền công khai và chạy thật server bằng đúng lệnh trong README. Ảnh HUD hợp chiêu trên điện thoại: `reports/polish-combo-mobile.png`.
 
 Mô phỏng bổ sung lấy đủ mười kỹ năng, mỗi kỹ năng ba trận trên map phù hợp, với mọi chiêu đã học để thử lại boss cũ. Bot dùng một bộ thông số và đuổi thẳng, không biết canh phản đòn/né/giữ vùng, nên không dùng tỷ lệ thắng bot để khẳng định mọi chiêu cân bằng cho mọi người. Từng vai trò có kiểm tra tình huống riêng, ví dụ Giáp giữ mép tốt hơn Sen, Kim Cang không bị Sấm ngắt, Moon hồi khi yếu hơn địch. Bộ hai chiêu cần chọn đúng tình huống; không đặt mục tiêu một chiêu thắng mọi map. SDK/quảng cáo được đối chiếu giữ nguyên; chưa xác thực quảng cáo thật trên portal.
 
@@ -103,7 +103,7 @@ Mở PowerShell tại `D:\Projects\SpinTopShowdown`, chạy `node tools/serve-lo
 - `?debug&void&eq`: vào thẳng Hư Vô với phương trình đã ghép.
 - Trong debug: **K** = boss map hiện tại (khi đang đánh, K vẫn là KO đối thủ); **Shift+K** = trùm cuối; F8 vẫn dùng được như K. Ô `DEBUG` cho nhập số màn và bấm “Thử màn”. Các lối thử mở khoá trong phiên, không ghi đè save. `?debug&story` vẫn có thể kiểm tra hội thoại/intro qua điều hướng xưởng.
 - DEBUG yêu cầu cả `?debug`, `BUILD !== 'crazygames'` và hostname loopback. Trên tên miền công khai, thêm URL debug cũng không mở được hook/điều hướng.
-- `tools/build-crazygames.mjs` xoá cả hai vùng mã `DEBUG NAV` khỏi HTML trước đóng gói và kiểm tra không sót hàm/nút/phím/URL điều hướng. Vì vậy tính năng thử màn không có trong `dist/crazygames/index.html`, kể cả phục vụ gói đó trên localhost.
+- `tools/build.mjs` xoá cả hai vùng mã `DEBUG NAV` khỏi HTML trước đóng gói và kiểm tra không sót hàm/nút/phím/URL điều hướng. Vì vậy tính năng thử màn không có trong `dist/crazygames/game/index.html`, kể cả phục vụ gói đó trên localhost.
 - Kiểm thử duyệt cả bản local debug, URL local bình thường, bản web giả lập hostname công khai và bản CrazyGames; xác nhận phím/URL chỉ chạy đúng môi trường.
 
 ## Cập nhật sau lần chơi thử (19/10)

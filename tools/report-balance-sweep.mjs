@@ -2,7 +2,7 @@
 import {readFile,writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-const read = async name => JSON.parse(await readFile(new URL('../dist/'+name,import.meta.url),'utf8'));
+const read = async name => JSON.parse(await readFile(new URL('../reports/'+name,import.meta.url),'utf8'));
 const before = new Map(), after = new Map();
 for(const name of ['balance-before-1-25.json','balance-before-26-51.json','balance-before-wet-6-10.json','balance-before-reconfirmed-8-8.json','balance-before-corrected-16-35.json','balance-before-corrected-36-51.json','balance-before-reconfirmed-45-45.json','balance-before-final-51-51.json']) {
   const dataset=await read(name);
@@ -29,7 +29,7 @@ const lines = [
 '',
 'Bản cuối dùng hệ số quay riêng từng màn trong STAGE_SPIN của index.html; chỉ nhân chỉ số quay địch, không đổi số đệ tử hay luật sàn thường. Rumble nhân 7,5 ở cả hai vòng để bốn ô hợp chiêu vẫn gặp thử thách. Thần Quay màn 51 giảm khối lượng 10,78 → 7, quay 124 → 86,8; lực kéo vào tâm K 1,8 → 3, ma sát sàn 1 → 1,35. Hư Vô giữ bán kính 8 và sàn có gờ, quay 136 → 95,2; hao quay sàn 1 → 3,3 nên grip thấp có lợi. Nạp chiêu của Hư Vô 3 → 4 giây; khi trượt QTE giữ lại 60% thay vì 40% quay; trả lời đúng hút lại 65% thay vì 35% phần quay lấy từ thần. Bốn câu trả lời, ngưỡng quay bất tử 14 và điều kiện phương trình giữ nguyên. Vùng QTE vẫn thu nhỏ: 0,32 × 0,92^lần, tối thiểu 0,16 (trước: ×0,82, tối thiểu 0,1); xác suất trúng của bot vẫn tối đa 92%, không ép hoàn hảo.',
 '',
-'Đã sửa bước mô phỏng hạ xuống sàn: phần này vốn chạy trong hình ảnh, bỏ hình ảnh làm người chơi lơ lửng, tránh vệt lửa và không mở QTE Hư Vô. Bot nay hạ xuống theo bước 1/120 giây; mọi số cuối từ màn 16 trở đi đã chạy lại bằng bản sửa. Đây vẫn là xấp xỉ nhịp hạ xuống so với tốc độ khung hình của máy người chơi. Các JSON chẩn đoán cũ không dùng trong bảng; dist/balance-final-results.json chỉ rõ tệp nguồn của từng dòng cuối.',
+'Đã sửa bước mô phỏng hạ xuống sàn: phần này vốn chạy trong hình ảnh, bỏ hình ảnh làm người chơi lơ lửng, tránh vệt lửa và không mở QTE Hư Vô. Bot nay hạ xuống theo bước 1/120 giây; mọi số cuối từ màn 16 trở đi đã chạy lại bằng bản sửa. Đây vẫn là xấp xỉ nhịp hạ xuống so với tốc độ khung hình của máy người chơi. Các JSON chẩn đoán cũ không dùng trong bảng; reports/balance-final-results.json chỉ rõ tệp nguồn của từng dòng cuối.',
 '',
 '| Màn | Mặc định trước → sau (24 trận) | Tốt nhất trước → sau (80 trận) | Giây mặc định trước → sau | Giây tốt nhất trước → sau | Mặc định xác nhận sau: % / giây (80 trận) |',
 '|---|---:|---:|---:|---:|---:|'];
@@ -66,10 +66,10 @@ lines.push('',`Kiểm toán số đo: cấu hình tốt nhất dưới 60%: ${lo
 'Để lặp lại phần xác nhận chọn bộ cuối (sau các lượt trên):',
 '',
 '```powershell',
-"$env:RECONFIRM='1'; $env:CANDIDATE_COUNT='5'; $env:PROFILE='dist/balance-after-50-50.json'",
+"$env:RECONFIRM='1'; $env:CANDIDATE_COUNT='5'; $env:PROFILE='reports/balance-after-50-50.json'",
 "$env:START='50'; $env:END='50'; node tools/test-balance-sweep.mjs after-reconfirmed",
 "Remove-Item Env:RECONFIRM; $env:EXTEND='1'; $env:CANDIDATE_COUNT='10'",
-"$env:PROFILE='dist/balance-after-final-51-51.json'; $env:EXTRA_BUILDS=Get-Content dist/balance-final-extra-builds.json -Raw",
+"$env:PROFILE='reports/balance-after-final-51-51.json'; $env:EXTRA_BUILDS=Get-Content reports/balance-final-extra-builds.json -Raw",
 "$env:START='51'; $env:END='51'; node tools/test-balance-sweep.mjs after-extended",
 "Remove-Item Env:EXTEND,Env:PROFILE,Env:EXTRA_BUILDS,Env:CANDIDATE_COUNT -ErrorAction SilentlyContinue",
 'node tools/report-balance-sweep.mjs --fresh',
@@ -77,13 +77,13 @@ lines.push('',`Kiểm toán số đo: cấu hình tốt nhất dưới 60%: ${lo
 'node tools/test-polish.mjs',
 '```',
 '',
-'Mỗi nhóm tự ghi JSON sau từng màn trong dist/balance-<nhãn>-<đầu>-<cuối>.json và tiến độ mỗi tám ô trong dist/balance-progress-*.json; complete=true là nhóm đã xong. Có thể thu nhỏ START/END để chia việc; STAGES là danh sách màn cách nhau bằng dấu phẩy. RUNS mặc định 24, CONFIRM_RUNS mặc định 80. RESUME=1 tiếp tục cùng nhóm nếu mã nguồn, chế độ và số lượt không đổi. SOURCE=dist/balance-before.html chạy bản thông số trước sửa. TUNE=1 dò thang hệ số quay; CALIBRATE=1 cùng PROFILE=<JSON> dò thêm giữa các mức. Các lượt này chỉ ghi dữ liệu, không tự sửa index.html. Xóa các biến môi trường TUNE/CALIBRATE/PROFILE/SOURCE/EXTEND/RECONFIRM/EXTRA_BUILDS sau khi dùng để chạy bản cuối đúng ý.',
+'Mỗi nhóm tự ghi JSON sau từng màn trong reports/balance-<nhãn>-<đầu>-<cuối>.json và tiến độ mỗi tám ô trong reports/balance-progress-*.json; complete=true là nhóm đã xong. Có thể thu nhỏ START/END để chia việc; STAGES là danh sách màn cách nhau bằng dấu phẩy. RUNS mặc định 24, CONFIRM_RUNS mặc định 80. RESUME=1 tiếp tục cùng nhóm nếu mã nguồn, chế độ và số lượt không đổi. SOURCE=reports/balance-before.html chạy bản thông số trước sửa. TUNE=1 dò thang hệ số quay; CALIBRATE=1 cùng PROFILE=<JSON> dò thêm giữa các mức. Các lượt này chỉ ghi dữ liệu, không tự sửa index.html. Xóa các biến môi trường TUNE/CALIBRATE/PROFILE/SOURCE/EXTEND/RECONFIRM/EXTRA_BUILDS sau khi dùng để chạy bản cuối đúng ý.',
 '',
 'Công thức đuổi: fx=(ex-x)*4-vx*.5, fz=(ez-z)*4-vz*.5; có phanh: thay *.5 bằng *2. Giữ tâm: fx=-x*3-vx*2, fz=-z*3-vz*2. Né đối diện: fx=(-ex-x)*2-vx*2, fz=(-ez-z)*2-vz*2. Trống là để rỗng cả hai ô.',
 '',
 'Không đổi cốt truyện, VFX hay luật Rumble/crater. Lốc cấp 2 giữ nerf. Bảng khắc chế, thời điểm mở kỹ năng, hợp chiêu và yêu cầu phương trình giữ nguyên. Không commit/push.');
 const finalSource=await readFile(new URL('../index.html',import.meta.url));
-await writeFile(new URL('../dist/balance-final-results.json',import.meta.url),JSON.stringify({sourceSha256:createHash('sha256').update(finalSource).digest('hex'),stages:51,bestBelow60:low,defaultZero:zeros,cliffs,rows:Array.from({length:51},(_,i)=>({stage:i+1,before:before.get(i+1),after:after.get(i+1)}))},null,2));
+await writeFile(new URL('../reports/balance-final-results.json',import.meta.url),JSON.stringify({sourceSha256:createHash('sha256').update(finalSource).digest('hex'),stages:51,bestBelow60:low,defaultZero:zeros,cliffs,rows:Array.from({length:51},(_,i)=>({stage:i+1,before:before.get(i+1),after:after.get(i+1)}))},null,2));
 const notes = new URL('../POLISH-NOTES.vi.md',import.meta.url), marker='## Cân bằng toàn bộ 51 màn đấu trường';
 const old=await readFile(notes,'utf8');
 await writeFile(notes,old.split(marker)[0].trimEnd()+'\n\n'+lines.join('\n')+'\n');

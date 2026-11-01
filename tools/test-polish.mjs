@@ -1,7 +1,7 @@
 // Node 22+ / Chromium. Self-hosts the game, exercises real browser input and physics.
-// Run after node tools/build-crazygames.mjs. CHROME can override the browser path.
+// Run after node tools/build.mjs crazygames. CHROME can override the browser path.
 import { spawn } from 'node:child_process';
-import { readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
+import { readFile, writeFile, mkdtemp, rm, mkdir } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname, basename, extname } from 'node:path';
@@ -9,12 +9,13 @@ import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+await mkdir(join(root, 'reports'), { recursive: true });
 const source = await readFile(join(root, 'index.html'), 'utf8');
 const expectedBuild = source.replace('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js', './three.module.js')
   .replace("const BUILD = 'web';", "const BUILD = 'crazygames';")
   .replace('</head>', '<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>\n</head>')
   .replace(/\/\/ DEBUG NAV BEGIN[\s\S]*?\/\/ DEBUG NAV END\r?\n/g, '');
-assert.equal(await readFile(join(root, 'dist/crazygames/index.html'), 'utf8'), expectedBuild, 'Regenerate the CrazyGames build before running tests');
+assert.equal(await readFile(join(root, 'dist/crazygames/game/index.html'), 'utf8'), expectedBuild, 'Regenerate the CrazyGames build before running tests');
 assert.ok(!/game\.testLevel|debugNav|debugLevel|params\.get\('(?:level|boss)'\)|code !== 'F8'/.test(expectedBuild), 'Local debug navigation must be physically absent from production HTML');
 const work = await mkdtemp(join(tmpdir(), 'spin-polish-'));
 const pause = ms => new Promise(r => setTimeout(r, ms));
@@ -117,7 +118,7 @@ try {
   check('New map intro shows current boss and trait', await evaluate(`!document.querySelector('#mapIntro').classList.contains('hidden') && document.querySelector('#mapBoss').textContent.includes('Hắc Phong') && document.querySelector('#mapTrait').textContent.includes('bia')`));
   check('Map intro explains fusion keyboard and touch controls', await evaluate(`document.querySelector('#mapCounter').textContent.includes('C')&&document.querySelector('#mapCounter').textContent.includes('chạm')`));
   const screenshot = await send('Page.captureScreenshot', { format: 'png' });
-  await writeFile(join(root, 'dist/polish-intro.png'), Buffer.from(screenshot.data, 'base64'));
+  await writeFile(join(root, 'reports/polish-intro.png'), Buffer.from(screenshot.data, 'base64'));
   await evaluate(`game.intro()`); // Screenshot capture can take longer than the intro's real-time timeout.
   await key('Space');
   check('Intro skips without launching', await evaluate(`document.querySelector('#mapIntro').classList.contains('hidden') && game.info().state === 'shop'`));
@@ -239,14 +240,14 @@ try {
   check('Rumble round 1 is the nine masters by their own names, in a full ring', await evaluate(`(()=>{const t=game.info().tops;return t.length===10&&t.slice(1).every(x=>!/Disciple/.test(x.n))&&new Set(t.slice(1).map(x=>x.n)).size===9&&game.info().state==='battle';})()`));
   // This checks the round transition, independently of the tuned foe spin.
   await evaluate(`game.inspect(0).w=5000;game.tick(150);game.render();game.render();`);
-  { const shot = await send('Page.captureScreenshot', { format: 'png' }); await writeFile(join(root, 'dist/polish-rumble.png'), Buffer.from(shot.data, 'base64')); }
+  { const shot = await send('Page.captureScreenshot', { format: 'png' }); await writeFile(join(root, 'reports/polish-rumble.png'), Buffer.from(shot.data, 'base64')); }
   await evaluate(`game.ko();for(let i=0;i<200;i++){{const p=game.inspect(0);p.phantomUntil=1e9;p.w=p.w0;}game.tick(1);}`);
   check('Beating round 1 does not end the stage: the god raises the nine masters', await evaluate(`['interlude','battle'].includes(game.info().state)&&game.info().won===false`));
   await evaluate(`if(game.info().state==='interlude')game.endStory();`);
   await evaluate(`if(game.info().state==='revive'){for(let i=0;i<300;i++)game.tick(1);game.render();}`);
   await evaluate(`if(game.info().state==='revive')window.dispatchEvent(new KeyboardEvent('keydown',{code:'Space'}));`);
   await evaluate(`game.inspect(0).w=5000;game.tick(150);game.render();game.render();`);
-  { const shot = await send('Page.captureScreenshot', { format: 'png' }); await writeFile(join(root, 'dist/polish-rumble2.png'), Buffer.from(shot.data, 'base64')); }
+  { const shot = await send('Page.captureScreenshot', { format: 'png' }); await writeFile(join(root, 'reports/polish-rumble2.png'), Buffer.from(shot.data, 'base64')); }
   check('Round 2 is the nine masters, alive and fighting, with their skills', await evaluate(`(()=>{const t=game.info().tops;return t.length===10&&t.slice(1).filter(x=>x.skill).length>=7&&t.slice(1).every(x=>!/Disciple/.test(x.n));})()`));
   await evaluate(`game.ko();for(let i=0;i<1500;i++){{const p=game.inspect(0);p.phantomUntil=1e9;p.w=p.w0;}game.tick(1);}`);
   check('Beating round 2 wins stage 50 and unlocks the crater', await evaluate(`game.info().won===true&&game.info().state!=='battle'`));
@@ -258,7 +259,7 @@ try {
   check('Diamond Fortress takes 40% less skill damage and throws attackers back', await evaluate(`(()=>{const p=game.inspect(0),f=game.inspect(1);if(!(p.fortUntil>game.info().t))return false;p.skillT=0;p.active=null;Object.assign(f,{x:p.x+1.2,z:p.z,vx:-8,vz:0,w:100,lastHit:new Map()});const w=f.w;game.rules.collide(p,f);return Math.abs(game.rules.skillImpact(f,p,'fire')-.6)<.001&&f.vx>0&&w-f.w>10;})()`));
   await setup(['iron','vajra']);
   await evaluate(`game.skill();holdTicks(140);document.querySelector('#btnFusion').click();game.tick(40);game.render();game.render();`);
-  { const shot = await send('Page.captureScreenshot', { format: 'png' }); await writeFile(join(root, 'dist/polish-fortress.png'), Buffer.from(shot.data, 'base64')); }
+  { const shot = await send('Page.captureScreenshot', { format: 'png' }); await writeFile(join(root, 'reports/polish-fortress.png'), Buffer.from(shot.data, 'base64')); }
   await setup(['ice','moon']);
   await evaluate(`game.skill();holdTicks(140);document.querySelector('#btnFusion').click();`);
   check('Blood Frost opens a red field that drains rivals into you', await evaluate(`(()=>{const p=game.inspect(0),f=game.inspect(1);const fl=game.rules.fields().find(x=>x.rime);if(!fl)return false;Object.assign(f,{x:fl.x+1,z:fl.z,vx:0,vz:0,w:100});p.w=50;const w=f.w,pw=p.w;for(let i=0;i<60;i++)game.rules.skillStep();return fl.r===5&&w-f.w>1&&p.w>pw;})()`));
@@ -267,7 +268,7 @@ try {
   await setup(['ghost','lotus']);
   await evaluate(`game.skill();holdTicks(140);document.querySelector('#btnFusion').click();`);
   await evaluate(`game.tick(45);game.render();game.render();`);
-  { const shot = await send('Page.captureScreenshot', { format: 'png' }); await writeFile(join(root, 'dist/polish-phantom.png'), Buffer.from(shot.data, 'base64')); }
+  { const shot = await send('Page.captureScreenshot', { format: 'png' }); await writeFile(join(root, 'reports/polish-phantom.png'), Buffer.from(shot.data, 'base64')); }
   check('Phantom Lotus slips through and hits back harder, draining spin', await evaluate(`(()=>{const p=game.inspect(0),f=game.inspect(1);if(!(p.phantomUntil>game.info().t))return false;Object.assign(f,{x:p.x+.5,z:p.z,vx:0,vz:0,w:100});p.w=60;const w=f.w,pw=p.w;game.rules.collide(p,f);return w-f.w>9&&p.w>pw&&game.rules.skillImpact(f,p,'fire')===0;})()`));
   await setup(['ghost','lotus']);
   await evaluate(`game.skill();holdTicks(60);`);
@@ -348,7 +349,7 @@ try {
     const base={m:2,r:.8,grip:.5,fx:'',fz:'',skills:['storm']}, chase={fx:'(ex-x)*4-vx*2',fz:'(ez-z)*4-vz*2'};
     const early=[1,2,3,4].map(stage=>measure(stage,base));
     const paths=[
-      [10,{m:1,r:.8,grip:0,fx:'',fz:'',skills:['storm']}],
+      [10,{m:4,r:.8,grip:0,fx:'',fz:'',skills:['thunder']}],
       [14,{m:1,r:.8,grip:0,fx:'',fz:'',skills:['thunder']}],
       [33,{m:1,r:.8,grip:0,fx:'',fz:'',skills:['thunder']}],
       [45,{m:2,r:.8,grip:.5,...chase,skills:['ghost','lotus']}]
@@ -366,7 +367,7 @@ try {
   await setup(['dash','ghost']);
   await evaluate(`game.boost(1);game.selectSkill(1);game.skill();for(let i=0;i<100;i++)game.tick(0);game.render();`);
   const mobileShot = await send('Page.captureScreenshot', { format: 'png' });
-  await writeFile(join(root, 'dist/polish-mobile.png'), Buffer.from(mobileShot.data, 'base64'));
+  await writeFile(join(root, 'reports/polish-mobile.png'), Buffer.from(mobileShot.data, 'base64'));
   check('Mobile slots fit viewport', await evaluate(`document.querySelector('#skillSlots').getBoundingClientRect().left>=0&&document.querySelector('#skillSlots').getBoundingClientRect().right<=innerWidth`));
   check('Mobile four-slot final-stage bar fits viewport', await evaluate(`(()=>{game.unlockAll();game.build.skills=['thunder','dash','fire','storm'];game.setLevel(50);const s=document.querySelector('#skillSlots');s.classList.remove('hidden');const r=s.getBoundingClientRect(),n=s.children.length;return n===4&&r.left>=0&&r.right<=innerWidth;})()`));
   check('Mobile map title fits viewport', await evaluate(`document.querySelector('#title').scrollWidth<=document.querySelector('#title').clientWidth`));
@@ -374,7 +375,7 @@ try {
   await setup(['thunder','dash']);
   await evaluate(`game.skill();holdTicks(600);game.render();`);
   const fusionShot = await send('Page.captureScreenshot', { format: 'png' });
-  await writeFile(join(root, 'dist/polish-combo-mobile.png'), Buffer.from(fusionShot.data, 'base64'));
+  await writeFile(join(root, 'reports/polish-combo-mobile.png'), Buffer.from(fusionShot.data, 'base64'));
   await send('Emulation.setTouchEmulationEnabled', { enabled: true });
   const touchTarget = await evaluate(`(()=>{const r=document.querySelector('#btnFusion').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()`);
   await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...touchTarget, id: 1 }] });
@@ -413,12 +414,12 @@ try {
   check('Round 1 ends with the god scene, then the revive cut-scene', await evaluate(`!document.querySelector('#story').classList.contains('hidden')&&game.info().state==='interlude'`));
   await evaluate(`game.endStory();for(let i=0;i<330;i++)game.tick(1);game.render();game.render();`);
   check('Revive cut-scene: dread filter on, some souls still underground, some risen', await evaluate(`(()=>{const f=[...Array(10).keys()].slice(1).map(i=>game.inspect(i).yOff);return game.info().state==='revive'&&document.body.classList.contains('dread')&&f.some(y=>y<-3)&&f.some(y=>y>-1);})()`));
-  { const shot = await send('Page.captureScreenshot', { format: 'png' }); await writeFile(join(root, 'dist/polish-revive.png'), Buffer.from(shot.data, 'base64')); }
+  { const shot = await send('Page.captureScreenshot', { format: 'png' }); await writeFile(join(root, 'reports/polish-revive.png'), Buffer.from(shot.data, 'base64')); }
   await evaluate(`for(let i=0;i<500;i++){{const p=game.inspect(0);p.phantomUntil=1e9;p.w=p.w0;}game.tick(1);}`);
   check('Revive cut-scene ends by itself and round 2 begins', await evaluate(`game.info().state==='battle'&&!document.body.classList.contains('dread')&&[...Array(10).keys()].slice(1).every(i=>game.inspect(i).yOff>-1)`));
   await navigate('/?debug&lang=en');
   await evaluate(`game.voidTune({first:.05});game.phase2();window.__g=game.inspect(1);window.__g.w=window.__g.w0*.5;window.__max=window.__g.w;for(let i=0;i<235;i++){if(window.__g.cycleSkills<2)window.__g.cycleSkills=2;window.__g.skillT=0;window.__g.stormT=0;game.tick(1);window.__max=Math.max(window.__max,Math.abs(window.__g.w));}game.render();game.render();`);
-  { const shot = await send('Page.captureScreenshot', { format: 'png' }); await writeFile(join(root, 'dist/polish-void-charge.png'), Buffer.from(shot.data, 'base64')); }
+  { const shot = await send('Page.captureScreenshot', { format: 'png' }); await writeFile(join(root, 'reports/polish-void-charge.png'), Buffer.from(shot.data, 'base64')); }
   check('Each time the Void god charges through frozen time it drinks back 20% of its spin', await evaluate(`(()=>{const g=window.__g,w0=g.w0;let max=window.__max;for(let i=0;i<900;i++){if(g.cycleSkills<2)g.cycleSkills=2;g.skillT=0;g.stormT=0;game.tick(1);max=Math.max(max,Math.abs(g.w));}game.voidTune({first:7});return max>w0*.66;})()`));
   await navigate('/?debug&lang=en');
   await evaluate(`game.unlockAll();game.setLevel(50);game.closeMapIntro();game.launch();game.endStory();window.__g=game.inspect(1);window.__g.cycleDone=1;window.__g.cycleSkills=0;window.__g.recoveryUntil=0;window.__g.skillT=0;window.__prot=()=>{const p=game.inspect(0);window.__g.w=window.__g.w0;p.w=p.w0;p.phantomUntil=1e9;p.x=0;p.z=0;p.vx=p.vz=0;};for(let i=0;i<30;i++){window.__prot();game.tick(1);}`);
@@ -432,7 +433,7 @@ try {
   check('The Spin God cannot be thrown off the early crater even while exposed', await evaluate(`(()=>{const g=window.__g,p=game.inspect(0);g.recoveryUntil=999;p.phantomUntil=1e9;for(let i=0;i<30;i++){Object.assign(g,{x:12,z:0,vx:6,vz:0,w:g.w0});p.x=0;p.z=0;p.vx=p.vz=0;game.tick(1);}return g.alive&&Math.hypot(g.x,g.z)<12;})()`));
   check('...but once his spin is below 30% he can be thrown off', await evaluate(`(()=>{const g=window.__g,p=game.inspect(0);for(let i=0;i<30;i++){Object.assign(g,{x:12,z:0,vx:6,vz:0,w:g.w0*.25});p.x=0;p.z=0;p.vx=p.vz=0;p.w=p.w0;p.phantomUntil=1e9;game.tick(1);if(!g.alive)break;}return !g.alive&&g.why==='ring';})()`));
   await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: preload.identifier });
-  await navigate('/dist/crazygames/index.html?debug&level=25&boss=6&final&video&cover&lang=en');
+  await navigate('/dist/crazygames/game/index.html?debug&level=25&boss=6&final&video&cover&lang=en');
   check('Generated CrazyGames build has no debug hooks/navigation/capture mode', await evaluate(`!window.game&&!document.querySelector('#debugNav')&&!document.querySelector('canvas[data-cover]')`));
   const cgStage = await evaluate(`document.querySelector('#lvName').textContent`);
   await key('F8'); await key('F8',8);
@@ -463,8 +464,8 @@ try {
   for(let i=0;i<4;i++){await key('Escape');await evaluate(`if(!document.querySelector('#shop').classList.contains('hidden'))document.querySelector('#go').click();`);}
   check('Normal web build starts battle without SDK', await evaluate(`!document.querySelector('#btnStorm').classList.contains('hidden')`));
   check('No browser console/page/network errors', errors.length === 0, JSON.stringify(errors));
-  await writeFile(join(root, 'dist/polish-test-results.json'), JSON.stringify({ passed: results.length, results, bossLog, balanceSamples, campaignBalance, errors }, null, 2));
-  console.log(`${results.length} checks passed. Screenshots/report in dist/.`);
+  await writeFile(join(root, 'reports/polish-test-results.json'), JSON.stringify({ passed: results.length, results, bossLog, balanceSamples, campaignBalance, errors }, null, 2));
+  console.log(`${results.length} checks passed. Screenshots/report in reports/.`);
   await send('Browser.close');
 } finally {
   socket?.close(); chrome.kill(); server.close();

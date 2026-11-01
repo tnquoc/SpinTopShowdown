@@ -41,13 +41,30 @@ Rồi mở http://127.0.0.1:5173/. Server dùng Three.js có sẵn trong `vendor
 
 ## Đưa lên mạng
 
-Bản CrazyGames được sinh từ `index.html`, không sửa trực tiếp file trong `dist/`:
+Mọi bản build được sinh từ `index.html`, không sửa trực tiếp file trong `dist/`. Một lệnh build cho tất cả portal, hoặc chỉ những portal ghi tên (`itch`, `crazygames`, `gamemonetize`):
 
 ```bash
-node tools/build-crazygames.mjs
+node tools/build.mjs
+node tools/build.mjs itch
 node tools/test-polish.mjs
 ```
 
-Build tạo `dist/crazygames/` và `dist/spin-top-crazygames.zip`, kèm Three.js và âm thanh nội bộ. Kiểm thử cần Node 22+ và Chrome (có thể đặt biến `CHROME`), tự mở HTTP server và dùng CDP, không cần cài package. Báo cáo và ảnh kiểm tra nằm trong `dist/`. Kiểm thử SDK dùng mock; quảng cáo thật vẫn cần kiểm tra qua môi trường CrazyGames.
+Mỗi portal có một thư mục nộp riêng trong `dist/<portal>/`:
+
+| Trong `dist/<portal>/` | Là gì |
+|---|---|
+| `spin-top-<portal>.zip` | File game để upload, kèm Three.js và âm thanh nội bộ |
+| `game/` | Bản giải nén của zip, mở thử trước khi nộp |
+| còn lại | Ảnh, video, mô tả và hướng dẫn nộp, chép từ `store/shared/` và `store/<portal>/` |
+
+Thư mục nguồn:
+
+- `store/shared/`: cover và trailer dùng chung cho mọi portal (`tools/capture-covers.mjs`, `tools/capture-trailer.mjs` ghi vào đây).
+- `store/<portal>/`: thứ riêng của portal đó (ảnh đúng kích cỡ, mô tả, hướng dẫn). Thêm portal mới: tạo `store/<tên>/` và thêm một mục vào `PORTALS` trong `tools/build.mjs`.
+- `reports/`: báo cáo kiểm thử, cân bằng và ảnh duyệt trailer.
+
+`store/`, `reports/` và `dist/` chỉ nằm trên máy, không đưa lên git. Thiếu `store/` thì build vẫn chạy, chỉ không chép tài liệu nộp.
+
+`test-polish.mjs` kiểm tra bản CrazyGames, nên cần build `crazygames` trước. Kiểm thử cần Node 22+ và Chrome (có thể đặt biến `CHROME`), tự mở HTTP server và dùng CDP, không cần cài package. Kiểm thử SDK dùng mock; quảng cáo thật vẫn cần kiểm tra qua môi trường của portal.
 
 Game là trang tĩnh nên GitHub Pages phục vụ được nguyên trạng: đẩy kho lên GitHub, vào Settings → Pages, chọn nhánh `main` và thư mục gốc. Game sẽ có địa chỉ `https://<tên-tài-khoản>.github.io/SpinTopShowdown/`.

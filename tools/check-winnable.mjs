@@ -11,7 +11,7 @@ import { createHash } from 'node:crypto';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const source = await readFile(join(root, process.env.SOURCE || 'index.html'), 'utf8');
-await mkdir(join(root,'dist'),{recursive:true});
+await mkdir(join(root,'reports'),{recursive:true});
 const work = await mkdtemp(join(tmpdir(), 'spin-polish-'));
 const pause = ms => new Promise(r => setTimeout(r, ms));
 const server = createServer(async (req, res) => {
@@ -106,7 +106,7 @@ try {
   const start = +(process.env.START || 1), end = +(process.env.END || 51);
   const only = process.env.STAGES ? process.env.STAGES.split(',').map(Number) : null;
   const N = +(process.env.RUNS || 8), CONFIRM = +(process.env.CONFIRM || 20), PASS = +(process.env.PASS || 30);
-  const path = join(root, `dist/winnable-${start}-${end}.json`);
+  const path = join(root, `reports/winnable-${start}-${end}.json`);
   const report = { runs: N, confirm: CONFIRM, passPercent: PASS, rows: [] };
   const order = ['storm','thunder','lotus','dash','fire','iron','ghost','vajra','ice','moon'];
   const physiques = [[2,.8,.5],[2,.8,.2],[1,.8,0],[3,.6,.2]];
