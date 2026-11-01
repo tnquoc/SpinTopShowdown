@@ -505,7 +505,7 @@ const CHAPTERS = [
 const FINAL_CH = CHAPTERS.length - 1;   // the Spin God's chapter: stages 46-49, then the Rumble (50), then the crater (51)
 const NUMERALS = VI ? ['Nhất', 'Nhị', 'Tam'] : ['I', 'II', 'III'];
 // Stage 50, the Rumble: nine at once, the nine masters you beat on the way. Round 1 they fight as the Spin God's generals, round 2 they are raised again, stronger.
-const STAGE_SPIN = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.61, 0.52, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.7]; // per-stage foe spin: 1 = as designed; only stages with no winning setup are eased (13, 14) plus the crater god (51)
+const STAGE_SPIN = [1, 1, 1, 1, 1, 1, 1, 1, 1, 0.4, 1, 1, 0.61, 0.52, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.7]; // per-stage foe spin: 1 = as designed; only stages with no winning setup are eased (10, 13, 14) plus the crater god (51)
 function rumbleFoes(round) {
   const out = [];
   for (let c = 0; c < FINAL_CH; c++) {
@@ -1670,10 +1670,10 @@ function collide(a, b) {
   a.vx -= Jt / ma * tx; a.vz -= Jt / ma * tz;
   b.vx += Jt / mb * tx; b.vz += Jt / mb * tz;
   for (const [o, s] of [[a, a.w - Jt * a.r / a.I], [b, b.w - Jt * b.r / b.I]]) {
-    if (!on(o, 'lotus') && !on(o, 'vajra')) {      // warded tops keep their spin
+    if ((!on(o, 'lotus') || lotusQueen(o)) && !on(o, 'vajra')) {      // warded tops keep their spin (the stage-10 queen only half)
       const w = s - sgn(s) * HIT_LOSS * J / o.I;
       const next = sgn(w) === sgn(o.w) ? w : 0;
-      o.w += (next - o.w) * (on(o, 'iron') ? .55 : 1) * (o.finalBoss && simT >= o.recoveryUntil ? .55 : 1) * (o.arcUntil > simT ? ARC_GUARD : 1) * (fortified(o) ? .3 : 1);
+      o.w += (next - o.w) * (on(o, 'lotus') ? QUEEN_WARD.hit : 1) * (on(o, 'iron') ? .55 : 1) * (o.finalBoss && simT >= o.recoveryUntil ? .55 : 1) * (o.arcUntil > simT ? ARC_GUARD : 1) * (fortified(o) ? .3 : 1);
     }
     o.head = Math.atan2(o.vz, o.vx);
     o.energy = Math.min(o.stormMax, o.energy + J * .006);
@@ -1981,6 +1981,8 @@ function phantomPass(g, o) {
 // the post-cast rest only stops you repeating the same skill: switching to your other skill is allowed at once
 const lotusQueen = a => !a.isPlayer && a.skill === 'lotus' && level.boss && level.chapter === 1;
 const LOTUS_WARD_GAP = 3;  // collisions can fill her energy, but cannot shorten this opening after the ward
+// her ward is weaker than the one you earn from her (3 spin/s heal, no hit loss, ×0.4 skill damage, 25% reflect)
+const QUEEN_WARD = { heal: 1, hit: .5, skill: .7, reflect: .1 };
 const canCast = (a, midCast = false, id = a && a.skill) => state === 'battle' && a && a.alive && a.skill && a.energy >= 1 && (midCast || (a.skillT <= 0 && a.stormT <= 0)) && simT >= a.readyAt && (simT >= a.restAt || id !== a.lastCast) && simT >= a.recoveryUntil && (!a.voidGod || a.cycleSkills < 2);
 function defenseSkill(a) {
   return a.stormT > 0 ? 'storm' : a.skillT > 0 ? a.active : a.isPlayer || a.skill === 'god' || a.skill === 'void' ? null : a.skill;
@@ -1992,7 +1994,7 @@ function skillImpact(a, o, id) {
   let k = (COUNTERS[id]?.includes(target) ? 1.35 : COUNTERS[target]?.includes(id) ? .65 : 1) * k0;
   if (o.arcUntil > simT) k *= ARC_GUARD;
   if (fortified(o)) k *= .6;
-  if (on(o, 'lotus')) k *= .4;
+  if (on(o, 'lotus')) k *= lotusQueen(o) ? QUEEN_WARD.skill : .4;
   if (on(o, 'iron') && id !== 'thunder') k *= .7;
   if (id === 'storm' && (on(o, 'iron') || on(o, 'vajra'))) k *= .3;
   if (o.finalBoss && simT >= o.recoveryUntil) k *= .55;
@@ -2007,7 +2009,7 @@ function hurtSkill(a, o, id, amount) {
     popup(o.x, floorY(o.x, o.z) + o.height, o.z, t('KHẮC CHẾ!', 'COUNTER!'));
     shockRing(o.x, floorY(o.x, o.z), o.z, SKILLS[id].color);
   }
-  if (a !== o && on(o, 'lotus') && damage > 0) a.w -= sgn(a.w) * Math.min(spareSpin(a), damage * .25);
+  if (a !== o && on(o, 'lotus') && damage > 0) a.w -= sgn(a.w) * Math.min(spareSpin(a), damage * (lotusQueen(o) ? QUEEN_WARD.reflect : .25));
   return damage;
 }
 function castStarted(a, id, duration) {
@@ -2216,7 +2218,7 @@ function skillStep() {
       if (foe && Math.hypot(foe.x - a.x, foe.z - a.z) < 8) { hurtSkill(a, foe, 'thunder', ARC_BOLT); foe.lastHitBy = a; foe.lastHitT = simT; bolt(foe, true); }
     }
     if (!a.alive || a.skillT <= 0) continue;
-    if (on(a, 'lotus')) a.w += sgn(a.w) * Math.min(Math.max(0, a.w0 - Math.abs(a.w)), 3 * H);
+    if (on(a, 'lotus')) a.w += sgn(a.w) * Math.min(Math.max(0, a.w0 - Math.abs(a.w)), (lotusQueen(a) ? QUEEN_WARD.heal : 3) * H);
     if (on(a, 'fire') && simT - a.lastFire > .08) { a.lastFire = simT; fires.push({ x: a.x, z: a.z, born: simT, owner: a }); }
     if (on(a, 'moon')) {
       if (!a.finalBoss) a.w -= sgn(a.w) * Math.min(Math.abs(a.w), 3 * H);
@@ -5402,7 +5404,7 @@ function frame(now) {
 if (DEBUG) window.game = {
   render: () => renderer.render(scene, camera),
   inspect: i => tops[i], selectSkill, closeMapIntro,
-  rules: { COUNTERS, FUSIONS, skillImpact, hurtSkill, frostPower, STORM_TIERS, comboOffer, skillStep, collide, fires: () => fires, fields: () => fields },
+  rules: { COUNTERS, FUSIONS, QUEEN_WARD, skillImpact, hurtSkill, frostPower, STORM_TIERS, comboOffer, skillStep, collide, fires: () => fires, fields: () => fields },
   intro: () => { introducedMaps.delete(level.track ? 'course' + levelIndex : level.chapter); showMapIntro(); },
   phase2: () => { enterVoid(); beginPhase2(); },
   build, launch, setLevel, storm: () => castStorm(player), skill: () => castSkill(player), story: () => [storyOpen(), $('storyText').textContent], cine: () => cine && { kind: cine.kind, who: cine.who && cine.who.name, fov: cine.fov }, nextLine, endStory, restage, press: powerPress, toggleView, levels: LEVELS,
