@@ -118,6 +118,8 @@
   #comboBook p { margin: 6px 0; }
   #comboBook button { background: #4f356a; color: white; border: 0; border-radius: 7px; padding: 7px; width: 100%; text-align: left; margin-top: 6px; }
   #comboBook button:disabled { opacity: .55; cursor: default; }
+  #comboBook button.on { background: #7c4dff; box-shadow: 0 0 0 2px #e4acff, 0 0 14px rgba(228, 172, 255, .55); }
+  #comboBook button .equipped { color: #ffe27a; font-weight: 800; }
   #comboTutorial { background: #432a5e; border-left: 3px solid #e4acff; border-radius: 8px; padding: 9px; margin: 8px 0; font-size: 12px; }
   #comboTutorial button { margin-top: 6px; border: 0; padding: 5px 10px; border-radius: 6px; }
   #bossCycle { position: absolute; top: 94px; left: 50%; transform: translateX(-50%); font-size: 13px; color: #ffe082; text-align: center; }
@@ -1533,6 +1535,11 @@ function steer(a) {
     if (a.ai === 'guard') {                      // pace across the road around the post
       sx = (a.homeX + Math.sin(simT * 1.3 + a.homeZ) * a.patrol - a.x) * 5 - a.vx * 2; sz = (a.homeZ - a.z) * 5 - a.vz * 2;
     }
+    if (level.bumpers && !level.track) for (const b of level.bumpers) {   // steer round the fruit instead of ricocheting off it
+      const bx = a.x - b.x, bz = a.z - b.z, bd = Math.hypot(bx, bz) || 1, room = bd - a.r - b.r;
+      const closing = -(a.vx * bx + a.vz * bz) / bd;   // speed towards the fruit; drifting past it is fine
+      if (room < .9 && closing > 0) { const k = (.9 - room) / .9 * (20 + 6 * closing); sx += bx / bd * k; sz += bz / bd * k; }
+    }
     if ((!level.wall || level.bloodRing) && !level.track && d > arenaR() * .55 && !(a.bloodImmune && level.wall)) {   // foes keep away from open edges and the blood ring (its master feeds there)
       const k = (d / arenaR() - .55) / .45 * 40;
       sx -= a.x / d * k; sz -= a.z / d * k;
@@ -1785,7 +1792,8 @@ function hitPosts(a, posts, kick) {
     const nx = dx / d, nz = dz / d, vn = a.vx * nx + a.vz * nz;
     a.x = b.x + nx * min; a.z = b.z + nz * min;
     if (vn >= 0) continue;
-    a.vx += (kick - 1.8 * vn) * nx; a.vz += (kick - 1.8 * vn) * nz;
+    const push = kick / Math.sqrt(Math.max(1, a.m / 2));   // a heavy top is thrown less far, like on the bumpy paving
+    a.vx += (push - 1.8 * vn) * nx; a.vz += (push - 1.8 * vn) * nz;
     a.head = Math.atan2(a.vz, a.vx); a.w *= .985;
     if (kick) a.energy = Math.min(a.stormMax, a.energy + .03);
     if (headless || vn > -1.5) continue;
@@ -3522,6 +3530,20 @@ function placeTops() {
     a.x = a.homeX = trackSample(g.s).cx + g.off; a.z = a.homeZ = -g.s; a.patrol = g.patrol || 0;
     tops.push(a);
   }
+  // nobody is dropped onto a fruit bumper (the foes' usual spot is right on the fruit ring): slide round to the nearest clear gap,
+  // and move in towards the centre when a big top fits in no gap on its own ring
+  if (level.bumpers && !level.track) for (const a of tops) {
+    const clear = (x, z) => Math.min(...level.bumpers.map(b => Math.hypot(x - b.x, z - b.z) - a.r - b.r));
+    if (clear(a.x, a.z) >= .5) continue;
+    const rr = Math.hypot(a.x, a.z), ang = Math.atan2(a.z, a.x);
+    let best = [a.x, a.z, clear(a.x, a.z)];
+    search: for (const f of [1, .8, .6, .4, .2]) for (let k = 0; k < 80; k++) {
+      const tryAng = ang + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * .04, x = Math.cos(tryAng) * rr * f, z = Math.sin(tryAng) * rr * f, g = clear(x, z);
+      if (g > best[2]) best = [x, z, g];
+      if (g >= .5) break search;
+    }
+    [a.x, a.z] = best;
+  }
   $('roster').classList.toggle('dense', tops.length > 6);   // a rumble lists ten tops: keep it compact
   $('roster').innerHTML = tops.map(a => `<div class="row"><i style="background:${hex(a.color)}"></i>${a.name}
     <div class="bar"><div style="background:${hex(a.color)}"></div></div></div>`).join('');
@@ -4977,7 +4999,8 @@ function refreshShop() {
   $('comboRecipes').innerHTML = FUSIONS.map((f, i) => {
     if (!fusionReady(f)) return '';             // locked recipes stay hidden until their pair is earned
     const effect = f.kind === 'arc' ? t('Lôi Bộ: 4 giây lướt rất nhanh (~25 m/s) hai vòng ngôi sao như ninja (trái, phải, lên, xuống), liên tục gọi sét (5 quay mỗi 0,4s) vào địch gần, giảm 10% sát thương nhận; mở màn sét 16 quay + xích 10', 'Thunder Run: 4 s of very fast (~25 m/s) ninja dashes, two laps of a five-pointed star, calling bolts (5 spin every 0.4 s) on the nearest rival, 10% less damage taken; opens with a 16-spin bolt + 10 chain') : f.kind === 'heal' ? t('Liên Ảnh: hồi 20 quay + hoàn nửa thanh, rồi 3,2 giây hoá bóng xuyên địch: mỗi lần lướt qua phản 14 quay (hút 40%), hồi 3 quay/giây. Nghỉ 5 giây sau khi hết hiệu lực. Sấm Sét xuyên qua và phá được; Hư Vô không bị xuyên', 'Phantom Lotus: heal 20 spin + refund half a bar, then 3.2 s of ghost form: every pass through a rival hits back for 14 spin (40% drained), heals 3 spin/s. 5 s rest after it ends. Thunder pierces and snaps it; the Void cannot be phased through') : f.kind === 'fort' ? t('Kim Thân: 3,5 giây bất động như núi, nhận 60% sát thương, hao quay va chạm ×0,3; ai chạm vào bị hất 11 và mất 16 quay (mỗi 0,4s); mở màn đẩy lùi + 8 quay trong 4,5m', 'Fortress: 3.5 s immovable, take 60% damage, collision spin loss ×0.3; anyone touching you is thrown 11 and loses 16 spin (every 0.4 s); opens with a shove + 8 spin within 4.5 m') : f.kind === 'rime' ? t('Huyết Băng: vùng băng đỏ bán kính 5m trong 4,5 giây: địch trượt, bị hút 8 quay/giây về cho bạn (tới 120% quay ban đầu)', 'Blood Frost: a red frost field of 5 m for 4.5 s: rivals slide and are drained 8 spin/s into you (up to 120% of launch spin)') : t('Lốc Lửa: sức mạnh ngang Lốc V3 gốc (chưa nerf), đốt sàn 16/giây, chỉ tốn 1 thanh', 'Fire Tornado: original un-nerfed V3 tornado power, burns the floor for 16/s, costs just 1 bar');
-    return `<button data-fusion="${i}">${f.ids.map(id => SKILLS[id].name).join(' + ')} → <b>${f.name}</b><br>${effect} · ${t('Chạm để trang bị 2 ô', 'Tap to equip both slots')}</button>`;
+    const worn = equippedFusions().includes(f);   // both skills of the pair are in your slots
+    return `<button data-fusion="${i}" class="${worn ? 'on' : ''}" aria-pressed="${worn}">${worn ? `<span class="equipped">✓ ${t('ĐANG TRANG BỊ', 'EQUIPPED')}</span><br>` : ''}${f.ids.map(id => SKILLS[id].name).join(' + ')} → <b>${f.name}</b><br>${effect}${worn ? '' : ` · ${t('Chạm để trang bị 2 ô', 'Tap to equip both slots')}`}</button>`;
   }).join('') || `<p class="hint">${t(`Chưa mở hợp chiêu nào. Cặp đầu tiên mở sau trùm màn ${firstFusionStage()}.`, `No fusion unlocked yet. The first pair unlocks after the stage ${firstFusionStage()} boss.`)}</p>`;
   const own = shardsOwned(), got = own.filter(Boolean).length;
   $('shardBox').hidden = !got; $('eqBox').hidden = got < 5;

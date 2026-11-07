@@ -353,7 +353,7 @@ try {
     const paths=[
       [8,{m:4,r:.8,grip:0,fx:'',fz:'',skills:['thunder']}],
       [10,{m:1,r:.8,grip:0,fx:'',fz:'',skills:['thunder']}],
-      [26,{m:1,r:.8,grip:0,fx:'',fz:'',skills:['thunder']}],
+      [26,{m:2,r:.8,grip:.5,...chase,skills:['ghost']}],
       [36,{m:2,r:.8,grip:.5,...chase,skills:['ghost','lotus']}]
     ].map(([stage,b])=>({stage,rate:measure(stage,b)}));
     const milestones=[4,8,16,17].map(stage=>game.campaignSim({...base,skills:['storm','moon']},stage,731));
